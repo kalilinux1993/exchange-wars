@@ -1,5 +1,10 @@
 # Dev Guide
 
+## Phase 6n — Deeds Expansion (2026-06-10)
+
+- **Four new Deeds** (MILESTONES, packages/ui/src/game.ts; now 15 total): `five-million` Gold Baron (worth ladder extension, with progress), `exotic-taste` (hold any vol ≥ 0.13 item), `master-contractor` (10 contracts, progress), `storm-rider` (a personal fill inside an event window — matches `Game.fills` against `world.events`; only live play can earn it since clerks refuse event items).
+- No engine changes; MilestonesPanel renders new entries automatically.
+
 ## Phase 6m — Catalog 76 & Ticket Warnings (2026-06-10)
 
 - **Catalog 76** (52 staples + 24 exotics; top exotic now Magic sapling). First regen to pass the balance gate with NO sweep (FINDINGS #37) — the vol fences decoupled clerk balance from catalog re-rolls.

@@ -345,6 +345,28 @@ describe('UI shell', () => {
     expect(game.newsLog[3]!.move).toBeUndefined();
   });
 
+  it('new deeds latch: Gold Baron, Exotic Taste, Quartermaster General, Storm Trader', () => {
+    const game = newGame(42);
+    const view = () => playerView(game.world, game.playerId)!;
+
+    expect(checkMilestones(game, view(), 5_000_000).map((m) => m.id)).toContain('five-million');
+
+    const exotic = game.world.items.find((i) => i.volatility >= 0.13)!;
+    game.world.agents[game.playerId]!.inventory[exotic.id] = 1;
+    expect(checkMilestones(game, view(), 0).map((m) => m.id)).toContain('exotic-taste');
+
+    game.world.stats.contractsFilled = 10;
+    expect(checkMilestones(game, view(), 0).map((m) => m.id)).toContain('master-contractor');
+
+    // Storm Trader: a fill OUTSIDE the event window must not latch...
+    game.world.events!.push({ id: 'ev', itemId: exotic.id, kind: 'demand_surge', startTick: 10, endTick: 20 });
+    game.fills.push({ tick: 25, itemId: exotic.id, side: 'buy', qty: 1, price: 5 });
+    expect(checkMilestones(game, view(), 0).map((m) => m.id)).not.toContain('storm-rider');
+    // ...but one INSIDE it does.
+    game.fills.push({ tick: 15, itemId: exotic.id, side: 'buy', qty: 1, price: 5 });
+    expect(checkMilestones(game, view(), 0).map((m) => m.id)).toContain('storm-rider');
+  });
+
   it('the ticket warns on unaffordable buys and overdrawn sells (advisory only)', () => {
     freshApp();
     fireEvent.change(screen.getByLabelText('price'), { target: { value: '49999' } });

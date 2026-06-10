@@ -49,7 +49,7 @@ Design (account-light, static-site-friendly — Supabase):
 - ~~Offline-cap/payback design pass~~ CLOSED: cap 100k vs paybacks 43k–90k — tier 1 pays back in ~half a cap, by design
 - Offline-cap/payback design pass (cap 50k ticks vs tier paybacks 40k–97k — tier 1 pays back in ~one full offline cap; intentional?)
 - ~~CI actions deprecation~~ DONE phase 6l (checkout v6, setup-node v6, pages artifact v5, deploy-pages v5)
-- Achievements / milestones panel (first 100k, first whip, etc.) — cheap dopamine
+- ~~Achievements / milestones panel~~ DONE (panel + 15 deeds as of phase 6n)
 - ~~Sound-free juice: fill flash animations~~ DONE phase 6l (My Trades row flash + feed panel glow)
 - **CI (GitHub Actions)**: typecheck + test + e2e on push; auto-deploy Pages on main (replaces the manual gh-pages push)
 - **Phase 4c — PWA**: manifest, service worker, offline accrual on reopen (compute elapsed → fast-forward)

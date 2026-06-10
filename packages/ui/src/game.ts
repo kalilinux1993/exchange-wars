@@ -154,6 +154,13 @@ export const MILESTONES: Milestone[] = [
     progress: (_g, _v, worth) => worth / 1_000_000,
   },
   {
+    id: 'five-million',
+    name: 'Gold Baron',
+    flavor: 'Five million. The vault groans.',
+    achieved: (_g, _v, worth) => worth >= 5_000_000,
+    progress: (_g, _v, worth) => worth / 5_000_000,
+  },
+  {
     id: 'full-counter',
     name: 'Full Counter',
     flavor: 'Every offer slot, bought and paid for.',
@@ -197,6 +204,35 @@ export const MILESTONES: Milestone[] = [
       }
       return false;
     },
+  },
+  {
+    id: 'exotic-taste',
+    name: 'Exotic Taste',
+    flavor: 'Rare goods in the satchel — the dangerous kind.',
+    // Exotic = the wiki generator's high-volatility track (vol >= 0.13).
+    achieved: (g, view) =>
+      g.world.items.some((i) => i.volatility >= 0.13 && (view.inventory[i.id] ?? 0) > 0),
+  },
+  {
+    id: 'master-contractor',
+    name: 'Quartermaster General',
+    flavor: 'Ten royal contracts, sealed and delivered.',
+    achieved: (g) => (g.world.stats.contractsFilled ?? 0) >= 10,
+    progress: (g) => (g.world.stats.contractsFilled ?? 0) / 10,
+  },
+  {
+    id: 'storm-rider',
+    name: 'Storm Trader',
+    flavor: 'You traded into the storm and lived.',
+    // A personal fill inside an event's window. Clerks refuse event items,
+    // so only live human play can earn this; events prune ~250 ticks after
+    // ending and checkMilestones runs every refresh — reliable in practice.
+    achieved: (g) =>
+      g.fills.some((f) =>
+        (g.world.events ?? []).some(
+          (e) => e.itemId === f.itemId && e.startTick <= f.tick && f.tick < e.endTick,
+        ),
+      ),
   },
 ];
 
