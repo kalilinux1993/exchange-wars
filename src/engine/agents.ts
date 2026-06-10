@@ -1,3 +1,4 @@
+import { applyCommand, playerView } from './commands';
 import { bestAsk, bestBid, cancelAgentOrders, GE_TAX_RATE, placeOrder } from './exchange';
 import type { RNG } from './rng';
 import type { AgentKind, AgentState, ItemDef, ItemId, WorldState } from './types';
@@ -154,42 +155,56 @@ function actNoise(state: WorldState, agent: AgentState, rng: RNG): void {
 
 /**
  * The scripted flipper — proves the game is programmatically playable.
+ * Drives the engine EXCLUSIVELY through the player command protocol
+ * (applyCommand/playerView) — the same surface bots, UI, and server use.
  * Classic GE flip: buy at bid+1, sell at ask-1, only when post-tax margin clears.
  */
 function actPlayer(state: WorldState, agent: AgentState): void {
-  cancelAgentOrders(state, agent, undefined, 'buy');
+  const first = playerView(state, agent.id);
+  if (!first) return;
+  // Buy the next offer slot once capital comfortably covers it.
+  if (first.nextSlotCost !== null && first.gp > first.nextSlotCost * 4) {
+    applyCommand(state, agent.id, { type: 'buySlot' });
+  }
+  applyCommand(state, agent.id, { type: 'cancel', side: 'buy' });
 
+  // Re-quote sells. Only cancel an existing listing when we can re-list it
+  // (cancelling frees our own slot, so re-listing is always possible then).
   for (const def of state.items) {
-    const book = state.books[def.id];
-    if (!book) continue;
-    cancelAgentOrders(state, agent, def.id, 'sell');
-    const held = agent.inventory[def.id] ?? 0;
+    let v = playerView(state, agent.id);
+    if (!v) return;
+    const mySells = v.openOrders.filter((o) => o.itemId === def.id && o.side === 'sell').length;
+    if (mySells === 0 && v.openOrders.length >= v.slots) continue; // no free slot to list into
+    if (mySells > 0) applyCommand(state, agent.id, { type: 'cancel', itemId: def.id, side: 'sell' });
+    v = playerView(state, agent.id);
+    if (!v) return;
+    const held = v.inventory[def.id] ?? 0;
     if (held < 1) continue;
-    const ask = bestAsk(book);
-    const sellAt = Math.max(1, ask ? ask.price - 1 : Math.round(book.ema * 1.03));
-    placeOrder(state, agent, def.id, 'sell', sellAt, held);
+    const m = v.markets.find((x) => x.itemId === def.id);
+    if (!m) continue;
+    const sellAt = Math.max(1, m.bestAsk !== null ? m.bestAsk - 1 : Math.round(m.ema * 1.03));
+    applyCommand(state, agent.id, { type: 'place', itemId: def.id, side: 'sell', price: sellAt, qty: held });
   }
 
+  const v = playerView(state, agent.id);
+  if (!v) return;
+  if (v.openOrders.length >= v.slots) return; // no slot left for a new flip
   let best: { itemId: ItemId; buyAt: number; profit: number } | null = null;
-  for (const def of state.items) {
-    const book = state.books[def.id];
-    if (!book) continue;
-    const bid = bestBid(book);
-    const ask = bestAsk(book);
-    if (!bid || !ask) continue;
-    if (ask.agentId === agent.id) continue; // our own sell is best ask — no flip here
-    const buyAt = bid.price + 1;
-    const sellAt = ask.price - 1;
+  for (const m of v.markets) {
+    if (m.bestBid === null || m.bestAsk === null) continue;
+    if (m.bestAskIsMine) continue; // our own sell is best ask — no flip here
+    const buyAt = m.bestBid + 1;
+    const sellAt = m.bestAsk - 1;
     if (sellAt <= buyAt) continue;
     const profit = sellAt - Math.floor(sellAt * GE_TAX_RATE) - buyAt;
     // Skip flips that barely clear tax — thin margins lose to price drift.
     const minProfit = Math.max(TUNING.player.minProfit, Math.ceil(buyAt * TUNING.player.minMarginPct));
     if (profit >= minProfit && (best === null || profit > best.profit)) {
-      best = { itemId: def.id, buyAt, profit };
+      best = { itemId: m.itemId, buyAt, profit };
     }
   }
   if (best === null) return;
-  const budget = Math.floor(agent.gp * TUNING.player.capitalFraction);
+  const budget = Math.floor(v.gp * TUNING.player.capitalFraction);
   const qty = Math.min(TUNING.player.maxQty, Math.floor(budget / best.buyAt));
-  if (qty >= 1) placeOrder(state, agent, best.itemId, 'buy', best.buyAt, qty);
+  if (qty >= 1) applyCommand(state, agent.id, { type: 'place', itemId: best.itemId, side: 'buy', price: best.buyAt, qty });
 }

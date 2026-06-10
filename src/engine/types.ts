@@ -48,6 +48,8 @@ export interface AgentState {
   inventory: Record<ItemId, number>;
   /** Producers/consumers/market-makers specialise in one item. */
   itemId?: ItemId;
+  /** Players only: GE-style offer slot count (see PROGRESSION in commands.ts). */
+  slots?: number;
   /** Strategy scratch space — JSON-serializable numbers only. */
   memo: Record<string, number>;
 }

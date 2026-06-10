@@ -1,5 +1,6 @@
 import { actAgent } from './agents';
 import { DEFAULT_ITEMS } from './catalog';
+import { PROGRESSION } from './commands';
 import { createBook } from './exchange';
 import { createRng } from './rng';
 import type { AgentKind, AgentState, ItemDef, ItemId, WorldState } from './types';
@@ -79,6 +80,7 @@ export function addAgent(
     memo: { startGp: gp },
   };
   if (itemId !== undefined) agent.itemId = itemId;
+  if (kind === 'player') agent.slots = PROGRESSION.startingSlots;
   state.agents.push(agent);
   state.ledger.gpInitial += gp;
   for (const k of Object.keys(inventory).sort()) {
