@@ -3,3 +3,5 @@ dist/
 coverage/
 *.log
 .tmp/
+.claude/scheduled_tasks.lock
+.claude/scheduled_tasks.json
