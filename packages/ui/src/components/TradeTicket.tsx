@@ -1,0 +1,98 @@
+import { GE_TAX_RATE } from '@exchange-wars/engine';
+import type { CommandResult, ItemId, PlayerCommand, PlayerView, Side } from '@exchange-wars/engine';
+import { useState } from 'react';
+
+export function TradeTicket({
+  view,
+  selected,
+  onCommand,
+  lastResult,
+}: {
+  view: PlayerView;
+  selected: ItemId;
+  onCommand: (cmd: PlayerCommand) => void;
+  lastResult: CommandResult | null;
+}) {
+  const [side, setSide] = useState<Side>('buy');
+  const [price, setPrice] = useState('');
+  const [qty, setQty] = useState('1');
+  const market = view.markets.find((m) => m.itemId === selected);
+  const p = Number(price);
+  const q = Number(qty);
+  const valid = Number.isInteger(p) && p >= 1 && Number.isInteger(q) && q >= 1;
+  const total = valid ? p * q : 0;
+  const proceeds = valid ? total - Math.floor(total * GE_TAX_RATE) : 0;
+
+  const useMarketPrice = (): void => {
+    if (!market) return;
+    const ref =
+      side === 'buy'
+        ? market.bestBid !== null
+          ? market.bestBid + 1
+          : Math.round(market.ema)
+        : market.bestAsk !== null
+          ? market.bestAsk - 1
+          : Math.round(market.ema);
+    setPrice(String(Math.max(1, ref)));
+  };
+
+  return (
+    <section className="panel ticket">
+      <h2>Offer · {selected.replace(/_/g, ' ')}</h2>
+      <div className="sides">
+        <button className={side === 'buy' ? 'side buy active' : 'side buy'} onClick={() => setSide('buy')}>
+          buy
+        </button>
+        <button className={side === 'sell' ? 'side sell active' : 'side sell'} onClick={() => setSide('sell')}>
+          sell
+        </button>
+      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (valid) onCommand({ type: 'place', itemId: selected, side, price: p, qty: q });
+        }}
+      >
+        <div className="fields">
+          <label>
+            price
+            <input
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              inputMode="numeric"
+              placeholder={market ? String(market.lastPrice) : ''}
+            />
+          </label>
+          <button type="button" className="chip" onClick={useMarketPrice}>
+            {side === 'buy' ? 'bid+1' : 'ask−1'}
+          </button>
+          <label>
+            qty
+            <input value={qty} onChange={(e) => setQty(e.target.value)} inputMode="numeric" />
+          </label>
+        </div>
+        <p className="sums">
+          {side === 'buy' ? (
+            <>
+              cost <b>{total.toLocaleString('en-US')}</b> gp
+            </>
+          ) : (
+            <>
+              after 2% tax <b>{proceeds.toLocaleString('en-US')}</b> gp
+            </>
+          )}
+        </p>
+        <button type="submit" className={`submit ${side}`} disabled={!valid}>
+          place {side} offer
+        </button>
+      </form>
+      {lastResult && !lastResult.ok && <p className="reject">rejected: {lastResult.reason}</p>}
+      {lastResult && lastResult.ok && lastResult.trades.length > 0 && (
+        <p className="filled">filled {lastResult.trades.reduce((a, t) => a + t.qty, 0)} instantly</p>
+      )}
+      <p className="dim small">
+        {view.openOrders.length}/{view.slots} offer slots used
+      </p>
+    </section>
+  );
+}

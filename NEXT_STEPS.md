@@ -16,11 +16,14 @@
 
 ## Phase 3 — DONE 2026-06-10 (npm workspace split: packages/{engine,cli})
 
+## Phase 4a — DONE 2026-06-10 (UI shell: packages/ui, playable in browser)
+
 ## Next candidates
-- **Phase 4 — React PWA UI** (`packages/ui`): now unblocked. Vite + React, render playerView, issue commands, seeded-world Playwright E2E. Jesse may want to steer art/game-feel here.
+- **Phase 4b — Playwright E2E**: browser-level gate on seeded worlds (needs `npx playwright install chromium`, ~100MB)
+- **Phase 4c — PWA**: manifest, service worker, offline accrual on reopen (compute elapsed → fast-forward)
+- Jesse steering pass on art direction / game-feel (current theme explicitly provisional)
 - CI (GitHub Actions): typecheck + test; needs a remote first (Jesse's call)
-- Payback-period design targets for upgrades (currently ~300k–3M ticks; fine under offline math, undesigned as gameplay)
-- Momentum traders still bleed slowly despite bailouts (FINDINGS #12) — only worth touching if dislocations dry up
+- Payback-period design targets for upgrades; momentum bleed (FINDINGS #12) — both low priority
 
 ## Phase 3 — Workspace hardening
 - Split into pnpm workspaces: packages/{engine,cli,botkit} per architect design (deliberately deferred from Phase 1)

@@ -10,9 +10,11 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p packages/ui",
     "sim": "tsx packages/cli/src/run.ts",
-    "balance": "tsx packages/cli/src/balance.ts"
+    "balance": "tsx packages/cli/src/balance.ts",
+    "dev": "npm run dev -w @exchange-wars/ui",
+    "build:ui": "npm run build -w @exchange-wars/ui"
   },
   "devDependencies": {
     "@types/node": "^25.9.2",
