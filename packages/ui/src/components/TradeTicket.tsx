@@ -15,6 +15,7 @@ export function TradeTicket({
   prefill,
   onCommand,
   lastResult,
+  eventNote,
 }: {
   view: PlayerView;
   selected: ItemId;
@@ -22,6 +23,8 @@ export function TradeTicket({
   prefill: TicketPrefill | null;
   onCommand: (cmd: PlayerCommand) => void;
   lastResult: CommandResult | null;
+  /** Active-event line for the selected item (formatted by App), or null. */
+  eventNote: string | null;
 }) {
   const [side, setSide] = useState<Side>('buy');
   const [price, setPrice] = useState('');
@@ -71,6 +74,7 @@ export function TradeTicket({
             : ''}
         </p>
       )}
+      {eventNote && <p className="warn small">{eventNote}</p>}
       <div className="sides">
         <button className={side === 'buy' ? 'side buy active' : 'side buy'} onClick={() => setSide('buy')}>
           buy

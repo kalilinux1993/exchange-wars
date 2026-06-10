@@ -59,20 +59,21 @@ export const TUNING = {
       // maxVolatility: junior clerks only trade stable goods — volatile books
       // are where automation bleeds (adverse selection on wide % spreads).
       // Re-swept whenever the world's RNG path changes (catalog growth, new
-      // spawners). Current best (68-item two-track wiki catalog): tier 2
-      // cadence 8 / vol 0.12 — the only cell green in BOTH scenarios
-      // (competitive min +2,824, isolated min +3,071); cad 6 and 7 each
-      // fail seed 7 in one scenario. Sweep BOTH legs, not just the failing
-      // one. Do NOT raise tier-2 vol to 0.14: that admits all 20 exotics
-      // (fixed vol 0.13), whose wide gp corridors print 130k+/8k ticks.
-      { cadence: 8, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.09 },
-      { cadence: 8, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
-      // Tier 3 vol ceiling is 0.12, NOT 1: a ceiling above 0.13 admits the
-      // exotics and the clerk farms their gp-wide corridors unattended for
-      // +140k–195k/8k ticks (FINDINGS #33). Exotics are HUMAN territory —
-      // same design rule as events (FINDINGS #27). Tier 3 = speed + size:
-      // swept cadence 4/5/6 both legs → cad 4 dominant (min +2,094,
-      // medians +4,801/+4,257); cad 6 repeats tier 2's isolated-seed-7 hole.
+      // spawners) — sweep BOTH scenario legs (FINDINGS #34). Current locks
+      // are for the 84-item catalog; per-tier numbers in the comments below.
+      // Do NOT raise any clerk vol ceiling to 0.13+: that admits the
+      // exotics, whose wide gp corridors print 130k+/8k ticks (FINDINGS #33).
+      // Tier 1 (84-item catalog re-sweep): cad 7 / vol 0.10 — min +285,
+      // medians 1,534/1,917; cad 8-9 / vol 0.09 fail isolated seed 7 (the
+      // recurring seed-7 cadence-band hole; see FINDINGS #34/#38).
+      { cadence: 7, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.1 },
+      // Tier 2 (84 items): cad 7 / vol 0.12 — min +1,149, medians
+      // 2,740/3,212; ties cad 9 on stats, wins on design (a tier-2 clerk
+      // shouldn't be slower than tier 1). cad 8 fails seed 42 competitive.
+      { cadence: 7, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
+      // Tier 3 vol ceiling is 0.12, NOT 1: exotics are HUMAN territory —
+      // same design rule as events (FINDINGS #27/#33). Tier 3 = speed +
+      // size. 84-item re-verify: min +3,188, medians 5,216/3,791.
       { cadence: 4, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 0.12 },
     ],
   },

@@ -1,8 +1,12 @@
 # Findings
 
+## Phase 6o (2026-06-10)
+
+38. **#37 refuted: the sweep-free regen was luck, not structure.** The 84-item regen broke tier 1 (isolated seed 7, −2,641) AND tier 2 (competitive seed 42, −457). The vol fences narrowed the blast radius (tier 3 sailed through re-verify: min +3,188) but staple-universe tiers still re-roll. Re-swept both legs: tier 1 → cad 7 / vol 0.10 (min +285, medians 1,534/1,917 — cad 8-9 at vol 0.09 both fall into the recurring isolated-seed-7 hole, which wanders across the cadence band as the catalog changes); tier 2 → cad 7 / vol 0.12 (min +1,149, medians 2,740/3,212; tied cad 9 on stats, picked on design — a senior clerk shouldn't be slower than a junior). Tier curve stays monotonic: ~1.5-1.9k / ~2.7-3.2k / ~3.8-5.2k. Operational rule restored: **every regen budgets a sweep**; #37's "routine content work" framing only holds for the exotic-fenced tier 3.
+
 ## Phase 6m (2026-06-10)
 
-37. **The vol fences bought re-roll robustness for free.** Catalog 68→76 was the first regen since clerks were bounded to vol ≤ 0.12 (FINDINGS #33/#35), and for the first time since the wiki catalog landed, the balance gate passed a re-roll with NO sweep — all tiers, both scenarios, magnitude ceiling included. Plausible mechanism: staple books are deep and speculator counts scale with catalog size, so the clerk's hunting ground gets *more* liquid as the catalog grows, while the thin chaotic books that made every earlier regen a re-tune (exotics) are no longer in any tier's universe. Catalog growth may now be routine content work rather than a balance event — one more regen needed to confirm the pattern.
+37. **[Refuted by #38 — held for one regen only.] The vol fences bought re-roll robustness for free.** Catalog 68→76 was the first regen since clerks were bounded to vol ≤ 0.12 (FINDINGS #33/#35), and for the first time since the wiki catalog landed, the balance gate passed a re-roll with NO sweep — all tiers, both scenarios, magnitude ceiling included. Plausible mechanism: staple books are deep and speculator counts scale with catalog size, so the clerk's hunting ground gets *more* liquid as the catalog grows, while the thin chaotic books that made every earlier regen a re-tune (exotics) are no longer in any tier's universe. Catalog growth may now be routine content work rather than a balance event — one more regen needed to confirm the pattern.
 
 ## Phase 6l (2026-06-10)
 

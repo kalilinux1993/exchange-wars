@@ -19,9 +19,10 @@ function median(xs: number[]): number {
 describe('idle tier balance gate', () => {
   for (const competitive of [false, true]) {
     const label = competitive ? 'competitive' : 'isolated';
-    // 30 measured sims × 8k ticks × ~200 agents — CI runners need real headroom
-    // (a 30s budget passed locally but timed out on ubuntu at 32 items).
-    it(`${label}: every tier profits on every seed; tiers 2-3 beat tier 1 by median`, { timeout: 240_000 }, () => {
+    // 30 measured sims × 8k ticks — CI runners need real headroom (a 30s
+    // budget passed locally but timed out on ubuntu at 32 items; at 84 items
+    // each scenario runs ~95s locally ≈ ~190s on ubuntu, so 240s was tight).
+    it(`${label}: every tier profits on every seed; tiers 2-3 beat tier 1 by median`, { timeout: 360_000 }, () => {
       const byTier: number[][] = [];
       for (const tier of [1, 2, 3]) {
         const profits = SEEDS.map((seed) => measureIdleTier(tier, competitive, seed, TICKS));

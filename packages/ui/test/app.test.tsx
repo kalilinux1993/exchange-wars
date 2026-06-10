@@ -345,6 +345,15 @@ describe('UI shell', () => {
     expect(game.newsLog[3]!.move).toBeUndefined();
   });
 
+  it('active events show countdowns on the newsbar chip and the ticket', () => {
+    const game = newGame(42);
+    game.world.events!.push({ id: 'ev1', itemId: FIRST.id, kind: 'demand_surge', startTick: 0, endTick: 450 });
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByText('start trading'));
+    expect(screen.getByText(/450 left/)).toBeTruthy(); // newsbar chip
+    expect(screen.getByText(/craze active — ends in ~450 ticks/)).toBeTruthy(); // ticket (FIRST selected by default)
+  });
+
   it('new deeds latch: Gold Baron, Exotic Taste, Quartermaster General, Storm Trader', () => {
     const game = newGame(42);
     const view = () => playerView(game.world, game.playerId)!;

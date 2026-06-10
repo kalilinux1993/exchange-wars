@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 6o — Catalog 84 & Event Countdowns (2026-06-10)
+
+- **Catalog 84** (56 staples + 28 exotics; exotic ladder tops at Dragon platelegs). The regen broke tiers 1-2 — #37 refuted (FINDINGS #38). Re-swept both legs: tier 1 → cad 7 / vol 0.10, tier 2 → cad 7 / vol 0.12, tier 3 re-verified untouched. Every regen budgets a sweep again.
+- **Event countdowns** — newsbar chips show "· N left" (App.tsx) and the ticket shows "⚡ <kind> active — ends in ~N ticks" for the selected item via the new `eventNote` prop (formatted in App, rendered by TradeTicket as a `.warn small` line).
+- **Balance gate timeout 240s → 360s** (balance.test.ts): at 84 items each scenario runs ~95s locally ≈ ~190s on ubuntu; 240s was one catalog bump from flaking.
+
 ## Phase 6n — Deeds Expansion (2026-06-10)
 
 - **Four new Deeds** (MILESTONES, packages/ui/src/game.ts; now 15 total): `five-million` Gold Baron (worth ladder extension, with progress), `exotic-taste` (hold any vol ≥ 0.13 item), `master-contractor` (10 contracts, progress), `storm-rider` (a personal fill inside an event window — matches `Game.fills` against `world.events`; only live play can earn it since clerks refuse event items).

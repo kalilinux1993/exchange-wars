@@ -312,8 +312,9 @@ export function App({ initial }: { initial?: Game }) {
         return (
           <div className="newsbar">
             {active.map((e) => (
-              <span key={e.id} className={`event-chip ${e.kind}`}>
-                ⚡ {names.get(e.itemId) ?? e.itemId} {EVENT_LABELS[e.kind]}
+              <span key={e.id} className={`event-chip ${e.kind}`} title="ticks until the event ends">
+                ⚡ {names.get(e.itemId) ?? e.itemId} {EVENT_LABELS[e.kind]} ·{' '}
+                {(e.endTick - game.world.tick).toLocaleString('en-US')} left
               </span>
             ))}
           </div>
@@ -351,6 +352,14 @@ export function App({ initial }: { initial?: Game }) {
             prefill={prefill}
             onCommand={command}
             lastResult={lastResult}
+            eventNote={(() => {
+              const e = (game.world.events ?? []).find(
+                (ev) => ev.itemId === selected && ev.startTick <= game.world.tick && ev.endTick > game.world.tick,
+              );
+              return e
+                ? `⚡ ${EVENT_LABELS[e.kind]} active — ends in ~${(e.endTick - game.world.tick).toLocaleString('en-US')} ticks`
+                : null;
+            })()}
           />
           <BookLadder book={game.world.books[selected]} playerId={game.playerId} onLevel={onLevel} />
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
