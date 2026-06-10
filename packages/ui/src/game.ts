@@ -248,6 +248,20 @@ export function normalizeGame(game: Game): Game {
   };
 }
 
+export function exportSaveString(game: Game): string {
+  return JSON.stringify(game);
+}
+
+export function importSaveString(raw: string): Game | null {
+  try {
+    const g = JSON.parse(raw) as Game;
+    if (!g || typeof g !== 'object' || !g.world || typeof g.playerId !== 'number') return null;
+    return normalizeGame(g);
+  } catch {
+    return null;
+  }
+}
+
 export function loadGame(): Game | null {
   const raw = localStorage.getItem(SAVE_KEY);
   if (raw === null) return null;

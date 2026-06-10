@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Catalog-agnostic: everything derives from DEFAULT_ITEMS so `npm run
 // gen:catalog` regens never break these tests.
-import { DEFAULT_ITEMS, playerView } from '@exchange-wars/engine';
+import { addAgent, createWorld, DEFAULT_ITEMS, playerView } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { App } from '../src/App';
@@ -9,7 +9,9 @@ import { chooseSave } from '../src/cloud';
 import {
   applyOfflineProgress,
   checkMilestones,
+  exportSaveString,
   HUMAN_START_GP,
+  importSaveString,
   newGame,
   OFFLINE_CAP_TICKS,
   updateNews,
@@ -171,7 +173,30 @@ describe('UI shell', () => {
   });
 
   it('offline accrual: real time away fast-forwards the world, capped, ignoring blips', () => {
-    const game = newGame(42);
+    // Tiny 1-item, 1-agent world: this tests game.ts clock logic, not the
+    // economy — the 100k-tick cap case must not drag the full 470-agent world
+    // through jsdom (it timed out CI at 124s on the 64-item catalog).
+    const world = createWorld({
+      seed: 1,
+      items: [{ id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.08 }],
+      producersPerItem: 0,
+      consumersPerItem: 0,
+      marketMakersPerItem: 0,
+      momentumTraders: 0,
+      noiseTraders: 0,
+      players: 0,
+    });
+    const human = addAgent(world, 'player', HUMAN_START_GP, {});
+    human.policy = 'idle';
+    const game: Game = {
+      world,
+      playerId: human.id,
+      startGp: HUMAN_START_GP,
+      worthHistory: [],
+      milestones: [],
+      newsLog: [],
+      seenEvents: [],
+    };
     expect(applyOfflineProgress(game, 1_000_000)).toBeNull();
     expect(game.world.tick).toBe(0);
     game.lastSeenMs = 1_000_000;
@@ -203,6 +228,32 @@ describe('UI shell', () => {
     const limit = FIRST.buyLimit && FIRST.buyLimit > 0 ? FIRST.buyLimit : Number.POSITIVE_INFINITY;
     const expected = Math.min(afford, limit);
     expect((screen.getByLabelText(/qty/i) as HTMLInputElement).value).toBe(String(expected));
+  });
+
+  it('save export/import round-trips and rejects garbage', () => {
+    const game = newGame(42);
+    game.world.tick = 0;
+    const raw = exportSaveString(game);
+    const back = importSaveString(raw);
+    expect(back).not.toBeNull();
+    expect(back!.world.seed).toBe(42);
+    expect(back!.playerId).toBe(game.playerId);
+    expect(importSaveString('not json')).toBeNull();
+    expect(importSaveString('{"hello":1}')).toBeNull();
+  });
+
+  it('column sort orders the market by last price both ways', () => {
+    freshApp();
+    const lasts = (): number[] =>
+      Array.from(document.querySelectorAll('.market tbody tr td:nth-child(4)')).map((td) =>
+        Number(td.textContent!.replace(/,/g, '')),
+      );
+    fireEvent.click(screen.getByText('last')); // ascending
+    const asc = lasts();
+    for (let i = 1; i < asc.length; i++) expect(asc[i]!).toBeGreaterThanOrEqual(asc[i - 1]!);
+    fireEvent.click(screen.getByText(/^last ▲/)); // descending
+    const desc = lasts();
+    for (let i = 1; i < desc.length; i++) expect(desc[i]!).toBeLessThanOrEqual(desc[i - 1]!);
   });
 
   it('market filter narrows the table live', () => {

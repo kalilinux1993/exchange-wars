@@ -19,6 +19,8 @@ import {
   applyOfflineProgress,
   checkMilestones,
   clearSave,
+  exportSaveString,
+  importSaveString,
   loadGame,
   newGame,
   recordWorth,
@@ -174,6 +176,34 @@ export function App({ initial }: { initial?: Game }) {
     schedulePush();
     force();
   };
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const exportSave = (): void => {
+    const blob = new Blob([exportSaveString(game)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `exchange-wars-s${game.world.seed}-t${game.world.tick}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const importFile = (file: File): void => {
+    void file.text().then((raw) => {
+      const g = importSaveString(raw);
+      if (!g) {
+        setToast({ id: 'import-failed', name: 'Import failed', flavor: 'that was not a valid save file', achieved: () => false });
+        return;
+      }
+      gameRef.current = g;
+      offlineRef.current = applyOfflineProgress(g, Date.now());
+      saveGame(g);
+      setSelected(g.world.items[0]?.id ?? '');
+      setAwayDismissed(false);
+      setSpeed(0);
+      schedulePush();
+      force();
+    });
+  };
+
   const restart = (seed: number): void => {
     clearSave();
     gameRef.current = newGame(seed);
@@ -210,6 +240,23 @@ export function App({ initial }: { initial?: Game }) {
           <button className="chip" onClick={() => saveGame(game)}>
             save
           </button>
+          <button className="chip" title="download your save as a file" onClick={exportSave}>
+            export
+          </button>
+          <button className="chip" title="load a save file" onClick={() => fileRef.current?.click()}>
+            import
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) importFile(f);
+              e.target.value = '';
+            }}
+          />
           <button className="chip" title="how to play" onClick={() => setHelpOpen(true)}>
             ?
           </button>

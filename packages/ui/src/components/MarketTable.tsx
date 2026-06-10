@@ -3,6 +3,8 @@ import { useState } from 'react';
 
 const SPARK_POINTS = 20;
 
+type SortKey = 'name' | 'bid' | 'ask' | 'last' | 'vol';
+
 /** Tiny price history from the engine's recent-trades window (display-only read). */
 function Spark({ prices }: { prices: number[] }) {
   if (prices.length < 2) return <span className="dim">·</span>;
@@ -34,6 +36,9 @@ export function MarketTable({
   onSelect: (id: ItemId) => void;
 }) {
   const [filter, setFilter] = useState('');
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
+  const toggleSort = (key: SortKey): void =>
+    setSort((s) => (s && s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 }));
   const defs = new Map(items.map((i) => [i.id, i]));
   const sparks = new Map<ItemId, number[]>();
   for (const t of trades) {
@@ -46,6 +51,30 @@ export function MarketTable({
     needle === ''
       ? view.markets
       : view.markets.filter((m) => (defs.get(m.itemId)?.name ?? m.itemId).toLowerCase().includes(needle));
+  const numOf = (m: (typeof shown)[number]): number | null => {
+    if (sort === null) return null;
+    if (sort.key === 'bid') return m.bestBid;
+    if (sort.key === 'ask') return m.bestAsk;
+    if (sort.key === 'last') return m.lastPrice;
+    return m.volume;
+  };
+  const sorted =
+    sort === null
+      ? shown
+      : [...shown].sort((a, b) => {
+          if (sort.key === 'name') {
+            const an = defs.get(a.itemId)?.name ?? a.itemId;
+            const bn = defs.get(b.itemId)?.name ?? b.itemId;
+            return (an < bn ? -1 : an > bn ? 1 : 0) * sort.dir;
+          }
+          const av = numOf(a);
+          const bv = numOf(b);
+          if (av === null && bv === null) return 0;
+          if (av === null) return 1; // empty books sink to the bottom either way
+          if (bv === null) return -1;
+          return (av - bv) * sort.dir;
+        });
+  const arrow = (key: SortKey): string => (sort?.key === key ? (sort.dir === 1 ? ' ▲' : ' ▼') : '');
   return (
     <section className="panel market">
       <h2>
@@ -63,16 +92,26 @@ export function MarketTable({
       <table>
         <thead>
           <tr>
-            <th>item</th>
-            <th className="num">bid</th>
-            <th className="num">ask</th>
-            <th className="num">last</th>
+            <th className="sortable" onClick={() => toggleSort('name')}>
+              item{arrow('name')}
+            </th>
+            <th className="num sortable" onClick={() => toggleSort('bid')}>
+              bid{arrow('bid')}
+            </th>
+            <th className="num sortable" onClick={() => toggleSort('ask')}>
+              ask{arrow('ask')}
+            </th>
+            <th className="num sortable" onClick={() => toggleSort('last')}>
+              last{arrow('last')}
+            </th>
             <th aria-label="trend" />
-            <th className="num">volume</th>
+            <th className="num sortable" onClick={() => toggleSort('vol')}>
+              volume{arrow('vol')}
+            </th>
           </tr>
         </thead>
         <tbody>
-          {shown.map((m) => (
+          {sorted.map((m) => (
             <tr
               key={m.itemId}
               className={m.itemId === selected ? 'selected' : ''}

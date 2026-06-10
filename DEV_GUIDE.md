@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 6g — Sorting, Save Portability & CI Scaling Fix (2026-06-10)
+
+- **CI red fixed** (Phase 6f's run timed out at 120s on ubuntu): the offline-accrual spec now runs on a TINY 1-item world — it tests game.ts clock logic, not the economy; never drag the full ~470-agent world through a 100k-tick jsdom test. Balance gate budget → 240s. **Rule: world-size-independent tests get world-size-independent fixtures.**
+- **Sortable market columns** — click item/bid/ask/last/volume headers (▲/▼, empty books sink to the bottom); composes with the filter.
+- **Save export/import** — export downloads the save JSON; import loads a file (validated via `importSaveString`, normalized, offline-accrued against now). Your safety net until cloud sync is activated — and a sneaky save-share mechanism.
+
 ## Phase 6f — Max Button, Chart Labels & Catalog VIII (2026-06-10)
 
 - **Ticket "max"** — fills qty: buys = floor(gp/price) capped by the item's remaining buy limit; sells = all held.

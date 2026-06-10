@@ -279,6 +279,15 @@ body {
   z-index: 1;
 }
 
+.market th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.market th.sortable:hover {
+  color: var(--gold);
+}
+
 .market table {
   width: 100%;
   min-width: 520px;
