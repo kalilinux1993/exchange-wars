@@ -1,5 +1,10 @@
 # Findings
 
+## Phase 4g (2026-06-10)
+
+24. **Sweep, don't probe.** Three sequential single-knob "fixes" for tier-1 marginality (cadence 7, vol 0.09, double stale-patience) each traded one failing seed for another — every config was tuned to the previous catalog size. A 6-config sweep over {cadence}×{vol ceiling} measuring the MIN cell across all scenario-seeds found cadence 8/vol 0.10 dominant on both min (+8,360) and average (+11,353) in minutes. Also measured-and-rejected: patience for a 1-flip bot (frozen capital = pure opportunity cost; made 3 seeds negative).
+25. **Catalog growth keeps re-tuning tier 1.** Every items batch (14→18→22→28) re-exposed the same 1-flip bot's variance. The balance gate catches it within the iteration; the sweep harness makes the fix ~5 minutes. This is now routine maintenance, not crisis.
+
 ## Phase 4c (2026-06-10)
 
 21. **Catalog growth breaks economies through liquidity dilution, not item math.** Tripling items (5→14) with a FIXED global speculator pool (4 momentum + 6 noise) spread liquidity so thin that books went one-sided and idle automation collapsed (tier 1 seed 7: −16,201). The real fix was world-generation: speculators now scale with catalog size (`max(4, items×0.8)` momentum, `max(6, items×1.2)` noise). After scaling, the tier curve isn't just repaired — it's the best it's ever been (tier 1 avg +6.5k/+8.4k, tier 3 +33.6k/+41.3k, monotonic, every seed positive, paybacks 48k–143k ticks).

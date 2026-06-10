@@ -54,6 +54,8 @@ export interface AgentState {
   policy?: string;
   /** Players only: purchased automation tiers by upgrade id (see PROGRESSION.upgrades). */
   upgrades?: Record<string, number>;
+  /** Players only: idle-bot configuration set via the configureBot command. */
+  botConfig?: { maxVolatility?: number; capitalFraction?: number; focusItemId?: ItemId | null };
   /** Strategy scratch space — JSON-serializable numbers only. */
   memo: Record<string, number>;
 }

@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 test('boots a fresh seed-42 world, paused, with the full market', async ({ page }) => {
   await expect(page.locator('.masthead h1')).toHaveText('Exchange Wars');
   await expect(page.locator('.clock .value').first()).toHaveText('0');
-  await expect(page.locator('.purse .gold')).toHaveText('50,000');
+  await expect(page.locator('.purse .gold')).toHaveText('55,000');
   for (const item of ['Iron ore', 'Coal', 'Shark', 'Grimy ranarr', 'Rune scimitar', 'Rune platebody']) {
     await expect(page.locator('.market')).toContainText(item);
   }
@@ -17,6 +17,7 @@ test('boots a fresh seed-42 world, paused, with the full market', async ({ page 
   await expect(page.locator('.player')).toContainText('empty satchel');
   await expect(page.locator('.chart')).toContainText('Fortune');
   await expect(page.locator('.feed')).toContainText('no trades yet');
+  await expect(page.locator('.milestones')).toContainText('Deeds');
 });
 
 test('full trade round-trip: instant buy fill, then instant sell', async ({ page }) => {
@@ -46,7 +47,7 @@ test('fast-forward advances the world and the save survives reload', async ({ pa
 test('slot purchase debits the purse and raises the cap', async ({ page }) => {
   await expect(page.locator('.ticket')).toContainText('0/3 offer slots used');
   await page.getByText('25,000 gp').click();
-  await expect(page.locator('.purse .gold')).toHaveText('25,000');
+  await expect(page.locator('.purse .gold')).toHaveText('30,000');
   await expect(page.locator('.ticket')).toContainText('0/4 offer slots used');
   await expect(page.getByText('50,000 gp')).toBeDisabled(); // autoFlip tier 1 now unaffordable
 });

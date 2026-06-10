@@ -2,6 +2,7 @@ import { applyCommand, playerView, runTicks, tickWorld } from '@exchange-wars/en
 import type { CommandResult, ItemId, PlayerCommand } from '@exchange-wars/engine';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { MarketTable } from './components/MarketTable';
+import { MilestonesPanel } from './components/MilestonesPanel';
 import { PlayerPanel } from './components/PlayerPanel';
 import { TradeFeed } from './components/TradeFeed';
 import { TradeTicket } from './components/TradeTicket';
@@ -9,6 +10,7 @@ import { UpgradeShop } from './components/UpgradeShop';
 import { WorthChart } from './components/WorthChart';
 import {
   applyOfflineProgress,
+  checkMilestones,
   clearSave,
   loadGame,
   newGame,
@@ -16,6 +18,7 @@ import {
   saveGame,
   viewNetWorth,
   type Game,
+  type Milestone,
   type OfflineResult,
 } from './game';
 
@@ -27,6 +30,9 @@ export function App({ initial }: { initial?: Game }) {
   if (gameRef.current === null) {
     gameRef.current = initial ?? loadGame() ?? newGame(42);
     offlineRef.current = applyOfflineProgress(gameRef.current, Date.now());
+    // Latch anything offline progress earned — silently (the banner covers it).
+    const v0 = playerView(gameRef.current.world, gameRef.current.playerId);
+    if (v0) checkMilestones(gameRef.current, v0, viewNetWorth(v0));
   }
   const game = gameRef.current;
   const [, force] = useReducer((x: number) => x + 1, 0);
@@ -34,14 +40,29 @@ export function App({ initial }: { initial?: Game }) {
   const [selected, setSelected] = useState<ItemId>(game.world.items[0]?.id ?? '');
   const [lastResult, setLastResult] = useState<CommandResult | null>(null);
   const [awayDismissed, setAwayDismissed] = useState(false);
+  const [toast, setToast] = useState<Milestone | null>(null);
+
+  const refreshProgress = (): void => {
+    const v = playerView(game.world, game.playerId);
+    if (!v) return;
+    const w = viewNetWorth(v);
+    recordWorth(game, w);
+    const newly = checkMilestones(game, v, w);
+    if (newly.length > 0) setToast(newly[newly.length - 1]!);
+  };
+
+  useEffect(() => {
+    if (toast === null) return;
+    const id = setTimeout(() => setToast(null), 4_000);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   useEffect(() => {
     if (speed === 0) return;
     const id = setInterval(
       () => {
         tickWorld(game.world);
-        const v = playerView(game.world, game.playerId);
-        if (v) recordWorth(game, viewNetWorth(v));
+        refreshProgress();
         force();
       },
       Math.max(16, Math.round(1000 / speed)),
@@ -54,13 +75,13 @@ export function App({ initial }: { initial?: Game }) {
 
   const command = (cmd: PlayerCommand): void => {
     setLastResult(applyCommand(game.world, game.playerId, cmd));
+    refreshProgress();
     saveGame(game);
     force();
   };
   const fastForward = (n: number): void => {
     runTicks(game.world, n);
-    const v = playerView(game.world, game.playerId);
-    if (v) recordWorth(game, viewNetWorth(v));
+    refreshProgress();
     saveGame(game);
     force();
   };
@@ -141,14 +162,21 @@ export function App({ initial }: { initial?: Game }) {
         />
         <section className="middle">
           <TradeTicket view={view} selected={selected} onCommand={command} lastResult={lastResult} />
-          <UpgradeShop view={view} onCommand={command} />
+          <UpgradeShop view={view} items={game.world.items} onCommand={command} />
           <WorthChart history={game.worthHistory} startGp={game.startGp} />
         </section>
         <section className="middle">
           <PlayerPanel view={view} items={game.world.items} onCommand={command} />
           <TradeFeed trades={game.world.trades} items={game.world.items} playerId={game.playerId} />
+          <MilestonesPanel unlocked={game.milestones} />
         </section>
       </main>
+      {toast && (
+        <div className="toast" onClick={() => setToast(null)}>
+          <span className="mine">◆</span> <b>{toast.name}</b>
+          <span className="dim"> — {toast.flavor}</span>
+        </div>
+      )}
       <footer className="footnote">
         deterministic world · automation keeps working through fast-forward · art direction provisional
       </footer>

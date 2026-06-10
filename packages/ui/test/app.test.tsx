@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
+import { playerView } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { App } from '../src/App';
 import {
   applyOfflineProgress,
+  checkMilestones,
   HUMAN_START_GP,
   newGame,
   OFFLINE_CAP_TICKS,
@@ -72,6 +74,34 @@ describe('UI shell', () => {
     expect(screen.queryByText(/let the world run/i)).toBeNull(); // chart now renders
   });
 
+  it('milestones latch once and persist on the save', () => {
+    const game = newGame(42);
+    const v = playerView(game.world, game.playerId)!;
+    const newly = checkMilestones(game, v, 120_000);
+    expect(newly.map((m) => m.id)).toContain('hundred-k');
+    expect(game.milestones).toContain('doubled'); // 120k ≥ 2 × 55k
+    expect(checkMilestones(game, v, 120_000)).toHaveLength(0); // no double-unlock
+  });
+
+  it('first offer unlocks a milestone with a toast, and the Deeds panel tracks it', () => {
+    freshApp();
+    expect(screen.getByText('Deeds')).toBeTruthy();
+    placeBuy('50', '2');
+    expect(screen.getAllByText('Open for Business').length).toBeGreaterThan(0); // toast + panel
+  });
+
+  it('Clerk Orders configure the idle bot through the command protocol', () => {
+    const game = freshApp();
+    expect(screen.getByText(/hire the clerk/i)).toBeTruthy();
+    fireEvent.click(screen.getByText('50,000 gp')); // buy autoFlip tier 1 (affordable at 55k)
+    const focus = screen.getByLabelText(/focus/i) as HTMLSelectElement;
+    fireEvent.change(focus, { target: { value: 'iron_ore' } });
+    expect(game.world.agents[game.playerId]!.botConfig?.focusItemId).toBe('iron_ore');
+    const risk = screen.getByLabelText(/risk/i) as HTMLSelectElement;
+    fireEvent.change(risk, { target: { value: '0.06' } });
+    expect(game.world.agents[game.playerId]!.botConfig?.maxVolatility).toBe(0.06);
+  });
+
   it('offline accrual: real time away fast-forwards the world, capped, ignoring blips', () => {
     const game = newGame(42);
     // No lastSeenMs yet (never saved) → nothing applied.
@@ -102,7 +132,7 @@ describe('UI shell', () => {
   });
 
   it('upgrade shop gates purchases by affordability', () => {
-    const game = freshApp(); // 50k gp: slot (25k) and autoFlip tier 1 (50k) both within reach
+    const game = freshApp(); // 55k gp: slot (25k) and autoFlip tier 1 (50k) both within reach
     const slotBtn = screen.getByText('25,000 gp') as HTMLButtonElement;
     const flipBtn = screen.getByText('50,000 gp') as HTMLButtonElement;
     expect(slotBtn.disabled).toBe(false);

@@ -175,6 +175,30 @@ describe('command protocol', () => {
     checkInvariants(state);
   });
 
+  it('configureBot clamps values, validates the focus item, and surfaces in the view', () => {
+    const { state, alice } = fixture();
+    expect(applyCommand(state, alice.id, { type: 'configureBot', capitalFraction: 0.9 }).ok).toBe(true);
+    expect(alice.botConfig?.capitalFraction).toBe(0.5); // clamped down
+    applyCommand(state, alice.id, { type: 'configureBot', capitalFraction: 0.01 });
+    expect(alice.botConfig?.capitalFraction).toBe(0.1); // clamped up
+    applyCommand(state, alice.id, { type: 'configureBot', maxVolatility: 5 });
+    expect(alice.botConfig?.maxVolatility).toBe(1);
+    expect(applyCommand(state, alice.id, { type: 'configureBot', maxVolatility: Number.NaN }).reason).toBe(
+      'bad-config',
+    );
+    expect(applyCommand(state, alice.id, { type: 'configureBot', focusItemId: 'nonexistent' }).reason).toBe(
+      'unknown-item',
+    );
+    applyCommand(state, alice.id, { type: 'configureBot', focusItemId: 'ore' });
+    expect(alice.botConfig?.focusItemId).toBe('ore');
+    applyCommand(state, alice.id, { type: 'configureBot', focusItemId: null });
+    expect(alice.botConfig?.focusItemId).toBeNull();
+    const view = playerView(state, alice.id)!;
+    expect(view.botConfig).toEqual({ maxVolatility: 1, capitalFraction: 0.1, focusItemId: null });
+    const restored = JSON.parse(JSON.stringify(state)) as WorldState;
+    expect(restored.agents[alice.id]!.botConfig?.capitalFraction).toBe(0.1);
+  });
+
   it('conserves through a command-driven session', () => {
     const { state, alice, bob } = fixture();
     placeOrder(state, bob, 'ore', 'sell', 100, 20);

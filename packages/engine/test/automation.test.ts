@@ -114,6 +114,47 @@ describe('automation upgrades', () => {
     checkInvariants(state);
   });
 
+  it('idle automation honors Clerk Orders: focus item and tightened risk ceiling', () => {
+    const TWO: ItemDef[] = [
+      { id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.1 },
+      { id: 'log', name: 'Log', baseCost: 200, consumeValue: 450, volatility: 0.05 },
+    ];
+    const state = createWorld({
+      seed: 1,
+      items: TWO,
+      producersPerItem: 0,
+      consumersPerItem: 0,
+      marketMakersPerItem: 0,
+      momentumTraders: 0,
+      noiseTraders: 0,
+      players: 0,
+    });
+    const rng = createRng(7);
+    const mm = addAgent(state, 'player', 200_000, { ore: 50, log: 50 });
+    placeOrder(state, mm, 'ore', 'buy', 100, 5);
+    placeOrder(state, mm, 'ore', 'sell', 110, 5); // thin margin
+    placeOrder(state, mm, 'log', 'buy', 200, 5);
+    placeOrder(state, mm, 'log', 'sell', 300, 5); // fat margin — unfocused bot would pick log
+    const idle = addAgent(state, 'player', 200_000, {});
+    idle.policy = 'idle';
+    applyCommand(state, idle.id, { type: 'buyUpgrade', upgradeId: 'autoFlip' });
+
+    // Focus on ore: the bot must ignore log's better margin.
+    applyCommand(state, idle.id, { type: 'configureBot', focusItemId: 'ore' });
+    alignTick(state, idle.id, TUNING.automation.autoFlip[0]!.cadence);
+    actAgent(state, idle, rng);
+    expect(state.books['ore']!.buys.some((o) => o.agentId === idle.id)).toBe(true);
+    expect(state.books['log']!.buys.some((o) => o.agentId === idle.id)).toBe(false);
+
+    // Clear focus, tighten risk below ore's volatility: only log is eligible.
+    applyCommand(state, idle.id, { type: 'configureBot', focusItemId: null, maxVolatility: 0.06 });
+    state.tick += TUNING.automation.autoFlip[0]!.cadence;
+    actAgent(state, idle, rng); // cancels its stale ore bid, then flips log only
+    expect(state.books['ore']!.buys.some((o) => o.agentId === idle.id)).toBe(false);
+    expect(state.books['log']!.buys.some((o) => o.agentId === idle.id)).toBe(true);
+    checkInvariants(state);
+  });
+
   it('tier 2 runs two concurrent flips on its faster cadence', () => {
     const TWO: ItemDef[] = [
       { id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.1 },

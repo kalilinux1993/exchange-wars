@@ -28,7 +28,9 @@ export const TUNING = {
     autoFlip: [
       // maxVolatility: junior clerks only trade stable goods — volatile books
       // are where automation bleeds (adverse selection on wide % spreads).
-      { cadence: 7, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.1 },
+      // Swept at 28 items: {6,7,8}×{0.09,0.10} → cadence 8 / vol 0.10 has the
+      // best min-cell (+8,360) AND best average (+11,353). Sweep, don't probe.
+      { cadence: 8, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.1 },
       { cadence: 6, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
       { cadence: 4, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 1 },
     ],
@@ -216,6 +218,8 @@ function actPlayer(state: WorldState, agent: AgentState): void {
     capitalFraction: TUNING.player.capitalFraction,
     manageSlots: true,
     maxVolatility: 1, // the active player takes whatever risk it likes
+    focusItemId: null,
+    staleHoldTicks: TUNING.player.staleHoldTicks,
   });
 }
 
@@ -226,12 +230,17 @@ function actIdlePlayer(state: WorldState, agent: AgentState): void {
   const conf = TUNING.automation.autoFlip[Math.min(tier, TUNING.automation.autoFlip.length) - 1];
   if (!conf) return;
   if ((state.tick + agent.id) % conf.cadence !== 0) return;
+  // Clerk Orders: config can only make automation MORE conservative than its
+  // tier (vol is min'd with the tier ceiling; capital fraction is clamped).
+  const cfg = agent.botConfig;
   runFlipper(state, agent, {
     maxFlips: conf.maxFlips,
     maxQty: conf.maxQty,
-    capitalFraction: conf.capitalFraction,
+    capitalFraction: Math.min(0.5, Math.max(0.1, cfg?.capitalFraction ?? conf.capitalFraction)),
     manageSlots: false, // automation never spends on unlocks — purchases are deliberate
-    maxVolatility: conf.maxVolatility,
+    maxVolatility: Math.min(conf.maxVolatility, cfg?.maxVolatility ?? conf.maxVolatility),
+    focusItemId: cfg?.focusItemId ?? null,
+    staleHoldTicks: TUNING.player.staleHoldTicks,
   });
 }
 
@@ -242,6 +251,11 @@ interface FlipperOpts {
   manageSlots: boolean;
   /** Skip items more volatile than this (1 = trade everything). */
   maxVolatility: number;
+  /** Clerk Orders: only open new flips on this item (null = any). */
+  focusItemId: ItemId | null;
+  /** Ticks before a losing position dumps at market. The anchored economy
+   * mean-reverts, so patience converts dumps back into break-even exits. */
+  staleHoldTicks: number;
 }
 
 /**
@@ -297,7 +311,7 @@ function runFlipper(state: WorldState, agent: AgentState, opts: FlipperOpts): vo
     let sellAt = Math.max(1, m.bestAsk !== null ? m.bestAsk - 1 : Math.round(m.ema * 1.03));
     const basis = agent.memo[`basis_${def.id}`];
     const since = agent.memo[`since_${def.id}`];
-    const stale = since !== undefined && state.tick - since > TUNING.player.staleHoldTicks;
+    const stale = since !== undefined && state.tick - since > opts.staleHoldTicks;
     if (basis !== undefined && !stale) {
       sellAt = Math.max(sellAt, Math.ceil((basis + 1) / (1 - GE_TAX_RATE)));
     }
@@ -315,6 +329,7 @@ function runFlipper(state: WorldState, agent: AgentState, opts: FlipperOpts): vo
   for (const m of vBuy.markets) {
     if (m.bestBid === null || m.bestAsk === null) continue;
     if (m.bestAskIsMine) continue; // our own sell is best ask — no flip here
+    if (opts.focusItemId !== null && m.itemId !== opts.focusItemId) continue;
     const def = state.items.find((i) => i.id === m.itemId);
     if (!def || def.volatility > opts.maxVolatility) continue;
     const buyAt = m.bestBid + 1;

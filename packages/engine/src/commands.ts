@@ -21,7 +21,8 @@ export type PlayerCommand =
   | { type: 'place'; itemId: ItemId; side: Side; price: number; qty: number }
   | { type: 'cancel'; itemId?: ItemId; side?: Side }
   | { type: 'buySlot' }
-  | { type: 'buyUpgrade'; upgradeId: string };
+  | { type: 'buyUpgrade'; upgradeId: string }
+  | { type: 'configureBot'; maxVolatility?: number; capitalFraction?: number; focusItemId?: ItemId | null };
 
 export interface CommandResult {
   ok: boolean;
@@ -59,6 +60,8 @@ export interface PlayerView {
   nextSlotCost: number | null;
   /** Purchased automation tiers by upgrade id. */
   upgrades: Record<string, number>;
+  /** Clerk Orders — null fields mean "tier default". */
+  botConfig: { maxVolatility: number | null; capitalFraction: number | null; focusItemId: ItemId | null };
   inventory: Record<ItemId, number>;
   openOrders: OpenOrderView[];
   markets: MarketView[];
@@ -134,6 +137,27 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       agent.upgrades[cmd.upgradeId] = tier + 1;
       return { ok: true, trades: [] };
     }
+    case 'configureBot': {
+      // Clerk Orders: a clamped patch. Runtime still applies tier ceilings —
+      // config can only ever make automation MORE conservative than its tier.
+      const cfg = { ...(agent.botConfig ?? {}) };
+      if (cmd.maxVolatility !== undefined) {
+        if (!Number.isFinite(cmd.maxVolatility)) return { ok: false, reason: 'bad-config', trades: [] };
+        cfg.maxVolatility = Math.min(1, Math.max(0.01, cmd.maxVolatility));
+      }
+      if (cmd.capitalFraction !== undefined) {
+        if (!Number.isFinite(cmd.capitalFraction)) return { ok: false, reason: 'bad-config', trades: [] };
+        cfg.capitalFraction = Math.min(0.5, Math.max(0.1, cmd.capitalFraction));
+      }
+      if (cmd.focusItemId !== undefined) {
+        if (cmd.focusItemId !== null && !state.items.some((i) => i.id === cmd.focusItemId)) {
+          return { ok: false, reason: 'unknown-item', trades: [] };
+        }
+        cfg.focusItemId = cmd.focusItemId;
+      }
+      agent.botConfig = cfg;
+      return { ok: true, trades: [] };
+    }
   }
 }
 
@@ -181,6 +205,11 @@ export function playerView(state: WorldState, playerId: number): PlayerView | nu
     slots,
     nextSlotCost: PROGRESSION.slotCosts[slots - PROGRESSION.startingSlots] ?? null,
     upgrades: { ...(agent.upgrades ?? {}) },
+    botConfig: {
+      maxVolatility: agent.botConfig?.maxVolatility ?? null,
+      capitalFraction: agent.botConfig?.capitalFraction ?? null,
+      focusItemId: agent.botConfig?.focusItemId ?? null,
+    },
     inventory: { ...agent.inventory },
     openOrders,
     markets,

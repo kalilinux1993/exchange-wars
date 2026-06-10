@@ -12,6 +12,85 @@ export interface Game {
   worthHistory: { tick: number; worth: number }[];
   /** Wall-clock ms at last save — drives offline accrual on reopen. */
   lastSeenMs?: number;
+  /** Latched milestone ids (persisted; never un-latch). */
+  milestones: string[];
+}
+
+export interface Milestone {
+  id: string;
+  name: string;
+  flavor: string;
+  achieved: (game: Game, view: PlayerView, worth: number) => boolean;
+}
+
+export const MILESTONES: Milestone[] = [
+  {
+    id: 'first-offer',
+    name: 'Open for Business',
+    flavor: 'Your first offer rests on the books.',
+    achieved: (_g, view) => view.openOrders.length > 0,
+  },
+  {
+    id: 'first-goods',
+    name: 'Goods in the Satchel',
+    flavor: 'You hold actual merchandise.',
+    achieved: (_g, view) => Object.values(view.inventory).some((q) => q > 0),
+  },
+  {
+    id: 'hundred-k',
+    name: 'Six Figures',
+    flavor: 'The satchel jingles differently now.',
+    achieved: (_g, _v, worth) => worth >= 100_000,
+  },
+  {
+    id: 'doubled',
+    name: 'Doubled Up',
+    flavor: 'Twice what you walked in with.',
+    achieved: (g, _v, worth) => worth >= g.startGp * 2,
+  },
+  {
+    id: 'quarter-m',
+    name: 'Merchant Prince',
+    flavor: 'Clerks nod when you pass.',
+    achieved: (_g, _v, worth) => worth >= 250_000,
+  },
+  {
+    id: 'millionaire',
+    name: 'gp Millionaire',
+    flavor: 'The ledger needs wider columns.',
+    achieved: (_g, _v, worth) => worth >= 1_000_000,
+  },
+  {
+    id: 'full-counter',
+    name: 'Full Counter',
+    flavor: 'Every offer slot, bought and paid for.',
+    achieved: (_g, view) => view.slots >= 8,
+  },
+  {
+    id: 'hired-help',
+    name: 'Hired Help',
+    flavor: 'The clerk flips while you sleep.',
+    achieved: (_g, view) => (view.upgrades['autoFlip'] ?? 0) >= 1,
+  },
+  {
+    id: 'master-clerk',
+    name: 'Master Clerk',
+    flavor: 'Tier three. The counter runs itself.',
+    achieved: (_g, view) => (view.upgrades['autoFlip'] ?? 0) >= 3,
+  },
+];
+
+/** Latch any newly-achieved milestones into the save; returns just the new ones. */
+export function checkMilestones(game: Game, view: PlayerView, worth: number): Milestone[] {
+  const newly: Milestone[] = [];
+  for (const m of MILESTONES) {
+    if (game.milestones.includes(m.id)) continue;
+    if (m.achieved(game, view, worth)) {
+      game.milestones.push(m.id);
+      newly.push(m);
+    }
+  }
+  return newly;
 }
 
 /** Liquid net worth from the view: gp + inventory and open orders at last price. */
@@ -38,7 +117,7 @@ export function recordWorth(game: Game, worth: number): void {
 }
 
 export const SAVE_KEY = 'exchange-wars-save-v1';
-export const HUMAN_START_GP = 50_000;
+export const HUMAN_START_GP = 55_000;
 
 export function newGame(seed: number): Game {
   const world = createWorld({ seed });
@@ -49,11 +128,12 @@ export function newGame(seed: number): Game {
     playerId: human.id,
     startGp: HUMAN_START_GP,
     worthHistory: [{ tick: 0, worth: HUMAN_START_GP }],
+    milestones: [],
   };
 }
 
 export const OFFLINE_TPS = 1;
-export const OFFLINE_CAP_TICKS = 50_000;
+export const OFFLINE_CAP_TICKS = 100_000; // ~28h at 1 tps — a full day away still pays
 const OFFLINE_MIN_TICKS = 60; // ignore sub-minute blips (tab switches, reloads)
 
 export interface OfflineResult {
@@ -94,7 +174,12 @@ export function loadGame(): Game | null {
   try {
     const game = JSON.parse(raw) as Game;
     // Default fields that predate older save formats.
-    return { ...game, startGp: game.startGp ?? HUMAN_START_GP, worthHistory: game.worthHistory ?? [] };
+    return {
+      ...game,
+      startGp: game.startGp ?? HUMAN_START_GP,
+      worthHistory: game.worthHistory ?? [],
+      milestones: game.milestones ?? [],
+    };
   } catch {
     return null;
   }
