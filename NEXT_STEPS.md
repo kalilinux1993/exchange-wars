@@ -20,9 +20,11 @@
 
 ## Phase 4b — DONE 2026-06-10 (Playwright E2E green; caught + fixed broken dev server)
 
+## Published 2026-06-10 — LIVE at https://kalilinux1993.github.io/exchange-wars/
+Repo: https://github.com/kalilinux1993/exchange-wars (public). Redeploy = `npm run build -w @exchange-wars/ui -- --base=/exchange-wars/`, then push dist to gh-pages.
+
 ## Next candidates
-- **Publish to GitHub Pages** — IN PROGRESS, blocked on `gh auth login` (token in keyring is revoked; Jesse must re-auth). Then: repo create + push, `vite build --base=/exchange-wars/`, push dist to gh-pages, enable Pages → https://kalilinux1993.github.io/exchange-wars/
-- **CI (GitHub Actions)**: typecheck + test + e2e once the remote exists
+- **CI (GitHub Actions)**: typecheck + test + e2e on push; auto-deploy Pages on main (replaces the manual gh-pages push)
 - **Phase 4c — PWA**: manifest, service worker, offline accrual on reopen (compute elapsed → fast-forward)
 - Jesse steering pass on art direction / game-feel (current theme explicitly provisional)
 - Payback-period design targets for upgrades; momentum bleed (FINDINGS #12) — both low priority
