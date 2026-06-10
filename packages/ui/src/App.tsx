@@ -23,6 +23,7 @@ import {
   importSaveString,
   loadGame,
   newGame,
+  recordFills,
   recordWorth,
   saveGame,
   updateNews,
@@ -118,6 +119,7 @@ export function App({ initial }: { initial?: Game }) {
     const w = viewNetWorth(v);
     recordWorth(game, w);
     updateNews(game);
+    recordFills(game);
     const newly = checkMilestones(game, v, w);
     if (newly.length > 0) setToast(newly[newly.length - 1]!);
   };
@@ -357,7 +359,12 @@ export function App({ initial }: { initial?: Game }) {
         <section className="middle">
           <PlayerPanel view={view} items={game.world.items} onCommand={command} />
           <ContractsBoard view={view} items={game.world.items} tick={game.world.tick} onCommand={command} />
-          <TradeFeed trades={game.world.trades} items={game.world.items} playerId={game.playerId} />
+          <TradeFeed
+            trades={game.world.trades}
+            fills={game.fills}
+            items={game.world.items}
+            playerId={game.playerId}
+          />
           <MilestonesPanel unlocked={game.milestones} game={game} view={view} worth={viewNetWorth(view)} />
         </section>
       </main>

@@ -1,5 +1,9 @@
 # Dev Guide
 
+## Phase 6h — My Trades (2026-06-10)
+
+- **Personal fill log** — `recordFills` (packages/ui/src/game.ts) latches player-involved trades out of the rolling window into `Game.fills` (cap 50, persisted, scan-cursor + tail-dedupe for same-tick rescans). Tape panel toggles tape|mine.
+
 ## Phase 6g — Sorting, Save Portability & CI Scaling Fix (2026-06-10)
 
 - **CI red fixed** (Phase 6f's run timed out at 120s on ubuntu): the offline-accrual spec now runs on a TINY 1-item world — it tests game.ts clock logic, not the economy; never drag the full ~470-agent world through a 100k-tick jsdom test. Balance gate budget → 240s. **Rule: world-size-independent tests get world-size-independent fixtures.**

@@ -18,6 +18,50 @@ export interface Game {
   newsLog: NewsEntry[];
   /** Events we've already headlined (so endings can be detected). */
   seenEvents: { id: string; itemId: string; kind: WorldEvent['kind'] }[];
+  /** Personal fill history, latched from the rolling trades window (capped). */
+  fills: Fill[];
+  /** Trades-window scan cursor for fill latching. */
+  fillScanTick: number;
+}
+
+export interface Fill {
+  tick: number;
+  itemId: string;
+  side: 'buy' | 'sell';
+  qty: number;
+  price: number;
+}
+
+const FILLS_CAP = 50;
+
+/** Latch the player's fills out of the rolling trades window. */
+export function recordFills(game: Game): void {
+  const trades = game.world.trades;
+  const tail = game.fills.slice(-20);
+  for (const t of trades) {
+    if (t.tick < game.fillScanTick) continue;
+    const isBuy = t.buyerId === game.playerId;
+    const isSell = t.sellerId === game.playerId;
+    if (!isBuy && !isSell) continue;
+    const fill: Fill = { tick: t.tick, itemId: t.itemId, side: isBuy ? 'buy' : 'sell', qty: t.qty, price: t.price };
+    // Same-tick rescans can revisit trades — dedupe against the recent tail.
+    if (
+      tail.some(
+        (f) =>
+          f.tick === fill.tick &&
+          f.itemId === fill.itemId &&
+          f.side === fill.side &&
+          f.qty === fill.qty &&
+          f.price === fill.price,
+      )
+    ) {
+      continue;
+    }
+    game.fills.push(fill);
+    tail.push(fill);
+  }
+  game.fillScanTick = game.world.tick;
+  if (game.fills.length > FILLS_CAP) game.fills.splice(0, game.fills.length - FILLS_CAP);
 }
 
 export interface NewsEntry {
@@ -197,6 +241,8 @@ export function newGame(seed: number): Game {
     milestones: [],
     newsLog: [],
     seenEvents: [],
+    fills: [],
+    fillScanTick: 0,
   };
 }
 
@@ -245,6 +291,8 @@ export function normalizeGame(game: Game): Game {
     milestones: game.milestones ?? [],
     newsLog: game.newsLog ?? [],
     seenEvents: game.seenEvents ?? [],
+    fills: game.fills ?? [],
+    fillScanTick: game.fillScanTick ?? 0,
   };
 }
 

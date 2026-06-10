@@ -196,6 +196,8 @@ describe('UI shell', () => {
       milestones: [],
       newsLog: [],
       seenEvents: [],
+      fills: [],
+      fillScanTick: 0,
     };
     expect(applyOfflineProgress(game, 1_000_000)).toBeNull();
     expect(game.world.tick).toBe(0);
@@ -228,6 +230,18 @@ describe('UI shell', () => {
     const limit = FIRST.buyLimit && FIRST.buyLimit > 0 ? FIRST.buyLimit : Number.POSITIVE_INFINITY;
     const expected = Math.min(afford, limit);
     expect((screen.getByLabelText(/qty/i) as HTMLInputElement).value).toBe(String(expected));
+  });
+
+  it('my trades: instant fills latch into the personal log', () => {
+    const game = freshApp();
+    fireEvent.click(screen.getByText('+1k'));
+    placeBuy(String(FIRST.consumeValue * 3), '1'); // crosses — instant fill
+    expect(game.fills.length).toBeGreaterThan(0);
+    const last = game.fills[game.fills.length - 1]!;
+    expect(last.side).toBe('buy');
+    expect(last.itemId).toBe(FIRST.id);
+    fireEvent.click(screen.getByText('mine'));
+    expect(screen.getAllByText('buy').length).toBeGreaterThan(0); // badge row visible
   });
 
   it('save export/import round-trips and rejects garbage', () => {
