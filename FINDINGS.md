@@ -1,5 +1,12 @@
 # Findings
 
+## Phase 2b (2026-06-10)
+
+10. **The ecology fixes compounded into a flipper buff.** Bailouts keep speculators trading (noise wealth 478 gp → 1.68M at 100k ticks; 479 bailouts) which keeps dislocations coming; the basis floor stops the bot from selling at a loss; multi-flip uses idle capital. Net: flipper profit 3× at 100k ticks (+22,894 vs +7,915) without touching exchange internals.
+11. **Production-cost burn is a massive but stable sink** — 905M gp burned over 100k ticks vs 18M before, and prices didn't move (still anchored at cost×1.05). The anchor comes from producer pricing policy, not from their cash position.
+12. **Momentum traders still bleed slowly** (100k → 40k wealth at 100k ticks) even with bailouts — their strategy loses money faster than the bailout floor catches them. Acceptable: bailouts keep them functional, which is all the ecology needs.
+13. **Review caught two bot-bookkeeping bugs, both fixed:** orphaned basis memo when an act cancels the position's only open buy (bookkeeping now runs post-cancel on a fresh view), and basis overwrite-on-top-up (now weighted-average over position size). Also flagged: a player could deliberately drain NPCs to farm bailout mints — logged as *future gameplay* (market manipulation is on-theme), not patched.
+
 ## Phase 2 (2026-06-10)
 
 7. **Noise traders go extinct over long runs.** At 100k ticks (seed 42), the 6 noise traders are down to 478 gp combined (from 8k each) and momentum traders lost ~44% — tax + bad trades bleed them out. The flipper's prey dies off; very-long-run markets go sterile. Fix direction (Phase 2 continuation/3): NPC bankroll top-up or respawn, treated as explicit ledger mint.

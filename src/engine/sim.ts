@@ -35,7 +35,7 @@ export function createWorld(cfg: SimConfig): WorldState {
       itemsMinted: {},
       itemsBurned: {},
     },
-    stats: { tradesTotal: 0, ordersPlaced: 0, ordersRejected: 0, ordersCancelled: 0 },
+    stats: { tradesTotal: 0, ordersPlaced: 0, ordersRejected: 0, ordersCancelled: 0, npcBailouts: 0 },
   };
   for (const def of items) {
     state.books[def.id] = createBook(def.id, Math.round((def.baseCost + def.consumeValue) / 2));

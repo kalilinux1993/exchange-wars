@@ -8,12 +8,13 @@
 
 ## Phase 2 — DONE 2026-06-10 (command protocol, slots, offline accrual)
 
-## Phase 2 continuation — NPC ecology + bot quality (next)
-- NPC bankroll top-up/respawn: noise traders extinct by 100k ticks, momentum −44% (FINDINGS #7) — model as explicit ledger mint
-- Producer gp sink (producers hold 1B gp by 100k ticks; give gp somewhere to go — upkeep, expansion)
-- Flipper cost-basis tracking: floor re-list price at break-even (reviewer note — self-undercut bounded but real)
-- Flipper multi-slot buying (rests only 1 buy order today; paid slots underused)
-- Automation unlock tiers beyond slots (auto-collect, auto-relist cadence upgrades)
+## Phase 2b — DONE 2026-06-10 (NPC bailouts, production burn, flipper v3)
+
+## Phase 2c / 3 candidates (next)
+- Automation unlock tiers beyond slots (auto-collect, faster relist cadence as purchasable upgrades)
+- Momentum traders still bleed slowly despite bailouts (FINDINGS #12) — only worth touching if dislocations dry up
+- pnpm workspace split: packages/{engine,cli,botkit} per architect design
+- CI (GitHub Actions): typecheck + test; needs a remote first
 
 ## Phase 3 — Workspace hardening
 - Split into pnpm workspaces: packages/{engine,cli,botkit} per architect design (deliberately deferred from Phase 1)

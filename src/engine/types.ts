@@ -82,6 +82,8 @@ export interface SimStats {
   ordersPlaced: number;
   ordersRejected: number;
   ordersCancelled: number;
+  /** Times a near-broke noise/momentum trader was topped up (ledger-minted). */
+  npcBailouts: number;
 }
 
 export interface WorldState {

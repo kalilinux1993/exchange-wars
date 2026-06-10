@@ -63,7 +63,7 @@ export function renderReport(state: WorldState): string {
   );
   const s = state.stats;
   lines.push(
-    `orders: ${fmt(s.ordersPlaced)} placed · ${fmt(s.ordersRejected)} rejected · ${fmt(s.ordersCancelled)} cancelled · ${fmt(s.tradesTotal)} trades`,
+    `orders: ${fmt(s.ordersPlaced)} placed · ${fmt(s.ordersRejected)} rejected · ${fmt(s.ordersCancelled)} cancelled · ${fmt(s.tradesTotal)} trades · ${fmt(s.npcBailouts)} npc bailouts`,
   );
   return lines.join('\n');
 }

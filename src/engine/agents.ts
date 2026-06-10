@@ -10,7 +10,16 @@ export const TUNING = {
   marketMaker: { cadence: 8, spreadPct: 0.06, quoteQty: 4 },
   momentum: { cadence: 7, band: 0.02 },
   noise: { cadence: 4, cancelChance: 0.15 },
-  player: { cadence: 5, maxQty: 8, capitalFraction: 0.25, minProfit: 2, minMarginPct: 0.03 },
+  npc: { bailoutFloor: 0.2, bailoutCooldownTicks: 500 },
+  player: {
+    cadence: 5,
+    maxQty: 8,
+    capitalFraction: 0.25,
+    minProfit: 2,
+    minMarginPct: 0.03,
+    maxConcurrentFlips: 2,
+    staleHoldTicks: 200,
+  },
 } as const;
 
 const CADENCE: Record<AgentKind, number> = {
@@ -54,6 +63,14 @@ function actProducer(state: WorldState, agent: AgentState): void {
   const held = agent.inventory[def.id] ?? 0;
   const make = Math.min(TUNING.producer.batch, Math.max(0, TUNING.producer.inventoryCap - held));
   if (make > 0) {
+    // Production consumes gp at cost (raw materials leave the economy — the
+    // sink that tames producer hoarding). Broke producers still work, so the
+    // economy can bootstrap from zero.
+    const cost = def.baseCost * make;
+    if (agent.gp >= cost) {
+      agent.gp -= cost;
+      state.ledger.gpBurned += cost;
+    }
     agent.inventory[def.id] = held + make;
     state.ledger.itemsMinted[def.id] = (state.ledger.itemsMinted[def.id] ?? 0) + make;
   }
@@ -113,8 +130,27 @@ function actMarketMaker(state: WorldState, agent: AgentState): void {
   if (sellQty >= 1) placeOrder(state, agent, def.id, 'sell', askPrice, sellQty);
 }
 
+/**
+ * Speculators bleed out over long runs (tax + bad trades). When one is nearly
+ * broke, "a new trader enters the market": top gp back to starting bankroll,
+ * minted explicitly through the ledger. Cooldown stops hopeless cases from
+ * becoming a per-act faucet.
+ */
+function maybeBailout(state: WorldState, agent: AgentState): void {
+  const start = agent.memo['startGp'] ?? 0;
+  if (start <= 0 || agent.gp >= start * TUNING.npc.bailoutFloor) return;
+  const last = agent.memo['lastBailout'];
+  if (last !== undefined && state.tick - last < TUNING.npc.bailoutCooldownTicks) return;
+  const topUp = start - agent.gp;
+  agent.gp = start;
+  state.ledger.gpMinted += topUp;
+  state.stats.npcBailouts++;
+  agent.memo['lastBailout'] = state.tick;
+}
+
 /** Chases trends — buys strength, sells weakness. The boom/bust pressure source. */
 function actMomentum(state: WorldState, agent: AgentState, rng: RNG): void {
+  maybeBailout(state, agent);
   if (rng.chance(0.1)) cancelAgentOrders(state, agent);
   const def = rng.pick(state.items);
   const book = state.books[def.id];
@@ -138,6 +174,7 @@ function actMomentum(state: WorldState, agent: AgentState, rng: RNG): void {
 
 /** Random walk around last price — keeps books from going sterile. */
 function actNoise(state: WorldState, agent: AgentState, rng: RNG): void {
+  maybeBailout(state, agent);
   if (rng.chance(TUNING.noise.cancelChance)) cancelAgentOrders(state, agent);
   const def = rng.pick(state.items);
   const book = state.books[def.id];
@@ -166,10 +203,30 @@ function actPlayer(state: WorldState, agent: AgentState): void {
   if (first.nextSlotCost !== null && first.gp > first.nextSlotCost * 4) {
     applyCommand(state, agent.id, { type: 'buySlot' });
   }
+
   applyCommand(state, agent.id, { type: 'cancel', side: 'buy' });
+
+  // Position bookkeeping (bot-local memory in memo, not engine state), AFTER
+  // the buy-cancel so "open" reflects reality: clear cost basis once an item
+  // is fully exited — no inventory, no escrowed sells, no pending buys.
+  // Otherwise stamp when the position opened.
+  const booked = playerView(state, agent.id);
+  if (!booked) return;
+  for (const def of state.items) {
+    const held = booked.inventory[def.id] ?? 0;
+    const open = booked.openOrders.some((o) => o.itemId === def.id);
+    if (held === 0 && !open) {
+      delete agent.memo[`basis_${def.id}`];
+      delete agent.memo[`since_${def.id}`];
+    } else if (agent.memo[`since_${def.id}`] === undefined) {
+      agent.memo[`since_${def.id}`] = state.tick;
+    }
+  }
 
   // Re-quote sells. Only cancel an existing listing when we can re-list it
   // (cancelling frees our own slot, so re-listing is always possible then).
+  // Fresh positions never list below post-tax break-even; stale positions
+  // (held too long) take the market price and cut the loss.
   for (const def of state.items) {
     let v = playerView(state, agent.id);
     if (!v) return;
@@ -182,15 +239,23 @@ function actPlayer(state: WorldState, agent: AgentState): void {
     if (held < 1) continue;
     const m = v.markets.find((x) => x.itemId === def.id);
     if (!m) continue;
-    const sellAt = Math.max(1, m.bestAsk !== null ? m.bestAsk - 1 : Math.round(m.ema * 1.03));
+    let sellAt = Math.max(1, m.bestAsk !== null ? m.bestAsk - 1 : Math.round(m.ema * 1.03));
+    const basis = agent.memo[`basis_${def.id}`];
+    const since = agent.memo[`since_${def.id}`];
+    const stale = since !== undefined && state.tick - since > TUNING.player.staleHoldTicks;
+    if (basis !== undefined && !stale) {
+      sellAt = Math.max(sellAt, Math.ceil((basis + 1) / (1 - GE_TAX_RATE)));
+    }
     applyCommand(state, agent.id, { type: 'place', itemId: def.id, side: 'sell', price: sellAt, qty: held });
   }
 
-  const v = playerView(state, agent.id);
-  if (!v) return;
-  if (v.openOrders.length >= v.slots) return; // no slot left for a new flip
-  let best: { itemId: ItemId; buyAt: number; profit: number } | null = null;
-  for (const m of v.markets) {
+  // Hunt flips — up to maxConcurrentFlips across distinct items, while slots
+  // and capital allow. Candidates come pre-sorted by items order; the stable
+  // sort by profit keeps ties deterministic.
+  let vBuy = playerView(state, agent.id);
+  if (!vBuy) return;
+  const candidates: { itemId: ItemId; buyAt: number; profit: number }[] = [];
+  for (const m of vBuy.markets) {
     if (m.bestBid === null || m.bestAsk === null) continue;
     if (m.bestAskIsMine) continue; // our own sell is best ask — no flip here
     const buyAt = m.bestBid + 1;
@@ -199,12 +264,34 @@ function actPlayer(state: WorldState, agent: AgentState): void {
     const profit = sellAt - Math.floor(sellAt * GE_TAX_RATE) - buyAt;
     // Skip flips that barely clear tax — thin margins lose to price drift.
     const minProfit = Math.max(TUNING.player.minProfit, Math.ceil(buyAt * TUNING.player.minMarginPct));
-    if (profit >= minProfit && (best === null || profit > best.profit)) {
-      best = { itemId: m.itemId, buyAt, profit };
+    if (profit >= minProfit) candidates.push({ itemId: m.itemId, buyAt, profit });
+  }
+  candidates.sort((a, b) => b.profit - a.profit);
+  let placed = 0;
+  for (const c of candidates) {
+    if (placed >= TUNING.player.maxConcurrentFlips) break;
+    vBuy = playerView(state, agent.id);
+    if (!vBuy) return;
+    if (vBuy.openOrders.length >= vBuy.slots) break;
+    const budget = Math.floor(vBuy.gp * TUNING.player.capitalFraction);
+    const qty = Math.min(TUNING.player.maxQty, Math.floor(budget / c.buyAt));
+    if (qty < 1) continue;
+    const r = applyCommand(state, agent.id, { type: 'place', itemId: c.itemId, side: 'buy', price: c.buyAt, qty });
+    if (r.ok) {
+      const prevBasis = agent.memo[`basis_${c.itemId}`];
+      if (prevBasis === undefined) {
+        agent.memo[`basis_${c.itemId}`] = c.buyAt;
+      } else {
+        // Topping up an existing position: blend to weighted-average cost
+        // over the current position size (held + escrowed + pending).
+        const pos =
+          (vBuy.inventory[c.itemId] ?? 0) +
+          vBuy.openOrders.filter((o) => o.itemId === c.itemId).reduce((a, o) => a + o.remaining, 0);
+        agent.memo[`basis_${c.itemId}`] =
+          pos > 0 ? Math.round((prevBasis * pos + c.buyAt * qty) / (pos + qty)) : c.buyAt;
+      }
+      if (agent.memo[`since_${c.itemId}`] === undefined) agent.memo[`since_${c.itemId}`] = state.tick;
+      placed++;
     }
   }
-  if (best === null) return;
-  const budget = Math.floor(v.gp * TUNING.player.capitalFraction);
-  const qty = Math.min(TUNING.player.maxQty, Math.floor(budget / best.buyAt));
-  if (qty >= 1) applyCommand(state, agent.id, { type: 'place', itemId: best.itemId, side: 'buy', price: best.buyAt, qty });
 }
