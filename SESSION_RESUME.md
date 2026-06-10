@@ -1,6 +1,6 @@
 # Session Resume
 
-**Last session:** 2026-06-10 — Phases 1, 2, and 2b closed (same day; autonomous loop active). 2b fixed the NPC ecology (bailouts, production burn) and upgraded the flipper (cost-basis floor, multi-flip) — 3× profit at 100k ticks.
+**Last session:** 2026-06-10 — Phases 1, 2, 2b, 2c all closed (same day; autonomous loop active). Latest: idle automation tiers — `buyUpgrade`, `policy: 'idle'`, engine-side autoFlip via shared `runFlipper` core. 62 tests green.
 
 **State:** Engine + player command protocol complete. 47 tests green across 8 suites. `applyCommand`/`playerView` (src/engine/commands.ts) is the only player surface; flipper bot drives it exclusively and profits on all gate seeds. Slot progression (3→8, gp burned) works. Offline accrual proven (snapshot-resume ≡ straight run, 100k ticks in 431ms).
 
