@@ -1,5 +1,10 @@
 # Findings
 
+## Phase 5b (2026-06-10)
+
+31. **Real prices compressed the whole automation economy.** The all-staples wiki catalog (every item vol ≤ 0.10, prices ≤ ~2.7k, 1gp spreads) cut tier profits ~5× versus the fantasy catalog — realistic (actual GE staples are thin-margin) but it dissolved tier-3's "trades exotic goods" niche: its volatility ceiling is now inert because nothing exotic exists. Fix for the gate: tier-3 cadence 4→5. Design lever queued: give the generator a second selection track (a few high-volatility/high-price picks — herbs, gear) so tier 3 has a niche again and the price ladder regains a top end.
+32. **Snapshot drift is a real re-roll source**: regenerating an hour apart moved prices enough to change every world (catalog values feed world-gen). Treat every regen like a code change: full gates + sweep budget.
+
 ## Phase 4i (2026-06-10)
 
 29. **New RNG consumers re-roll the universe.** The contract spawner draws from the tick RNG stream, which shifted every downstream random decision on every seed — the balance gate tripped not because contracts touch markets (they don't) but because all the worlds changed. Corollary: ANY new world-RNG consumer triggers the routine tier-1 sweep. Tier 1 has now cycled cadence 10→8→7→8→9→10 across the catalog's life — landing back at its original value, with each stop locally correct for its era's world.

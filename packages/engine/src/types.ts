@@ -16,6 +16,10 @@ export interface ItemDef {
   volatility: number;
   /** OSRS item id when the catalog is wiki-generated (icons live at icons/{wikiId}.png). */
   wikiId?: number;
+  /** Real GE mid price at snapshot time (display/reference only). */
+  wikiPrice?: number;
+  /** Real GE buy limit (display only for now — mechanic queued). */
+  buyLimit?: number;
 }
 
 export interface Order {

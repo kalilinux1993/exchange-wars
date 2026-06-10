@@ -1,7 +1,7 @@
 // Game bootstrap + persistence. The human is an idle-policy player agent:
 // engine-inert unless automation is purchased, acting only via UI commands.
-import { addAgent, createWorld, playerView, runTicks } from '@exchange-wars/engine';
-import type { PlayerView, WorldState } from '@exchange-wars/engine';
+import { addAgent, createWorld, EVENT_LABELS, playerView, runTicks } from '@exchange-wars/engine';
+import type { PlayerView, WorldEvent, WorldState } from '@exchange-wars/engine';
 
 export interface Game {
   world: WorldState;
@@ -14,6 +14,39 @@ export interface Game {
   lastSeenMs?: number;
   /** Latched milestone ids (persisted; never un-latch). */
   milestones: string[];
+  /** The Chronicle: event begin/end headlines (capped, persisted). */
+  newsLog: NewsEntry[];
+  /** Events we've already headlined (so endings can be detected). */
+  seenEvents: { id: string; itemId: string; kind: WorldEvent['kind'] }[];
+}
+
+export interface NewsEntry {
+  tick: number;
+  text: string;
+  kind: WorldEvent['kind'] | 'ended';
+}
+
+const NEWS_CAP = 12;
+
+/** Detect event begins/ends since the last check and append headlines. */
+export function updateNews(game: Game): void {
+  const tick = game.world.tick;
+  const names = new Map(game.world.items.map((i) => [i.id, i.name]));
+  const active = (game.world.events ?? []).filter((e) => e.startTick <= tick && e.endTick > tick);
+  for (const e of active) {
+    if (!game.seenEvents.some((s) => s.id === e.id)) {
+      game.seenEvents.push({ id: e.id, itemId: e.itemId, kind: e.kind });
+      game.newsLog.push({ tick, text: `${names.get(e.itemId) ?? e.itemId} ${EVENT_LABELS[e.kind]} begins`, kind: e.kind });
+    }
+  }
+  for (let i = game.seenEvents.length - 1; i >= 0; i--) {
+    const s = game.seenEvents[i]!;
+    if (!active.some((e) => e.id === s.id)) {
+      game.seenEvents.splice(i, 1);
+      game.newsLog.push({ tick, text: `${names.get(s.itemId) ?? s.itemId} ${EVENT_LABELS[s.kind]} ends`, kind: 'ended' });
+    }
+  }
+  if (game.newsLog.length > NEWS_CAP) game.newsLog.splice(0, game.newsLog.length - NEWS_CAP);
 }
 
 export interface Milestone {
@@ -156,6 +189,8 @@ export function newGame(seed: number): Game {
     startGp: HUMAN_START_GP,
     worthHistory: [{ tick: 0, worth: HUMAN_START_GP }],
     milestones: [],
+    newsLog: [],
+    seenEvents: [],
   };
 }
 
@@ -206,6 +241,8 @@ export function loadGame(): Game | null {
       startGp: game.startGp ?? HUMAN_START_GP,
       worthHistory: game.worthHistory ?? [],
       milestones: game.milestones ?? [],
+      newsLog: game.newsLog ?? [],
+      seenEvents: game.seenEvents ?? [],
     };
   } catch {
     return null;

@@ -1,15 +1,17 @@
 import { GE_TAX_RATE } from '@exchange-wars/engine';
-import type { CommandResult, ItemId, PlayerCommand, PlayerView, Side } from '@exchange-wars/engine';
+import type { CommandResult, ItemDef, ItemId, PlayerCommand, PlayerView, Side } from '@exchange-wars/engine';
 import { useState } from 'react';
 
 export function TradeTicket({
   view,
   selected,
+  items,
   onCommand,
   lastResult,
 }: {
   view: PlayerView;
   selected: ItemId;
+  items: ItemDef[];
   onCommand: (cmd: PlayerCommand) => void;
   lastResult: CommandResult | null;
 }) {
@@ -17,6 +19,7 @@ export function TradeTicket({
   const [price, setPrice] = useState('');
   const [qty, setQty] = useState('1');
   const market = view.markets.find((m) => m.itemId === selected);
+  const def = items.find((i) => i.id === selected);
   const p = Number(price);
   const q = Number(qty);
   const valid = Number.isInteger(p) && p >= 1 && Number.isInteger(q) && q >= 1;
@@ -39,6 +42,12 @@ export function TradeTicket({
   return (
     <section className="panel ticket">
       <h2>Offer · {selected.replace(/_/g, ' ')}</h2>
+      {def?.wikiPrice !== undefined && (
+        <p className="dim small">
+          wiki snapshot {def.wikiPrice.toLocaleString('en-US')} gp
+          {def.buyLimit ? ` · GE limit ${def.buyLimit.toLocaleString('en-US')}` : ''}
+        </p>
+      )}
       <div className="sides">
         <button className={side === 'buy' ? 'side buy active' : 'side buy'} onClick={() => setSide('buy')}>
           buy

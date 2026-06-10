@@ -11,6 +11,7 @@ import {
   HUMAN_START_GP,
   newGame,
   OFFLINE_CAP_TICKS,
+  updateNews,
   type Game,
 } from '../src/game';
 
@@ -169,6 +170,28 @@ describe('UI shell', () => {
     render(<App initial={game} />);
     expect(screen.getByText(/while you were away/i)).toBeTruthy();
     expect(game.world.tick).toBeGreaterThanOrEqual(600);
+  });
+
+  it('the Chronicle records event begins and ends', () => {
+    const game = newGame(42);
+    game.world.events!.push({ id: 'ev1', itemId: FIRST.id, kind: 'demand_surge', startTick: 0, endTick: 100 });
+    updateNews(game);
+    expect(game.newsLog).toHaveLength(1);
+    expect(game.newsLog[0]!.text).toContain('craze begins');
+    updateNews(game); // no duplicate
+    expect(game.newsLog).toHaveLength(1);
+    game.world.tick = 150; // past the end
+    updateNews(game);
+    expect(game.newsLog).toHaveLength(2);
+    expect(game.newsLog[1]!.text).toContain('craze ends');
+    expect(game.newsLog[1]!.kind).toBe('ended');
+  });
+
+  it('renders the Chronicle panel and the ticket wiki line', () => {
+    freshApp();
+    expect(screen.getByText('Chronicle')).toBeTruthy();
+    expect(screen.getByText(/quiet markets/i)).toBeTruthy();
+    expect(screen.getByText(/wiki snapshot/i)).toBeTruthy();
   });
 
   it('upgrade shop gates purchases by affordability', () => {

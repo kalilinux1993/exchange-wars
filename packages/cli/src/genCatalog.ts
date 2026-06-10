@@ -72,6 +72,8 @@ const picked = mapping
     consumeValue: Math.max(2 * Math.max(1, Math.round(price * 0.75)), Math.round(price * 1.5)),
     volatility: tierVolatility(price),
     wikiId: m.id,
+    wikiPrice: price,
+    buyLimit: m.limit ?? 0,
     icon: m.icon!,
   }))
   .sort((a, b) => a.baseCost - b.baseCost);
@@ -83,7 +85,7 @@ const items = picked.filter((i) => (seen.has(i.id) ? false : (seen.add(i.id), tr
 const lines = items
   .map(
     (i) =>
-      `  { id: '${i.id}', name: ${JSON.stringify(i.name)}, baseCost: ${i.baseCost}, consumeValue: ${i.consumeValue}, volatility: ${i.volatility}, wikiId: ${i.wikiId} },`,
+      `  { id: '${i.id}', name: ${JSON.stringify(i.name)}, baseCost: ${i.baseCost}, consumeValue: ${i.consumeValue}, volatility: ${i.volatility}, wikiId: ${i.wikiId}, wikiPrice: ${i.wikiPrice}, buyLimit: ${i.buyLimit} },`,
   )
   .join('\n');
 

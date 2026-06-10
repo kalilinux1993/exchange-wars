@@ -2,6 +2,7 @@ import { applyCommand, EVENT_LABELS, playerView, runTicks, tickWorld } from '@ex
 import type { CommandResult, ItemId, PlayerCommand } from '@exchange-wars/engine';
 import { BookLadder } from './components/BookLadder';
 import { ContractsBoard } from './components/ContractsBoard';
+import { NewsLog } from './components/NewsLog';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { MarketTable } from './components/MarketTable';
 import { MilestonesPanel } from './components/MilestonesPanel';
@@ -18,6 +19,7 @@ import {
   newGame,
   recordWorth,
   saveGame,
+  updateNews,
   viewNetWorth,
   type Game,
   type Milestone,
@@ -49,6 +51,7 @@ export function App({ initial }: { initial?: Game }) {
     if (!v) return;
     const w = viewNetWorth(v);
     recordWorth(game, w);
+    updateNews(game);
     const newly = checkMilestones(game, v, w);
     if (newly.length > 0) setToast(newly[newly.length - 1]!);
   };
@@ -171,15 +174,24 @@ export function App({ initial }: { initial?: Game }) {
         </div>
       )}
       <main className="board">
-        <MarketTable
-          view={view}
-          items={game.world.items}
-          trades={game.world.trades}
-          selected={selected}
-          onSelect={setSelected}
-        />
         <section className="middle">
-          <TradeTicket view={view} selected={selected} onCommand={command} lastResult={lastResult} />
+          <MarketTable
+            view={view}
+            items={game.world.items}
+            trades={game.world.trades}
+            selected={selected}
+            onSelect={setSelected}
+          />
+          <NewsLog log={game.newsLog} />
+        </section>
+        <section className="middle">
+          <TradeTicket
+            view={view}
+            selected={selected}
+            items={game.world.items}
+            onCommand={command}
+            lastResult={lastResult}
+          />
           <BookLadder book={game.world.books[selected]} playerId={game.playerId} />
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
           <WorthChart history={game.worthHistory} startGp={game.startGp} />

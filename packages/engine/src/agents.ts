@@ -63,7 +63,7 @@ export const TUNING = {
       // vol 0.10 — min cell +3,933, avg +7,952. Sweep, don't probe.
       { cadence: 10, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.1 },
       { cadence: 6, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
-      { cadence: 4, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 1 },
+      { cadence: 5, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 1 },
     ],
   },
 } as const;

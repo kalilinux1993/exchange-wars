@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 5b — Chronicle & Wiki Metadata (2026-06-10)
+
+- **Chronicle** — event begin/end headlines: `updateNews` + `Game.newsLog`/`seenEvents` (packages/ui/src/game.ts, capped 12, persisted; runs in refreshProgress); NewsLog panel under the market.
+- **Wiki metadata** — generator now emits `wikiPrice` + `buyLimit` (ItemDef); the ticket shows "wiki snapshot X gp · GE limit Y". Buy-limit MECHANIC still queued.
+- **Tier-3 re-tune** (FINDINGS #31): the staples-only real catalog compressed automation margins ~5× and made tier-3's vol ceiling inert; cadence 4→5 restores the gate. Queued: generator second-track picks (volatile/expensive items) to restore tier-3's niche.
+
 ## Phase 5 — OSRS Wiki Catalog (2026-06-10)
 
 - **`npm run gen:catalog [-- --count N]`** (packages/cli/src/genCatalog.ts): snapshots prices.runescape.wiki (`/mapping` + `/latest` + `/volumes`, descriptive UA, polite delays) → top-N by volume (price ≥ 30, ≤ 10M, has GE limit + icon) → derives anchors (cost 0.75×, value 1.5×, tiered vol) → writes the GENERATED catalog.ts + downloads icons to packages/ui/public/icons/{wikiId}.png. Regen = re-rolled worlds: run the sweep + gates after.
