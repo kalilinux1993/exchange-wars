@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 5d — GE Buy Limits (2026-06-10)
+
+- **Buy limits are live**: per-player rolling windows (`BUY_LIMIT_WINDOW_TICKS` = 4,000 in commands.ts) against the catalog's REAL `buyLimit` values. Enforced at the command layer only (players + their automation; NPCs unaffected). Counted at **placement**, never refunded on cancel — stricter than OSRS fill-counting, immune to place/cancel churn (documented divergence).
+- `AgentState.buyWindows` (absent = fresh window — old saves migrate implicitly); `MarketView.buyRemaining` (null = unlimited); ticket shows "buy limit left N"; rejection reason `'buy-limit'`.
+- No catalog change → no world re-roll → no sweep needed; staples limits never bind routine flipping, gear limits bind cornering (as designed).
+
 ## Phase 5b — Chronicle & Wiki Metadata (2026-06-10)
 
 - **Chronicle** — event begin/end headlines: `updateNews` + `Game.newsLog`/`seenEvents` (packages/ui/src/game.ts, capped 12, persisted; runs in refreshProgress); NewsLog panel under the market.

@@ -45,7 +45,9 @@ export function TradeTicket({
       {def?.wikiPrice !== undefined && (
         <p className="dim small">
           wiki snapshot {def.wikiPrice.toLocaleString('en-US')} gp
-          {def.buyLimit ? ` · GE limit ${def.buyLimit.toLocaleString('en-US')}` : ''}
+          {market?.buyRemaining !== null && market?.buyRemaining !== undefined
+            ? ` · buy limit left ${market.buyRemaining.toLocaleString('en-US')}`
+            : ''}
         </p>
       )}
       <div className="sides">

@@ -62,6 +62,8 @@ export interface AgentState {
   upgrades?: Record<string, number>;
   /** Players only: idle-bot configuration set via the configureBot command. */
   botConfig?: { maxVolatility?: number; capitalFraction?: number; focusItemId?: ItemId | null };
+  /** Players only: rolling GE buy-limit windows per item (absent = fresh). */
+  buyWindows?: Record<ItemId, { windowStart: number; bought: number }>;
   /** Strategy scratch space — JSON-serializable numbers only. */
   memo: Record<string, number>;
 }

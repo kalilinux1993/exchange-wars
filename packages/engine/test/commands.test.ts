@@ -175,6 +175,44 @@ describe('command protocol', () => {
     checkInvariants(state);
   });
 
+  it('enforces GE buy limits per rolling window, counted at placement', () => {
+    const LIMITED: ItemDef = { id: 'whip', name: 'Whip', baseCost: 100, consumeValue: 250, volatility: 0.1, buyLimit: 8 };
+    const state = createWorld({
+      seed: 1,
+      items: [LIMITED],
+      producersPerItem: 0,
+      consumersPerItem: 0,
+      marketMakersPerItem: 0,
+      momentumTraders: 0,
+      noiseTraders: 0,
+      players: 0,
+    });
+    const alice = addAgent(state, 'player', 50_000, {});
+    expect(playerView(state, alice.id)!.markets[0]!.buyRemaining).toBe(8);
+    expect(applyCommand(state, alice.id, { type: 'place', itemId: 'whip', side: 'buy', price: 10, qty: 5 }).ok).toBe(true);
+    expect(playerView(state, alice.id)!.markets[0]!.buyRemaining).toBe(3);
+    // Over the remaining allowance → rejected before any escrow moves.
+    const over = applyCommand(state, alice.id, { type: 'place', itemId: 'whip', side: 'buy', price: 10, qty: 4 });
+    expect(over.reason).toBe('buy-limit');
+    // Cancelling does NOT refund the allowance (placement-counted).
+    applyCommand(state, alice.id, { type: 'cancel' });
+    expect(playerView(state, alice.id)!.markets[0]!.buyRemaining).toBe(3);
+    expect(applyCommand(state, alice.id, { type: 'place', itemId: 'whip', side: 'buy', price: 10, qty: 3 }).ok).toBe(true);
+    expect(playerView(state, alice.id)!.markets[0]!.buyRemaining).toBe(0);
+    // Window expiry restores the full allowance.
+    state.tick += 4_000;
+    expect(playerView(state, alice.id)!.markets[0]!.buyRemaining).toBe(8);
+    expect(applyCommand(state, alice.id, { type: 'place', itemId: 'whip', side: 'buy', price: 10, qty: 8 }).ok).toBe(true);
+    checkInvariants(state);
+  });
+
+  it('items without a buy limit are unlimited', () => {
+    const { state, alice } = fixture(); // ORE has no buyLimit field
+    expect(playerView(state, alice.id)!.markets[0]!.buyRemaining).toBeNull();
+    expect(applyCommand(state, alice.id, { type: 'place', itemId: 'ore', side: 'buy', price: 10, qty: 500 }).ok).toBe(true);
+    checkInvariants(state);
+  });
+
   it('configureBot clamps values, validates the focus item, and surfaces in the view', () => {
     const { state, alice } = fixture();
     expect(applyCommand(state, alice.id, { type: 'configureBot', capitalFraction: 0.9 }).ok).toBe(true);

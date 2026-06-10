@@ -4,6 +4,19 @@
 import { bestAsk, bestBid, cancelAgentOrders, placeOrder } from './exchange';
 import type { AgentState, ItemId, Side, Trade, WorldState } from './types';
 
+/** Rolling GE buy-limit window — a command-layer mechanic (NPCs unaffected). */
+export const BUY_LIMIT_WINDOW_TICKS = 4_000;
+
+/** Remaining GE buy allowance for this item in the current window (null = unlimited). */
+function buyRemaining(state: WorldState, agent: AgentState, itemId: ItemId): number | null {
+  const def = state.items.find((i) => i.id === itemId);
+  const limit = def?.buyLimit ?? 0;
+  if (limit <= 0) return null;
+  const w = agent.buyWindows?.[itemId];
+  if (!w || state.tick - w.windowStart >= BUY_LIMIT_WINDOW_TICKS) return limit;
+  return Math.max(0, limit - w.bought);
+}
+
 export const PROGRESSION = {
   startingSlots: 3,
   maxSlots: 8,
@@ -42,6 +55,8 @@ export interface MarketView {
   /** Total resting quantity on each side — exit-liquidity signal for bots. */
   bidDepth: number;
   askDepth: number;
+  /** GE buy allowance left this window (null = no limit on this item). */
+  buyRemaining: number | null;
   volume: number;
 }
 
@@ -102,7 +117,28 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       if (countOpenOrders(state, agent.id) >= slotsOf(agent)) {
         return { ok: false, reason: 'no-free-slots', trades: [] };
       }
+      if (cmd.side === 'buy') {
+        const remaining = buyRemaining(state, agent, cmd.itemId);
+        if (remaining !== null && cmd.qty > remaining) {
+          return { ok: false, reason: 'buy-limit', trades: [] };
+        }
+      }
       const res = placeOrder(state, agent, cmd.itemId, cmd.side, cmd.price, cmd.qty);
+      if (res.accepted && cmd.side === 'buy') {
+        const def = state.items.find((i) => i.id === cmd.itemId);
+        if ((def?.buyLimit ?? 0) > 0) {
+          // Counted at PLACEMENT, never refunded on cancel — placing an offer
+          // reserves your allowance (stricter than OSRS fill-counting; simpler
+          // and not gameable by place/cancel churn).
+          if (!agent.buyWindows) agent.buyWindows = {};
+          const w = agent.buyWindows[cmd.itemId];
+          if (!w || state.tick - w.windowStart >= BUY_LIMIT_WINDOW_TICKS) {
+            agent.buyWindows[cmd.itemId] = { windowStart: state.tick, bought: cmd.qty };
+          } else {
+            w.bought += cmd.qty;
+          }
+        }
+      }
       const out: CommandResult = { ok: res.accepted, trades: res.trades };
       if (res.reason !== undefined) out.reason = res.reason;
       return out;
@@ -219,6 +255,7 @@ export function playerView(state: WorldState, playerId: number): PlayerView | nu
       bestAskIsMine: ask !== undefined && ask.agentId === agent.id,
       bidDepth,
       askDepth,
+      buyRemaining: buyRemaining(state, agent, def.id),
       volume: book.volume,
     });
   }
