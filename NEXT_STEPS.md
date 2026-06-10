@@ -24,6 +24,8 @@
 Repo: https://github.com/kalilinux1993/exchange-wars (public). Redeploy = `npm run build -w @exchange-wars/ui -- --base=/exchange-wars/`, then push dist to gh-pages.
 
 ## Next candidates
+- Self-host the two webfonts (offline + e2e speed; Google Fonts link times out without network)
+- Mobile layout pass for the 4-panel board
 - **CI (GitHub Actions)**: typecheck + test + e2e on push; auto-deploy Pages on main (replaces the manual gh-pages push)
 - **Phase 4c — PWA**: manifest, service worker, offline accrual on reopen (compute elapsed → fast-forward)
 - Jesse steering pass on art direction / game-feel (current theme explicitly provisional)

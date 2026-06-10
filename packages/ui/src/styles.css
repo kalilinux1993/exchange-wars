@@ -299,6 +299,35 @@ th.num {
   vertical-align: middle;
 }
 
+.worth {
+  width: 100%;
+  height: 80px;
+  display: block;
+}
+
+.worth .baseline {
+  stroke: var(--gold);
+  stroke-dasharray: 4 3;
+  opacity: 0.5;
+}
+
+.worth.up,
+.worth polyline.up {
+  color: var(--rise);
+}
+
+.worth polyline.down {
+  color: var(--fall);
+}
+
+.mine-row {
+  color: var(--gold-bright);
+}
+
+.rows.small {
+  font-size: 0.75rem;
+}
+
 .small {
   font-size: 0.75rem;
 }

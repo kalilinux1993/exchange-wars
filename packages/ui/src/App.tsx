@@ -3,9 +3,11 @@ import type { CommandResult, ItemId, PlayerCommand, PlayerView } from '@exchange
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { MarketTable } from './components/MarketTable';
 import { PlayerPanel } from './components/PlayerPanel';
+import { TradeFeed } from './components/TradeFeed';
 import { TradeTicket } from './components/TradeTicket';
 import { UpgradeShop } from './components/UpgradeShop';
-import { clearSave, loadGame, newGame, saveGame, type Game } from './game';
+import { WorthChart } from './components/WorthChart';
+import { clearSave, loadGame, newGame, recordWorth, saveGame, type Game } from './game';
 
 const SPEEDS = [0, 1, 5, 20] as const;
 
@@ -34,6 +36,8 @@ export function App({ initial }: { initial?: Game }) {
     const id = setInterval(
       () => {
         tickWorld(game.world);
+        const v = playerView(game.world, game.playerId);
+        if (v) recordWorth(game, viewNetWorth(v));
         force();
       },
       Math.max(16, Math.round(1000 / speed)),
@@ -51,6 +55,8 @@ export function App({ initial }: { initial?: Game }) {
   };
   const fastForward = (n: number): void => {
     runTicks(game.world, n);
+    const v = playerView(game.world, game.playerId);
+    if (v) recordWorth(game, viewNetWorth(v));
     saveGame(game);
     force();
   };
@@ -119,8 +125,12 @@ export function App({ initial }: { initial?: Game }) {
         <section className="middle">
           <TradeTicket view={view} selected={selected} onCommand={command} lastResult={lastResult} />
           <UpgradeShop view={view} onCommand={command} />
+          <WorthChart history={game.worthHistory} startGp={game.startGp} />
         </section>
-        <PlayerPanel view={view} items={game.world.items} onCommand={command} />
+        <section className="middle">
+          <PlayerPanel view={view} items={game.world.items} onCommand={command} />
+          <TradeFeed trades={game.world.trades} items={game.world.items} playerId={game.playerId} />
+        </section>
       </main>
       <footer className="footnote">
         deterministic world · automation keeps working through fast-forward · art direction provisional

@@ -28,7 +28,7 @@ export const TUNING = {
     autoFlip: [
       // maxVolatility: junior clerks only trade stable goods — volatile books
       // are where automation bleeds (adverse selection on wide % spreads).
-      { cadence: 8, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.1 },
+      { cadence: 7, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.1 },
       { cadence: 6, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
       { cadence: 4, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 1 },
     ],

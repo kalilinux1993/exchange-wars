@@ -15,6 +15,8 @@ test('boots a fresh seed-42 world, paused, with the full market', async ({ page 
   }
   await expect(page.locator('.purse')).toContainText('net');
   await expect(page.locator('.player')).toContainText('empty satchel');
+  await expect(page.locator('.chart')).toContainText('Fortune');
+  await expect(page.locator('.feed')).toContainText('no trades yet');
 });
 
 test('full trade round-trip: instant buy fill, then instant sell', async ({ page }) => {

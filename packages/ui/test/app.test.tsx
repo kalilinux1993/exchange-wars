@@ -54,12 +54,16 @@ describe('UI shell', () => {
     expect(screen.getByText(/rejected: insufficient-gp/i)).toBeTruthy();
   });
 
-  it('fast-forward advances the deterministic world', () => {
+  it('fast-forward advances the deterministic world and feeds the Fortune chart', () => {
     const game = freshApp();
+    expect(screen.getByText('Fortune')).toBeTruthy();
+    expect(screen.getByText('Tape')).toBeTruthy();
     fireEvent.click(screen.getByText('+1k'));
     expect(game.world.tick).toBe(1_000);
     fireEvent.click(screen.getByText('+10k'));
     expect(game.world.tick).toBe(11_000);
+    expect(game.worthHistory.length).toBeGreaterThan(1); // sampled during fast-forward
+    expect(screen.queryByText(/let the world run/i)).toBeNull(); // chart now renders
   });
 
   it('upgrade shop gates purchases by affordability', () => {
