@@ -19,10 +19,12 @@
 - packages/engine/src/catalog.ts (data), vitest.config.ts, packages/ui/src/styles.css, packages/ui/e2e, .github/workflows (new), repo Pages settings
 
 ## Gates
-- [ ] All gates green locally at 22 items
-- [ ] Mobile e2e green
-- [ ] CI run green on GitHub; Pages deployed by the workflow; live bundle verified
-- [ ] Manual deploy path documented as retired
+- [x] All gates green locally at 22 items — 74 unit + 6 e2e
+- [x] Mobile e2e green (390×844 full ticket flow)
+- [x] CI run 27294872111 green (test + deploy jobs); Pages on workflow builds; live serving CI bundle index-BP3nsqTV.js
+- [x] Manual deploy path retired (docs updated). Note: actions deprecation warning (Node 20 runners) queued in NEXT_STEPS.
+
+**Closed:** 2026-06-10 — done condition met. Also in-phase per Jesse: HUMAN_START_GP → 50k.
 
 ## Open questions
 - CI runner speed vs balance-gate timeout (30s local headroom; bump if the run says so)

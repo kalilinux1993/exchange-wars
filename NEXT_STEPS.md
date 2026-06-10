@@ -24,8 +24,10 @@
 Repo: https://github.com/kalilinux1993/exchange-wars (public). Redeploy = `npm run build -w @exchange-wars/ui -- --base=/exchange-wars/`, then push dist to gh-pages.
 
 ## Next candidates
-- Mobile layout pass for the 4-panel board
 - Offline-cap/payback design pass (cap 50k ticks vs tier paybacks 40k–97k — tier 1 pays back in ~one full offline cap; intentional?)
+- CI actions deprecation: bump actions/checkout + setup-node majors before 2026-09 (Node 20 runner removal)
+- Achievements / milestones panel (first 100k, first whip, etc.) — cheap dopamine
+- Sound-free juice: fill flash animations on the Tape/orders when player trades land
 - **CI (GitHub Actions)**: typecheck + test + e2e on push; auto-deploy Pages on main (replaces the manual gh-pages push)
 - **Phase 4c — PWA**: manifest, service worker, offline accrual on reopen (compute elapsed → fast-forward)
 - Jesse steering pass on art direction / game-feel (current theme explicitly provisional)
