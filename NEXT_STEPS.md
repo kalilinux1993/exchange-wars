@@ -6,12 +6,14 @@
 - [ ] Consider `fast-check` property tests over many random seeds (architect's 1000-seed gate; currently 5 fixed seeds + 3 market seeds)
 - [ ] Determinism gate at 100k ticks in a slow/CI-only suite (current: 1.5k–6k ticks in the fast suite)
 
-## Phase 2 — Player progression / idle layer (next)
-- Player actions as a serializable command protocol (intents in, state-delta out) — bots and future UI share it
-- Automation unlocks (auto-flipper tiers, more concurrent orders — GE-slot-style limits)
-- Offline accrual = fast-forward N ticks (engine already does 10k ticks/100ms)
-- Producer gp sink (producers currently accumulate wealth endlessly; harmless now, but give gp somewhere to go — upkeep, expansion)
-- Smarter flipper baselines to balance against (current bot: bid+1/ask−1 with 3% margin filter)
+## Phase 2 — DONE 2026-06-10 (command protocol, slots, offline accrual)
+
+## Phase 2 continuation — NPC ecology + bot quality (next)
+- NPC bankroll top-up/respawn: noise traders extinct by 100k ticks, momentum −44% (FINDINGS #7) — model as explicit ledger mint
+- Producer gp sink (producers hold 1B gp by 100k ticks; give gp somewhere to go — upkeep, expansion)
+- Flipper cost-basis tracking: floor re-list price at break-even (reviewer note — self-undercut bounded but real)
+- Flipper multi-slot buying (rests only 1 buy order today; paid slots underused)
+- Automation unlock tiers beyond slots (auto-collect, auto-relist cadence upgrades)
 
 ## Phase 3 — Workspace hardening
 - Split into pnpm workspaces: packages/{engine,cli,botkit} per architect design (deliberately deferred from Phase 1)

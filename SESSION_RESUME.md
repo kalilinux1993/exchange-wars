@@ -1,9 +1,9 @@
 # Session Resume
 
-**Last session:** 2026-06-10 — Phase 1 closed.
+**Last session:** 2026-06-10 — Phases 1 AND 2 closed (same day; autonomous loop active).
 
-**State:** Headless deterministic economy engine complete and committed. 32 tests green across 6 gate suites. Sim verified: `npm run sim -- --seed 42 --ticks 10000` → ~100ms, invariants OK, flipper profitable.
+**State:** Engine + player command protocol complete. 47 tests green across 8 suites. `applyCommand`/`playerView` (src/engine/commands.ts) is the only player surface; flipper bot drives it exclusively and profits on all gate seeds. Slot progression (3→8, gp burned) works. Offline accrual proven (snapshot-resume ≡ straight run, 100k ticks in 431ms).
 
-**No remote configured** — repo is local-only at `C:\Users\jesse\Dev\Fullauto` (parent `Dev/` is an accidental git repo; `Fullauto/` is in its .gitignore, so no entanglement).
+**No remote configured** — local-only repo. A 5-minute `/loop` ("continue working on exchange wars", job b1578806) may still be active in-session.
 
-**Pick up here:** Phase 2 — player progression / idle layer. See NEXT_STEPS.md. Start with the serializable command protocol (intents in, state-delta out) since bots and the future UI both ride on it. Run `/start-phase` first.
+**Pick up here:** Phase 2 continuation — NPC ecology (noise-trader extinction, FINDINGS #7) and bot quality (cost-basis floor, multi-slot buying), per NEXT_STEPS.md. Run `/start-phase` first.

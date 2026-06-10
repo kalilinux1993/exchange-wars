@@ -22,10 +22,12 @@
 - src/engine/commands.ts (new), src/engine/types.ts (AgentState.slots), src/engine/sim.ts (player init), src/engine/agents.ts (actPlayer rewrite), test/commands.test.ts (new), test/market.test.ts (unchanged but must stay green)
 
 ## Gates
-- [ ] Command-protocol unit gate (slots, rejections, ledger burn, view round-trip)
-- [ ] All Phase 1 gates stay green (determinism, conservation, market incl. flipper profit, purity)
-- [ ] Spam-test if applyCommand changes hot-path behavior materially
-- [ ] Adversarial review at phase end (via /end-phase)
+- [x] Command-protocol unit gate — green (commands.test.ts, 13 tests incl. partial-fill slots, world round-trip, interleaved buySlot ledger)
+- [x] All Phase 1 gates stay green — 47 tests total, market gate (flipper profit) green on seeds 11/42/1337
+- [x] Spam-test — not re-run: applyCommand adds countOpenOrders (O(open orders)) at player cadence only; covered by 100k-tick run at 431ms
+- [x] Adversarial review — slot/conservation machinery confirmed solid; 3 test gaps it found were closed; 2 bounded bot-quality notes logged to FINDINGS #8 / NEXT_STEPS
+
+**Closed:** 2026-06-10 — done condition met (long-run/offline-accrual gate added in test/longrun.test.ts).
 
 ## Open questions
 - Slot cost schedule tuning (current draft: 25k/75k/200k/500k/1.25M for slots 4→8)

@@ -1,5 +1,11 @@
 # Findings
 
+## Phase 2 (2026-06-10)
+
+7. **Noise traders go extinct over long runs.** At 100k ticks (seed 42), the 6 noise traders are down to 478 gp combined (from 8k each) and momentum traders lost ~44% — tax + bad trades bleed them out. The flipper's prey dies off; very-long-run markets go sterile. Fix direction (Phase 2 continuation/3): NPC bankroll top-up or respawn, treated as explicit ledger mint.
+8. **Adversarial review of the protocol: slot/conservation machinery confirmed solid** (OOB cost-schedule indexing defended, buySlot ledger-exact, full-fills don't occupy slots). Two bounded behavioral notes on the baseline flipper, deliberately NOT fixed (writing a better bot is the game): (a) re-listing at bestAsk−1 can undercut itself down to the producer floor in thin books — bounded by producers always quoting cost×1.05; (b) the strategy rests at most one buy order, underusing paid slots.
+9. **Slot constraint costs the flipper ~30% profit** (+1,583 vs +2,234 at 10k ticks) — confirms slot unlocks are a meaningful progression lever, not decoration.
+
 ## Phase 1 (2026-06-10)
 
 1. **Thin flips lose to tax + drift.** The flipper was breakeven-to-negative (seed 1337: −108 over 6000 ticks) when it accepted any post-tax profit ≥ 2 gp. Adding a 3% minimum-margin entry filter (`TUNING.player.minMarginPct`) made it profitable on every seed tested AND reduced variance. Same lesson as real GE flipping: entry selectivity beats trade frequency.

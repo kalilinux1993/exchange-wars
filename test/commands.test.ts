@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyCommand, countOpenOrders, playerView, PROGRESSION } from '../src/engine/commands';
 import { placeOrder } from '../src/engine/exchange';
+import { hashState } from '../src/engine/hash';
 import { checkInvariants } from '../src/engine/invariants';
 import { addAgent, createWorld } from '../src/engine/sim';
 import type { AgentState, ItemDef, WorldState } from '../src/engine/types';
@@ -127,6 +128,51 @@ describe('command protocol', () => {
     expect(m.bestAsk).toBe(100);
     expect(m.bestAskIsMine).toBe(false);
     expect(JSON.parse(JSON.stringify(view))).toEqual(view);
+  });
+
+  it('a partial fill rests as exactly one occupied slot', () => {
+    const { state, alice, bob } = fixture();
+    placeOrder(state, bob, 'ore', 'sell', 100, 4);
+    const r = applyCommand(state, alice.id, { type: 'place', itemId: 'ore', side: 'buy', price: 100, qty: 10 });
+    expect(r.ok).toBe(true);
+    expect(r.trades).toHaveLength(1); // 4 filled, 6 rest
+    expect(countOpenOrders(state, alice.id)).toBe(1);
+    applyCommand(state, alice.id, { type: 'place', itemId: 'ore', side: 'buy', price: 10, qty: 1 });
+    applyCommand(state, alice.id, { type: 'place', itemId: 'ore', side: 'buy', price: 11, qty: 1 });
+    const r4 = applyCommand(state, alice.id, { type: 'place', itemId: 'ore', side: 'buy', price: 12, qty: 1 });
+    expect(r4.reason).toBe('no-free-slots');
+    checkInvariants(state);
+  });
+
+  it('upgraded slots survive a WorldState JSON round-trip and stay enforced', () => {
+    const { state } = fixture();
+    const carol = addAgent(state, 'player', 200_000, {});
+    applyCommand(state, carol.id, { type: 'buySlot' });
+    expect(carol.slots).toBe(PROGRESSION.startingSlots + 1);
+    const restored = JSON.parse(JSON.stringify(state)) as WorldState;
+    expect(hashState(restored)).toBe(hashState(state));
+    expect(restored.agents[carol.id]!.slots).toBe(PROGRESSION.startingSlots + 1);
+    for (const price of [10, 11, 12, 13]) {
+      const r = applyCommand(restored, carol.id, { type: 'place', itemId: 'ore', side: 'buy', price, qty: 1 });
+      expect(r.ok).toBe(true);
+    }
+    const over = applyCommand(restored, carol.id, { type: 'place', itemId: 'ore', side: 'buy', price: 14, qty: 1 });
+    expect(over.reason).toBe('no-free-slots');
+    checkInvariants(restored);
+  });
+
+  it('buySlot interleaved with live orders keeps the ledger exact', () => {
+    const { state, alice, bob } = fixture();
+    const carol = addAgent(state, 'player', 300_000, { ore: 10 });
+    applyCommand(state, carol.id, { type: 'place', itemId: 'ore', side: 'sell', price: 150, qty: 5 });
+    applyCommand(state, carol.id, { type: 'place', itemId: 'ore', side: 'buy', price: 50, qty: 2 });
+    applyCommand(state, carol.id, { type: 'buySlot' }); // burn while orders rest
+    placeOrder(state, bob, 'ore', 'sell', 50, 2); // fills carol's bid
+    applyCommand(state, alice.id, { type: 'place', itemId: 'ore', side: 'buy', price: 150, qty: 5 }); // fills carol's ask
+    applyCommand(state, carol.id, { type: 'buySlot' });
+    applyCommand(state, carol.id, { type: 'cancel' });
+    expect(carol.slots).toBe(PROGRESSION.startingSlots + 2);
+    checkInvariants(state);
   });
 
   it('conserves through a command-driven session', () => {
