@@ -2,9 +2,20 @@
 
 **▶ Play it: https://kalilinux1993.github.io/exchange-wars/**
 
+![Exchange Wars — the medieval trading terminal](docs/screenshot.png)
+
 A market/trading tycoon game built on a fully deterministic, headless economy simulation. NPC agents — producers, consumers, market makers, momentum chasers, noise traders — trade items on a GE-style exchange with limit order books, escrow, and a 2% sell tax. The player flips items, corners markets, and (in later phases) unlocks automation.
 
 The defining constraint: **the entire game core is testable and debuggable with zero human in the loop.** Same seed → same world, bit for bit. A scripted flipper bot plays the game programmatically from day one.
+
+## What's in the game
+
+- **64 real OSRS items** (names, price scales, icons snapshotted from the wiki) trading on GE-style limit order books with escrow and a 2% sell tax
+- **A living economy**: producers, consumers, market makers, momentum and noise traders — plus ⚡ **world events** (shortages, crazes, gluts, slumps) and a **Chronicle** of their history
+- **Trader's cockpit**: filterable/sortable market, clickable depth ladder, offer ticket with max/limit awareness, personal fill log, fortune chart
+- **Progression**: GE offer slots (3→8), a hireable **auto-flipping clerk** with three tiers and configurable orders (risk / capital / focus), real **GE buy limits**, quartermaster **delivery contracts**, and 10 Deeds to earn
+- **True idle game**: the world advances ~1 tick per real second while the tab is closed (≈28h cap); installable PWA; save export/import; optional email sign-in for cross-device cloud saves
+- **Challenge seeds**: the same seed always produces the identical world — race a friend on fair ground
 
 ## Quick start
 

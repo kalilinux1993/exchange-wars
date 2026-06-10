@@ -59,6 +59,24 @@ export function TradeFeed({
             </li>
           ))}
           {fills.length === 0 && <li className="dim">no fills yet — your trades will land here</li>}
+          {fills.length > 0 && (
+            <li>
+              <span className="dim">last {fills.length} fills</span>
+              <span className="num">
+                bought{' '}
+                {fills
+                  .filter((f) => f.side === 'buy')
+                  .reduce((a, f) => a + f.qty * f.price, 0)
+                  .toLocaleString('en-US')}{' '}
+                · sold{' '}
+                {fills
+                  .filter((f) => f.side === 'sell')
+                  .reduce((a, f) => a + f.qty * f.price, 0)
+                  .toLocaleString('en-US')}{' '}
+                gp
+              </span>
+            </li>
+          )}
         </ul>
       )}
     </section>

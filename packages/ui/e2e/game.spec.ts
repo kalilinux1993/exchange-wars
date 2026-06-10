@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 
 // Catalog-agnostic: rows are addressed by position, prices chosen so cheap
 // items always cross (the first row is the cheapest item by construction).
@@ -72,6 +73,17 @@ test('mobile viewport: full ticket flow works on a phone-sized screen', async ({
   await page.getByLabel('qty').fill('1');
   await page.getByText('place buy offer').click();
   await expect(page.locator('.filled')).toContainText('filled 1 instantly');
+});
+
+test('capture README screenshot (on demand)', async ({ page }) => {
+  test.skip(!process.env['SCREENSHOT'], 'set SCREENSHOT=1 to capture');
+  await page.setViewportSize({ width: 1280, height: 880 });
+  await dismissHelp(page);
+  await page.getByText('+1k').click();
+  await page.locator('.market tbody tr').nth(2).click();
+  // Anchor to this spec file — page.screenshot resolves relative paths
+  // against the process cwd, which varies (it once escaped the repo).
+  await page.screenshot({ path: fileURLToPath(new URL('../../../docs/screenshot.png', import.meta.url)) });
 });
 
 test('engine rejection reasons surface in the ticket', async ({ page }) => {
