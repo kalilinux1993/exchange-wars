@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
-import { playerView } from '@exchange-wars/engine';
+// Catalog-agnostic: everything derives from DEFAULT_ITEMS so `npm run
+// gen:catalog` regens never break these tests.
+import { DEFAULT_ITEMS, playerView } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { App } from '../src/App';
@@ -11,6 +13,9 @@ import {
   OFFLINE_CAP_TICKS,
   type Game,
 } from '../src/game';
+
+const FIRST = DEFAULT_ITEMS[0]!; // cheapest item — guaranteed affordable
+const LAST = DEFAULT_ITEMS[DEFAULT_ITEMS.length - 1]!;
 
 afterEach(() => {
   cleanup();
@@ -29,36 +34,41 @@ function placeBuy(price: string, qty: string): void {
   fireEvent.click(screen.getByText(/place buy offer/i));
 }
 
+/** A resting bid: price 2 never crosses any ask in a ≥30gp catalog. */
+function placeRestingBuy(qty: string): void {
+  placeBuy('2', qty);
+}
+
 describe('UI shell', () => {
-  it('renders the market catalog across price tiers, with net worth in the header', () => {
+  it('renders the full catalog with net worth in the header', () => {
     freshApp();
-    for (const name of ['Iron ore', 'Coal', 'Shark', 'Grimy ranarr', 'Rune scimitar', 'Rune platebody']) {
-      expect(screen.getByText(name)).toBeTruthy();
-    }
+    expect(document.querySelectorAll('.market tbody tr')).toHaveLength(DEFAULT_ITEMS.length);
+    expect(screen.getByText(FIRST.name)).toBeTruthy();
+    expect(screen.getAllByText(LAST.name).length).toBeGreaterThan(0);
     expect(screen.getByText('net')).toBeTruthy();
-    expect(screen.getByText('+0')).toBeTruthy(); // net worth delta at boot
+    expect(screen.getByText('+0')).toBeTruthy();
   });
 
-  it('places a buy offer through the ticket; escrow debits gp and a slot fills', () => {
+  it('places a resting buy offer; escrow debits gp and a slot fills', () => {
     const game = freshApp();
-    placeBuy('50', '2');
+    placeRestingBuy('2');
     expect(screen.getByText(/1\/3 offer slots used/i)).toBeTruthy();
-    expect(game.world.agents[game.playerId]!.gp).toBe(HUMAN_START_GP - 100);
-    expect(screen.getByText(/2 @ 50/)).toBeTruthy(); // open offer row
+    expect(game.world.agents[game.playerId]!.gp).toBe(HUMAN_START_GP - 4);
+    expect(screen.getByText(/2 @ 2/)).toBeTruthy();
   });
 
   it('abort cancels the offer and refunds the escrow', () => {
     const game = freshApp();
-    placeBuy('50', '2');
+    placeRestingBuy('2');
     fireEvent.click(screen.getByText('abort'));
     expect(screen.getByText(/0\/3 offer slots used/i)).toBeTruthy();
     expect(game.world.agents[game.playerId]!.gp).toBe(HUMAN_START_GP);
     expect(screen.getByText('no open offers')).toBeTruthy();
   });
 
-  it('rejects an invalid offer with the engine reason', () => {
+  it('rejects an unaffordable offer with the engine reason', () => {
     freshApp();
-    placeBuy('999999', '99'); // unaffordable
+    placeBuy('999999', '99');
     expect(screen.getByText(/rejected: insufficient-gp/i)).toBeTruthy();
   });
 
@@ -70,8 +80,8 @@ describe('UI shell', () => {
     expect(game.world.tick).toBe(1_000);
     fireEvent.click(screen.getByText('+10k'));
     expect(game.world.tick).toBe(11_000);
-    expect(game.worthHistory.length).toBeGreaterThan(1); // sampled during fast-forward
-    expect(screen.queryByText(/let the world run/i)).toBeNull(); // chart now renders
+    expect(game.worthHistory.length).toBeGreaterThan(1);
+    expect(screen.queryByText(/let the world run/i)).toBeNull();
   });
 
   it('milestones latch once and persist on the save', () => {
@@ -79,24 +89,24 @@ describe('UI shell', () => {
     const v = playerView(game.world, game.playerId)!;
     const newly = checkMilestones(game, v, 120_000);
     expect(newly.map((m) => m.id)).toContain('hundred-k');
-    expect(game.milestones).toContain('doubled'); // 120k ≥ 2 × 55k
-    expect(checkMilestones(game, v, 120_000)).toHaveLength(0); // no double-unlock
+    expect(game.milestones).toContain('doubled');
+    expect(checkMilestones(game, v, 120_000)).toHaveLength(0);
   });
 
   it('first offer unlocks a milestone with a toast, and the Deeds panel tracks it', () => {
     freshApp();
     expect(screen.getByText('Deeds')).toBeTruthy();
-    placeBuy('50', '2');
-    expect(screen.getAllByText('Open for Business').length).toBeGreaterThan(0); // toast + panel
+    placeRestingBuy('1');
+    expect(screen.getAllByText('Open for Business').length).toBeGreaterThan(0);
   });
 
   it('Clerk Orders configure the idle bot through the command protocol', () => {
     const game = freshApp();
     expect(screen.getByText(/hire the clerk/i)).toBeTruthy();
-    fireEvent.click(screen.getByText('50,000 gp')); // buy autoFlip tier 1 (affordable at 55k)
+    fireEvent.click(screen.getByText('50,000 gp'));
     const focus = screen.getByLabelText(/focus/i) as HTMLSelectElement;
-    fireEvent.change(focus, { target: { value: 'iron_ore' } });
-    expect(game.world.agents[game.playerId]!.botConfig?.focusItemId).toBe('iron_ore');
+    fireEvent.change(focus, { target: { value: DEFAULT_ITEMS[1]!.id } });
+    expect(game.world.agents[game.playerId]!.botConfig?.focusItemId).toBe(DEFAULT_ITEMS[1]!.id);
     const risk = screen.getByLabelText(/risk/i) as HTMLSelectElement;
     fireEvent.change(risk, { target: { value: '0.06' } });
     expect(game.world.agents[game.playerId]!.botConfig?.maxVolatility).toBe(0.06);
@@ -104,26 +114,29 @@ describe('UI shell', () => {
 
   it('depth ladder shows the selected book with the player marked', () => {
     const game = freshApp();
-    fireEvent.click(screen.getByText('+1k')); // populate books
-    expect(screen.getByText(/Depth · feather/i)).toBeTruthy(); // first item selected by default
+    fireEvent.click(screen.getByText('+1k'));
+    const title = new RegExp(`Depth · ${FIRST.id.replace(/_/g, ' ')}`, 'i');
+    expect(screen.getByText(title)).toBeTruthy();
     expect(screen.getByText(/spread/i)).toBeTruthy();
-    placeBuy('2', '1'); // deep bid rests → appears as our level
-    const ladder = screen.getByText(/Depth · feather/i).closest('.ladder')!;
+    // One gp BELOW best bid: guaranteed to rest (real-price catalogs have
+    // 1gp spreads, so bid+1 can cross) and guaranteed inside the top-5 levels.
+    const bestBid = game.world.books[FIRST.id]!.buys[0]!.price;
+    placeBuy(String(Math.max(1, bestBid - 1)), '1');
+    const ladder = screen.getByText(title).closest('.ladder')!;
     expect(ladder.textContent).toContain('◆');
   });
 
   it('quartermaster board: deliver gates on inventory, pays out, and latches the milestone', () => {
     const game = freshApp();
     expect(screen.getByText(/no contracts posted/i)).toBeTruthy();
-    fireEvent.click(screen.getByText('+1k')); // populate books (real contracts may spawn)
-    game.world.contracts!.length = 0; // isolate the test contract from spawned ones
-    game.world.contracts!.push({ id: 999, itemId: 'iron_ore', qty: 1, unitPrice: 500, expiresTick: 99_999 });
-    const marketCell = screen.getAllByText('Iron ore').find((el) => el.closest('.market') !== null)!;
-    fireEvent.click(marketCell); // select + re-render
+    fireEvent.click(screen.getByText('+1k'));
+    game.world.contracts!.length = 0;
+    game.world.contracts!.push({ id: 999, itemId: FIRST.id, qty: 1, unitPrice: 500, expiresTick: 99_999 });
+    const marketCell = screen.getAllByText(FIRST.name).find((el) => el.closest('.market') !== null)!;
+    fireEvent.click(marketCell);
     const deliver = screen.getByText('deliver') as HTMLButtonElement;
-    expect(deliver.disabled).toBe(true); // nothing in the satchel yet
-    // Buy 1 iron ore at a crossing price for an instant fill.
-    placeBuy('500', '1');
+    expect(deliver.disabled).toBe(true);
+    placeBuy(String(FIRST.consumeValue * 3), '1'); // crosses any ask — instant fill
     const gpBefore = game.world.agents[game.playerId]!.gp;
     const deliverNow = screen.getByText('deliver') as HTMLButtonElement;
     expect(deliverNow.disabled).toBe(false);
@@ -135,19 +148,15 @@ describe('UI shell', () => {
 
   it('offline accrual: real time away fast-forwards the world, capped, ignoring blips', () => {
     const game = newGame(42);
-    // No lastSeenMs yet (never saved) → nothing applied.
     expect(applyOfflineProgress(game, 1_000_000)).toBeNull();
     expect(game.world.tick).toBe(0);
-    // 10 minutes away at 1 tick/sec → 600 ticks.
     game.lastSeenMs = 1_000_000;
     const res = applyOfflineProgress(game, 1_000_000 + 600_000);
     expect(res?.ticks).toBe(600);
     expect(game.world.tick).toBe(600);
-    // 30 seconds is a blip → ignored.
     game.lastSeenMs = 2_000_000;
     expect(applyOfflineProgress(game, 2_000_000 + 30_000)).toBeNull();
     expect(game.world.tick).toBe(600);
-    // A week away hits the cap.
     game.lastSeenMs = 3_000_000;
     const capped = applyOfflineProgress(game, 3_000_000 + 7 * 24 * 3_600_000);
     expect(capped?.ticks).toBe(OFFLINE_CAP_TICKS);
@@ -156,19 +165,19 @@ describe('UI shell', () => {
 
   it('shows the away banner when reopening after time has passed', () => {
     const game = newGame(42);
-    game.lastSeenMs = Date.now() - 600_000; // "saved" 10 minutes ago
+    game.lastSeenMs = Date.now() - 600_000;
     render(<App initial={game} />);
     expect(screen.getByText(/while you were away/i)).toBeTruthy();
     expect(game.world.tick).toBeGreaterThanOrEqual(600);
   });
 
   it('upgrade shop gates purchases by affordability', () => {
-    const game = freshApp(); // 55k gp: slot (25k) and autoFlip tier 1 (50k) both within reach
+    const game = freshApp();
     const slotBtn = screen.getByText('25,000 gp') as HTMLButtonElement;
     const flipBtn = screen.getByText('50,000 gp') as HTMLButtonElement;
     expect(slotBtn.disabled).toBe(false);
     expect(flipBtn.disabled).toBe(false);
-    fireEvent.click(slotBtn); // 25k left — autoFlip no longer affordable
+    fireEvent.click(slotBtn);
     expect(game.world.agents[game.playerId]!.slots).toBe(4);
     expect(screen.getByText(/0\/4 offer slots used/i)).toBeTruthy();
     expect((screen.getByText('50,000 gp') as HTMLButtonElement).disabled).toBe(true);

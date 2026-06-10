@@ -14,6 +14,8 @@ export interface ItemDef {
   consumeValue: number;
   /** 0..1 — scale of noise-trader price perturbation. */
   volatility: number;
+  /** OSRS item id when the catalog is wiki-generated (icons live at icons/{wikiId}.png). */
+  wikiId?: number;
 }
 
 export interface Order {

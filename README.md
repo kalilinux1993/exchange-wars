@@ -47,6 +47,10 @@ Future packages slot in as siblings: `packages/ui` (Phase 4), `packages/server` 
 - **gp sink:** 2% tax on every sale, burned to the ledger. **Conservation is provable:** in-world gp == initial + minted − burned, always (see `checkInvariants`).
 - **Liquidity:** market makers quote both sides around the EMA; momentum/noise traders create the dislocations the flipper profits from.
 
+## Data & credits
+
+Item names, price scales, and icons are a **build-time snapshot** of real Old School RuneScape Grand Exchange data from the [OSRS Wiki prices API](https://prices.runescape.wiki) (regenerate with `npm run gen:catalog` — then re-run the balance sweep + gates). Icons and item data are from the OSRS Wiki; RuneScape is a trademark of Jagex Ltd. This is a free fan project, unaffiliated with Jagex. The simulation itself is fully deterministic — no live data flows into the engine.
+
 ## Determinism rules (hard constraints)
 
 1. No `Date.now` / `Math.random` / `performance.now` / `new Date` / timers in `packages/engine/src` — gated by `packages/engine/test/purity.test.ts`.

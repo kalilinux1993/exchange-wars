@@ -32,7 +32,7 @@ export function MarketTable({
   selected: ItemId;
   onSelect: (id: ItemId) => void;
 }) {
-  const names = new Map(items.map((i) => [i.id, i.name]));
+  const defs = new Map(items.map((i) => [i.id, i]));
   const sparks = new Map<ItemId, number[]>();
   for (const t of trades) {
     const arr = sparks.get(t.itemId) ?? [];
@@ -61,7 +61,14 @@ export function MarketTable({
               onClick={() => onSelect(m.itemId)}
             >
               <td className="name">
-                {names.get(m.itemId) ?? m.itemId}
+                {defs.get(m.itemId)?.wikiId !== undefined && (
+                  <img
+                    className="icon"
+                    src={`${import.meta.env.BASE_URL}icons/${defs.get(m.itemId)!.wikiId}.png`}
+                    alt=""
+                  />
+                )}
+                {defs.get(m.itemId)?.name ?? m.itemId}
                 {(m.bestBidIsMine || m.bestAskIsMine) && (
                   <span className="mine" title="your offer is best">
                     {' '}

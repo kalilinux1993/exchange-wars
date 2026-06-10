@@ -266,6 +266,15 @@ th.num {
   color: var(--gold-bright);
 }
 
+.icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  vertical-align: -3px;
+  margin-right: 6px;
+  image-rendering: pixelated;
+}
+
 .bid {
   color: var(--rise);
 }
