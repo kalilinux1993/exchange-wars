@@ -14,12 +14,13 @@
 
 ## Phase 2d — DONE 2026-06-10 (balance harness, tier-3 fix, balance gate)
 
+## Phase 3 — DONE 2026-06-10 (npm workspace split: packages/{engine,cli})
+
 ## Next candidates
-- pnpm workspace split: packages/{engine,cli,botkit} per architect design
+- **Phase 4 — React PWA UI** (`packages/ui`): now unblocked. Vite + React, render playerView, issue commands, seeded-world Playwright E2E. Jesse may want to steer art/game-feel here.
 - CI (GitHub Actions): typecheck + test; needs a remote first (Jesse's call)
 - Payback-period design targets for upgrades (currently ~300k–3M ticks; fine under offline math, undesigned as gameplay)
 - Momentum traders still bleed slowly despite bailouts (FINDINGS #12) — only worth touching if dislocations dry up
-- Phase 4 (UI) prerequisites: command protocol is ready; needs workspace split first
 
 ## Phase 3 — Workspace hardening
 - Split into pnpm workspaces: packages/{engine,cli,botkit} per architect design (deliberately deferred from Phase 1)

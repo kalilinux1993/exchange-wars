@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { cancelAgentOrders, placeOrder } from '../src/engine/exchange';
-import { checkInvariants } from '../src/engine/invariants';
-import { addAgent, createWorld } from '../src/engine/sim';
-import type { AgentState, ItemDef, WorldState } from '../src/engine/types';
+import { cancelAgentOrders, placeOrder } from '../src/exchange';
+import { checkInvariants } from '../src/invariants';
+import { addAgent, createWorld } from '../src/sim';
+import type { AgentState, ItemDef, WorldState } from '../src/types';
 
 const ORE: ItemDef = { id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.1 };
 

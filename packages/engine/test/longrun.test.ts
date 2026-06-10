@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { hashState } from '../src/engine/hash';
-import { checkInvariants } from '../src/engine/invariants';
-import { netWorth } from '../src/engine/report';
-import { createWorld, runTicks } from '../src/engine/sim';
-import type { WorldState } from '../src/engine/types';
+import { hashState } from '../src/hash';
+import { checkInvariants } from '../src/invariants';
+import { netWorth } from '../src/report';
+import { createWorld, runTicks } from '../src/sim';
+import type { WorldState } from '../src/types';
 
 // Offline accrual = save, fast-forward, resume. These gates prove long runs
 // stay conserved, anchored, and cheap (50k ticks ≈ 250ms; vitest's timeout

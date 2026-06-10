@@ -1,8 +1,7 @@
 // Balance measurement harness: idle autoFlip tier curve across seeds and
 // scenarios. Working capital is normalized so tiers compare fairly.
 //   npm run balance [-- --ticks 8000]
-import { PROGRESSION } from '../engine/commands';
-import { BALANCE_WORKING_CAPITAL, measureIdleTier } from '../engine/harness';
+import { BALANCE_WORKING_CAPITAL, measureIdleTier, PROGRESSION } from '@exchange-wars/engine';
 
 const SEEDS = [7, 11, 42, 99, 1337];
 

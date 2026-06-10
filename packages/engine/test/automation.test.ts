@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { actAgent, TUNING } from '../src/engine/agents';
-import { applyCommand, countOpenOrders, PROGRESSION } from '../src/engine/commands';
-import { placeOrder } from '../src/engine/exchange';
-import { hashState } from '../src/engine/hash';
-import { checkInvariants } from '../src/engine/invariants';
-import { netWorth } from '../src/engine/report';
-import { createRng } from '../src/engine/rng';
-import { addAgent, createWorld, runTicks } from '../src/engine/sim';
-import type { ItemDef, WorldState } from '../src/engine/types';
+import { actAgent, TUNING } from '../src/agents';
+import { applyCommand, countOpenOrders, PROGRESSION } from '../src/commands';
+import { placeOrder } from '../src/exchange';
+import { hashState } from '../src/hash';
+import { checkInvariants } from '../src/invariants';
+import { netWorth } from '../src/report';
+import { createRng } from '../src/rng';
+import { addAgent, createWorld, runTicks } from '../src/sim';
+import type { ItemDef, WorldState } from '../src/types';
 
 function alignTick(state: WorldState, agentId: number, cadence: number): void {
   while ((state.tick + agentId) % cadence !== 0) state.tick++;

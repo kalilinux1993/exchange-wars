@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { applyCommand, countOpenOrders, playerView, PROGRESSION } from '../src/engine/commands';
-import { placeOrder } from '../src/engine/exchange';
-import { hashState } from '../src/engine/hash';
-import { checkInvariants } from '../src/engine/invariants';
-import { addAgent, createWorld } from '../src/engine/sim';
-import type { AgentState, ItemDef, WorldState } from '../src/engine/types';
+import { applyCommand, countOpenOrders, playerView, PROGRESSION } from '../src/commands';
+import { placeOrder } from '../src/exchange';
+import { hashState } from '../src/hash';
+import { checkInvariants } from '../src/invariants';
+import { addAgent, createWorld } from '../src/sim';
+import type { AgentState, ItemDef, WorldState } from '../src/types';
 
 const ORE: ItemDef = { id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.1 };
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { measureIdleTier } from '../src/engine/harness';
+import { measureIdleTier } from '../src/harness';
 
 // The idle tier balance gate (FINDINGS #15/#16). Design notes:
 // - "> 0 on every seed" kills the catastrophic-loss class of regression

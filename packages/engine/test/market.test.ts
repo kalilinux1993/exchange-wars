@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { netWorth } from '../src/engine/report';
-import { createWorld, runTicks } from '../src/engine/sim';
+import { netWorth } from '../src/report';
+import { createWorld, runTicks } from '../src/sim';
 
 // Economy sanity: with cost-anchored producers and value-anchored consumers,
 // prices must stay in a sane band and the scripted flipper must stay solvent.

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { actAgent, TUNING } from '../src/engine/agents';
-import { applyCommand } from '../src/engine/commands';
-import { placeOrder } from '../src/engine/exchange';
-import { checkInvariants } from '../src/engine/invariants';
-import { createRng } from '../src/engine/rng';
-import { addAgent, createWorld } from '../src/engine/sim';
-import type { ItemDef, WorldState } from '../src/engine/types';
+import { actAgent, TUNING } from '../src/agents';
+import { applyCommand } from '../src/commands';
+import { placeOrder } from '../src/exchange';
+import { checkInvariants } from '../src/invariants';
+import { createRng } from '../src/rng';
+import { addAgent, createWorld } from '../src/sim';
+import type { ItemDef, WorldState } from '../src/types';
 
 const ORE: ItemDef = { id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.1 };
 

@@ -1,9 +1,6 @@
-// Headless sim runner. Wall-clock APIs are fine HERE — just never in src/engine.
+// Headless sim runner. Wall-clock APIs are fine HERE — just never in the engine.
 //   npm run sim -- --seed 42 --ticks 10000 [--report-every 2000]
-import { hashState } from '../engine/hash';
-import { checkInvariants } from '../engine/invariants';
-import { renderReport } from '../engine/report';
-import { createWorld, runTicks } from '../engine/sim';
+import { checkInvariants, createWorld, hashState, renderReport, runTicks } from '@exchange-wars/engine';
 
 function arg(name: string, fallback: number): number {
   const i = process.argv.indexOf(`--${name}`);

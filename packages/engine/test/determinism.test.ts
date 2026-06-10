@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { hashState } from '../src/engine/hash';
-import { createWorld, runTicks } from '../src/engine/sim';
-import type { WorldState } from '../src/engine/types';
+import { hashState } from '../src/hash';
+import { createWorld, runTicks } from '../src/sim';
+import type { WorldState } from '../src/types';
 
 describe('determinism', () => {
   it('same seed, same history -> identical state hash', () => {

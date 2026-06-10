@@ -13,21 +13,30 @@ npm run sim -- --seed 42 --ticks 10000     # fast-forward an economy, print the 
 npm run sim -- --seed 42 --ticks 10000 --report-every 2000
 ```
 
-## Architecture (Phase 1)
+## Architecture (npm workspaces)
 
 ```
-src/engine/        pure simulation — no I/O, no clock, no Math.random (enforced by test/purity.test.ts)
-  rng.ts           mulberry32, RNG cursor stored in world state
-  types.ts         plain-JSON world state (round-trips losslessly)
-  exchange.ts      limit order book: price-time priority, partial fills, escrow, 2% tax burn, self-trade skip
-  agents.ts        NPC archetypes + scripted flipper player-bot; all balance numbers in TUNING
-  sim.ts           world creation + tick loop
-  invariants.ts    conservation checker (gp/items vs explicit mint/burn ledger)
-  hash.ts          canonical-JSON FNV-1a state hash
-  report.ts        economy report / net-worth helpers
-src/cli/run.ts     headless sim runner
-test/              the gates — see PHASE_CURRENT.md
+packages/
+├── engine/                @exchange-wars/engine — pure simulation, no I/O/clock/Math.random
+│   ├── src/               (purity enforced by packages/engine/test/purity.test.ts)
+│   │   ├── index.ts       public API barrel — the only entry other packages may import
+│   │   ├── rng.ts         mulberry32, RNG cursor stored in world state
+│   │   ├── types.ts       plain-JSON world state (round-trips losslessly)
+│   │   ├── exchange.ts    limit order book: price-time priority, partial fills, escrow, 2% tax burn
+│   │   ├── agents.ts      NPC archetypes + flipper strategy core; ALL balance numbers in TUNING
+│   │   ├── commands.ts    the player surface: applyCommand / playerView / PROGRESSION
+│   │   ├── sim.ts         world creation + tick loop
+│   │   ├── invariants.ts  conservation checker (gp/items vs explicit mint/burn ledger)
+│   │   ├── hash.ts        canonical-JSON FNV-1a state hash
+│   │   ├── report.ts      economy report / net-worth helpers
+│   │   ├── harness.ts     balance measurement helpers (shared by CLI + gate)
+│   │   └── catalog.ts     default item set
+│   └── test/              the gates (12 suites) — see DEV_GUIDE.md
+└── cli/                   @exchange-wars/cli
+    └── src/               run.ts (sim runner) · balance.ts (tier-curve matrix)
 ```
+
+Future packages slot in as siblings: `packages/ui` (Phase 4), `packages/server` (Phase 5).
 
 ## Economy design
 
@@ -38,8 +47,8 @@ test/              the gates — see PHASE_CURRENT.md
 
 ## Determinism rules (hard constraints)
 
-1. No `Date.now` / `Math.random` / `performance.now` / `new Date` / timers in `src/engine` — gated by `test/purity.test.ts`.
+1. No `Date.now` / `Math.random` / `performance.now` / `new Date` / timers in `packages/engine/src` — gated by `packages/engine/test/purity.test.ts`.
 2. All randomness from the seeded RNG whose cursor lives in `WorldState.rngState`.
-3. World state is plain JSON: no classes, functions, Map/Set, or `undefined` properties. `JSON.parse(JSON.stringify(state))` must resume identically — gated by `test/determinism.test.ts`.
+3. World state is plain JSON: no classes, functions, Map/Set, or `undefined` properties. `JSON.parse(JSON.stringify(state))` must resume identically — gated by `packages/engine/test/determinism.test.ts`.
 4. gp is integer-only; totals are `Number.isSafeInteger`-checked in invariants.
 5. Iteration over Records follows `state.items` order or sorted keys — never raw insertion order.

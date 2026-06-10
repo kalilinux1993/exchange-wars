@@ -4,10 +4,10 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 // The engine must be a pure, deterministic simulation. Any wall-clock or
-// ambient-randomness API in src/engine breaks replay/resume guarantees.
+// ambient-randomness API in the engine package breaks replay/resume guarantees.
 const BANNED = /Math\.random|Date\.now|performance\.now|new Date\(|setTimeout|setInterval|process\.env/;
 
-const ENGINE_DIR = fileURLToPath(new URL('../src/engine', import.meta.url));
+const ENGINE_DIR = fileURLToPath(new URL('../src', import.meta.url));
 
 describe('engine purity', () => {
   for (const file of readdirSync(ENGINE_DIR)) {

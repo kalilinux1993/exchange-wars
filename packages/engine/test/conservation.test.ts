@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { checkInvariants } from '../src/engine/invariants';
-import { createWorld, runTicks } from '../src/engine/sim';
+import { checkInvariants } from '../src/invariants';
+import { createWorld, runTicks } from '../src/sim';
 
 describe('conservation', () => {
   it('gp and item ledgers balance through a 4000-tick run (checked every 500)', () => {
