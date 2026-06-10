@@ -50,6 +50,10 @@ export interface AgentState {
   itemId?: ItemId;
   /** Players only: GE-style offer slot count (see PROGRESSION in commands.ts). */
   slots?: number;
+  /** Players only: 'scripted-flipper' (active bot) or 'idle' (engine automation only). */
+  policy?: string;
+  /** Players only: purchased automation tiers by upgrade id (see PROGRESSION.upgrades). */
+  upgrades?: Record<string, number>;
   /** Strategy scratch space — JSON-serializable numbers only. */
   memo: Record<string, number>;
 }

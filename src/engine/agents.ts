@@ -20,6 +20,14 @@ export const TUNING = {
     maxConcurrentFlips: 2,
     staleHoldTicks: 200,
   },
+  /** Engine-side idle automation: autoFlip tier N reads index N-1. */
+  automation: {
+    autoFlip: [
+      { cadence: 8, maxFlips: 1, maxQty: 6 },
+      { cadence: 6, maxFlips: 2, maxQty: 8 },
+      { cadence: 5, maxFlips: 3, maxQty: 8 },
+    ],
+  },
 } as const;
 
 const CADENCE: Record<AgentKind, number> = {
@@ -32,6 +40,13 @@ const CADENCE: Record<AgentKind, number> = {
 };
 
 export function actAgent(state: WorldState, agent: AgentState, rng: RNG): void {
+  if (agent.kind === 'player') {
+    // Idle players run engine-side automation on the tier's own cadence;
+    // scripted players (the active-play stand-in) act on the base cadence.
+    if (agent.policy === 'idle') return actIdlePlayer(state, agent);
+    if ((state.tick + agent.id) % TUNING.player.cadence !== 0) return;
+    return actPlayer(state, agent);
+  }
   if ((state.tick + agent.id) % CADENCE[agent.kind] !== 0) return;
   switch (agent.kind) {
     case 'producer':
@@ -44,8 +59,6 @@ export function actAgent(state: WorldState, agent: AgentState, rng: RNG): void {
       return actMomentum(state, agent, rng);
     case 'noise':
       return actNoise(state, agent, rng);
-    case 'player':
-      return actPlayer(state, agent);
   }
 }
 
@@ -190,17 +203,50 @@ function actNoise(state: WorldState, agent: AgentState, rng: RNG): void {
   }
 }
 
-/**
- * The scripted flipper — proves the game is programmatically playable.
- * Drives the engine EXCLUSIVELY through the player command protocol
- * (applyCommand/playerView) — the same surface bots, UI, and server use.
- * Classic GE flip: buy at bid+1, sell at ask-1, only when post-tax margin clears.
- */
+/** The active player stand-in: full flipper with slot management. */
 function actPlayer(state: WorldState, agent: AgentState): void {
+  runFlipper(state, agent, {
+    maxFlips: TUNING.player.maxConcurrentFlips,
+    maxQty: TUNING.player.maxQty,
+    capitalFraction: TUNING.player.capitalFraction,
+    manageSlots: true,
+  });
+}
+
+/** Purchased engine-side automation — this is what "idle game" means here. */
+function actIdlePlayer(state: WorldState, agent: AgentState): void {
+  const tier = agent.upgrades?.['autoFlip'] ?? 0;
+  if (tier < 1) return;
+  const conf = TUNING.automation.autoFlip[Math.min(tier, TUNING.automation.autoFlip.length) - 1];
+  if (!conf) return;
+  if ((state.tick + agent.id) % conf.cadence !== 0) return;
+  runFlipper(state, agent, {
+    maxFlips: conf.maxFlips,
+    maxQty: conf.maxQty,
+    capitalFraction: TUNING.player.capitalFraction,
+    manageSlots: false, // automation never spends on unlocks — purchases are deliberate
+  });
+}
+
+interface FlipperOpts {
+  maxFlips: number;
+  maxQty: number;
+  capitalFraction: number;
+  manageSlots: boolean;
+}
+
+/**
+ * The flipper strategy core — shared by the scripted player and idle
+ * automation. Drives the engine EXCLUSIVELY through the player command
+ * protocol (applyCommand/playerView) — the same surface bots, UI, and server
+ * use. Classic GE flip: buy at bid+1, sell at ask-1, only when post-tax
+ * margin clears.
+ */
+function runFlipper(state: WorldState, agent: AgentState, opts: FlipperOpts): void {
   const first = playerView(state, agent.id);
   if (!first) return;
   // Buy the next offer slot once capital comfortably covers it.
-  if (first.nextSlotCost !== null && first.gp > first.nextSlotCost * 4) {
+  if (opts.manageSlots && first.nextSlotCost !== null && first.gp > first.nextSlotCost * 4) {
     applyCommand(state, agent.id, { type: 'buySlot' });
   }
 
@@ -269,12 +315,12 @@ function actPlayer(state: WorldState, agent: AgentState): void {
   candidates.sort((a, b) => b.profit - a.profit);
   let placed = 0;
   for (const c of candidates) {
-    if (placed >= TUNING.player.maxConcurrentFlips) break;
+    if (placed >= opts.maxFlips) break;
     vBuy = playerView(state, agent.id);
     if (!vBuy) return;
     if (vBuy.openOrders.length >= vBuy.slots) break;
-    const budget = Math.floor(vBuy.gp * TUNING.player.capitalFraction);
-    const qty = Math.min(TUNING.player.maxQty, Math.floor(budget / c.buyAt));
+    const budget = Math.floor(vBuy.gp * opts.capitalFraction);
+    const qty = Math.min(opts.maxQty, Math.floor(budget / c.buyAt));
     if (qty < 1) continue;
     const r = applyCommand(state, agent.id, { type: 'place', itemId: c.itemId, side: 'buy', price: c.buyAt, qty });
     if (r.ok) {

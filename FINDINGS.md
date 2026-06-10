@@ -1,5 +1,10 @@
 # Findings
 
+## Phase 2c (2026-06-10)
+
+14. **Idle automation must live engine-side, not bot-side** — automation inside `tickWorld` means offline fast-forward includes it for free. The `policy` split ('scripted-flipper' vs 'idle') cleanly separates active play from idle play without forking the strategy code (shared `runFlipper` core).
+15. **Idle tier curve is non-monotonic under competition** — at 6k ticks/seed 42: tier 1 +227, tier 2 +1,769, tier 3 +518. The idle player competes with the scripted flipper for the same dislocations; cadence/phase interference between bots dominates tier parameters. Needs a multi-seed balance pass with isolated AND competitive scenarios. Payback period on tier 1 (~1.3M ticks) only makes sense under offline math (100k ticks ≈ 0.5s).
+
 ## Phase 2b (2026-06-10)
 
 10. **The ecology fixes compounded into a flipper buff.** Bailouts keep speculators trading (noise wealth 478 gp → 1.68M at 100k ticks; 479 bailouts) which keeps dislocations coming; the basis floor stops the bot from selling at a loss; multi-flip uses idle capital. Net: flipper profit 3× at 100k ticks (+22,894 vs +7,915) without touching exchange internals.

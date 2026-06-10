@@ -80,7 +80,10 @@ export function addAgent(
     memo: { startGp: gp },
   };
   if (itemId !== undefined) agent.itemId = itemId;
-  if (kind === 'player') agent.slots = PROGRESSION.startingSlots;
+  if (kind === 'player') {
+    agent.slots = PROGRESSION.startingSlots;
+    agent.policy = 'scripted-flipper';
+  }
   state.agents.push(agent);
   state.ledger.gpInitial += gp;
   for (const k of Object.keys(inventory).sort()) {

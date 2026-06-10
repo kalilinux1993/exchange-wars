@@ -9,12 +9,19 @@ export const PROGRESSION = {
   maxSlots: 8,
   /** Cost of slot 4, 5, 6, 7, 8 — burned (gp sink), not paid to anyone. */
   slotCosts: [25_000, 75_000, 200_000, 500_000, 1_250_000],
+  /** Automation tiers; cost of tier N is costs[N-1]. All burned. */
+  upgrades: {
+    autoFlip: { costs: [50_000, 150_000, 400_000] },
+  },
 } as const;
+
+export type UpgradeId = keyof typeof PROGRESSION.upgrades;
 
 export type PlayerCommand =
   | { type: 'place'; itemId: ItemId; side: Side; price: number; qty: number }
   | { type: 'cancel'; itemId?: ItemId; side?: Side }
-  | { type: 'buySlot' };
+  | { type: 'buySlot' }
+  | { type: 'buyUpgrade'; upgradeId: string };
 
 export interface CommandResult {
   ok: boolean;
@@ -47,6 +54,8 @@ export interface PlayerView {
   slots: number;
   /** null when already at max slots. */
   nextSlotCost: number | null;
+  /** Purchased automation tiers by upgrade id. */
+  upgrades: Record<string, number>;
   inventory: Record<ItemId, number>;
   openOrders: OpenOrderView[];
   markets: MarketView[];
@@ -105,6 +114,23 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       agent.slots = slots + 1;
       return { ok: true, trades: [] };
     }
+    case 'buyUpgrade': {
+      // Object.hasOwn blocks prototype-chain keys ('__proto__', 'constructor')
+      // in hostile/malformed commands — indexing those would throw mid-tick.
+      if (!Object.hasOwn(PROGRESSION.upgrades, cmd.upgradeId)) {
+        return { ok: false, reason: 'unknown-upgrade', trades: [] };
+      }
+      const def = PROGRESSION.upgrades[cmd.upgradeId as UpgradeId];
+      const tier = agent.upgrades?.[cmd.upgradeId] ?? 0;
+      const cost = def.costs[tier];
+      if (cost === undefined) return { ok: false, reason: 'max-tier', trades: [] };
+      if (agent.gp < cost) return { ok: false, reason: 'insufficient-gp', trades: [] };
+      agent.gp -= cost;
+      state.ledger.gpBurned += cost; // burned, like slots
+      if (!agent.upgrades) agent.upgrades = {};
+      agent.upgrades[cmd.upgradeId] = tier + 1;
+      return { ok: true, trades: [] };
+    }
   }
 }
 
@@ -145,6 +171,7 @@ export function playerView(state: WorldState, playerId: number): PlayerView | nu
     gp: agent.gp,
     slots,
     nextSlotCost: PROGRESSION.slotCosts[slots - PROGRESSION.startingSlots] ?? null,
+    upgrades: { ...(agent.upgrades ?? {}) },
     inventory: { ...agent.inventory },
     openOrders,
     markets,

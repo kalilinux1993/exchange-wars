@@ -10,11 +10,13 @@
 
 ## Phase 2b — DONE 2026-06-10 (NPC bailouts, production burn, flipper v3)
 
-## Phase 2c / 3 candidates (next)
-- Automation unlock tiers beyond slots (auto-collect, faster relist cadence as purchasable upgrades)
+## Phase 2c — DONE 2026-06-10 (buyUpgrade, idle policy, autoFlip tiers, runFlipper extraction)
+
+## Next candidates
+- **Balance pass on idle tiers** (FINDINGS #15): multi-seed measurement harness, isolated vs competitive scenarios, fix tier-3 non-monotonicity, decide payback-period targets
 - Momentum traders still bleed slowly despite bailouts (FINDINGS #12) — only worth touching if dislocations dry up
 - pnpm workspace split: packages/{engine,cli,botkit} per architect design
-- CI (GitHub Actions): typecheck + test; needs a remote first
+- CI (GitHub Actions): typecheck + test; needs a remote first (Jesse's call)
 
 ## Phase 3 — Workspace hardening
 - Split into pnpm workspaces: packages/{engine,cli,botkit} per architect design (deliberately deferred from Phase 1)
