@@ -23,6 +23,14 @@
 ## Published 2026-06-10 — LIVE at https://kalilinux1993.github.io/exchange-wars/
 Repo: https://github.com/kalilinux1993/exchange-wars (public). Redeploy = `npm run build -w @exchange-wars/ui -- --base=/exchange-wars/`, then push dist to gh-pages.
 
+## NEXT PHASE (designed, per Jesse): OSRS Wiki-powered catalog
+Build-time snapshot generator — keeps the engine deterministic:
+- `npm run gen:catalog` (packages/cli): fetch prices.runescape.wiki/api/v1/osrs `/mapping` + `/latest` + `/volumes` (descriptive User-Agent; few calls, build-time only — rate-limit gotchas in master memory)
+- Select ~40–50 items: top daily volume, price ≥ ~30gp; derive anchors baseCost ≈ 0.75×price, consumeValue ≈ 1.5×price, volatility by tier/timeseries; keep REAL item ids + names; optionally wire GE buy limits to qty caps later
+- Download icons once to packages/ui/public/icons/{id}.png (`oldschool.runescape.wiki/images/<icon>`; credit line in README); MarketTable/ladder show icons
+- Known recurring cost: catalog regen re-rolls all seeds → routine tier-1 sweep + gate re-verify; ~50 items ≈ 350 agents → suite slows (CI budget already 120s; trim balance seeds if needed)
+- Explicitly NOT live price sync (breaks determinism/saves/gates); a real-price display overlay could come later as decoration
+
 ## Next candidates
 - Quests/contracts: NPC buy-contracts at premium ("deliver 50 lobsters") — goal-directed trading (FINDINGS #28)
 - Tier-3 clerk perk: "trades events too" (currently all tiers stand aside from event markets)
