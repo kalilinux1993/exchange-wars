@@ -20,12 +20,15 @@ export const TUNING = {
     maxConcurrentFlips: 2,
     staleHoldTicks: 200,
   },
-  /** Engine-side idle automation: autoFlip tier N reads index N-1. */
+  /** Engine-side idle automation: autoFlip tier N reads index N-1.
+   * NOTE: idle players never buy slots (3 forever), so maxFlips must leave
+   * sell capacity — 3 concurrent flips jams all slots and forces stale-dump
+   * losses (measured: seed 99 isolated −4,306). Tier 3's perk is speed. */
   automation: {
     autoFlip: [
-      { cadence: 8, maxFlips: 1, maxQty: 6 },
-      { cadence: 6, maxFlips: 2, maxQty: 8 },
-      { cadence: 5, maxFlips: 3, maxQty: 8 },
+      { cadence: 8, maxFlips: 1, maxQty: 6, capitalFraction: 0.25 },
+      { cadence: 6, maxFlips: 2, maxQty: 8, capitalFraction: 0.25 },
+      { cadence: 4, maxFlips: 2, maxQty: 10, capitalFraction: 0.35 },
     ],
   },
 } as const;
@@ -223,7 +226,7 @@ function actIdlePlayer(state: WorldState, agent: AgentState): void {
   runFlipper(state, agent, {
     maxFlips: conf.maxFlips,
     maxQty: conf.maxQty,
-    capitalFraction: TUNING.player.capitalFraction,
+    capitalFraction: conf.capitalFraction,
     manageSlots: false, // automation never spends on unlocks — purchases are deliberate
   });
 }

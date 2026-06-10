@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 2d — Idle Tier Balance Pass (2026-06-10)
+
+- **Balance harness** — `npm run balance [-- --ticks N]` (src/cli/balance.ts) prints the tier × scenario × seed profit matrix with payback estimates. Measurement core is `measureIdleTier` in src/engine/harness.ts (pure; shared with the gate).
+- **Balance gate** — test/balance.test.ts: tiers 1–3 must profit on EVERY seed in BOTH scenarios (kills catastrophic regressions), and tiers 2–3 must beat tier 1 by median (outlier-robust). Runs at 8k ticks (6k is too short — FINDINGS #19).
+- **Final curve** (8k ticks, isolated/competitive medians): tier 1 1382/354 · tier 2 1561/1353 · tier 3 1768/1364. Tier configs: cadence 8/6/4, flips 1/2/2, qty 6/8/10, capitalFraction 0.25/0.25/0.35 (tier-3 fraction inert at 150k capital, future-proofing).
+
 ## Phase 2c — Idle Automation Tiers (2026-06-10)
 
 - **Player policies** — `AgentState.policy`: `'scripted-flipper'` (default; the active-play stand-in) or `'idle'` (engine-side automation only). Dispatch in `actAgent` (src/engine/agents.ts): scripted gates on cadence 5; idle players gate on their tier's own cadence.

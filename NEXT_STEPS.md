@@ -12,11 +12,14 @@
 
 ## Phase 2c — DONE 2026-06-10 (buyUpgrade, idle policy, autoFlip tiers, runFlipper extraction)
 
+## Phase 2d — DONE 2026-06-10 (balance harness, tier-3 fix, balance gate)
+
 ## Next candidates
-- **Balance pass on idle tiers** (FINDINGS #15): multi-seed measurement harness, isolated vs competitive scenarios, fix tier-3 non-monotonicity, decide payback-period targets
-- Momentum traders still bleed slowly despite bailouts (FINDINGS #12) — only worth touching if dislocations dry up
 - pnpm workspace split: packages/{engine,cli,botkit} per architect design
 - CI (GitHub Actions): typecheck + test; needs a remote first (Jesse's call)
+- Payback-period design targets for upgrades (currently ~300k–3M ticks; fine under offline math, undesigned as gameplay)
+- Momentum traders still bleed slowly despite bailouts (FINDINGS #12) — only worth touching if dislocations dry up
+- Phase 4 (UI) prerequisites: command protocol is ready; needs workspace split first
 
 ## Phase 3 — Workspace hardening
 - Split into pnpm workspaces: packages/{engine,cli,botkit} per architect design (deliberately deferred from Phase 1)

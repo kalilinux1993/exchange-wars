@@ -1,5 +1,12 @@
 # Findings
 
+## Phase 2d (2026-06-10)
+
+16. **Tier-3's third concurrent flip was the bug, not cadence.** Idle players never buy slots (3 forever), so 3 concurrent flips jammed every slot, starved sell capacity, and forced stale-dumps of three positions into downturns — seed 99 isolated: **−4,306 gp**. Retuned tier 3 to speed (cadence 4, 2 flips, qty 10): every seed positive, isolated avg 366→1,734. Lesson: never give automation more concurrent positions than (slots − sell headroom).
+17. **Cadence 3 over-churns** (seed 1337 → −4,437): faster re-entry after exits piles positions into downturns. Cadence 4 is the sweet spot at this strategy/slot count.
+18. **Averages lie under outlier seeds; gate on medians.** Seed 42 tier 2 (+3,104) is a one-seed outlier that makes averages non-monotonic forever. The balance gate uses per-seed positivity (kills catastrophic regressions) + median ordering vs tier 1 (robust). Tier 2↔3 are near-tied at 150k capital — intentionally ungated; tier 3 capitalFraction 0.35 is currently inert (maxQty binds first) but will matter at late-game capital.
+19. **6k ticks is too short a horizon for balance measurement** — flip cycles don't complete; tier-1 competitive even dips negative on one seed. Balance gate runs at 8k.
+
 ## Phase 2c (2026-06-10)
 
 14. **Idle automation must live engine-side, not bot-side** — automation inside `tickWorld` means offline fast-forward includes it for free. The `policy` split ('scripted-flipper' vs 'idle') cleanly separates active play from idle play without forking the strategy code (shared `runFlipper` core).
