@@ -67,7 +67,13 @@ export const TUNING = {
       // (fixed vol 0.13), whose wide gp corridors print 130k+/8k ticks.
       { cadence: 8, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.09 },
       { cadence: 8, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
-      { cadence: 5, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 1 },
+      // Tier 3 vol ceiling is 0.12, NOT 1: a ceiling above 0.13 admits the
+      // exotics and the clerk farms their gp-wide corridors unattended for
+      // +140k–195k/8k ticks (FINDINGS #33). Exotics are HUMAN territory —
+      // same design rule as events (FINDINGS #27). Tier 3 = speed + size:
+      // swept cadence 4/5/6 both legs → cad 4 dominant (min +2,094,
+      // medians +4,801/+4,257); cad 6 repeats tier 2's isolated-seed-7 hole.
+      { cadence: 4, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 0.12 },
     ],
   },
 } as const;

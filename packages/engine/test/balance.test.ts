@@ -32,6 +32,16 @@ describe('idle tier balance gate', () => {
       }
       expect(median(byTier[1]!), `tier 2 median fails to beat tier 1 (${label})`).toBeGreaterThan(median(byTier[0]!));
       expect(median(byTier[2]!), `tier 3 median fails to beat tier 1 (${label})`).toBeGreaterThan(median(byTier[0]!));
+      // Magnitude ceiling (FINDINGS #33): sign+ordering checks let a tier-3
+      // exotic money printer (+140k–195k/8k ticks, ~120× tier 1) hide for
+      // multiple phases. Healthy tiers run 2–5× tier 1; 20× is generous
+      // headroom that still catches corridor-farming regressions.
+      for (const t of [1, 2]) {
+        expect(
+          median(byTier[t]!),
+          `tier ${t + 1} median is a money printer vs tier 1 (${label})`,
+        ).toBeLessThan(20 * median(byTier[0]!));
+      }
     });
   }
 });

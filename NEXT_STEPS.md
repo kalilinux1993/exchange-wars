@@ -40,14 +40,11 @@ Design (account-light, static-site-friendly — Supabase):
 - Explicitly NOT (yet): shared-world multiplayer — that's a different engine (server-authoritative, non-deterministic); possible future arc, big
 - Alternative if preferred: Cloudflare Workers+D1 (also needs his account) — Supabase recommended (auth built in)
 
-## NEXT PHASE (6k): Tier-3 exotic money printer (FINDINGS #33)
-- Tier 3 (vol ceiling 1.0) farms high-priced exotics' gp-wide corridors: measured +140k–195k per 8k ticks on 150k capital (tiers 1-2: +1–3k). Pre-existing since the wiki catalog; live now.
-- Fix directions to measure (sweep, don't probe): per-flip gp exposure cap (maxQty scaled by price), corridor compression for expensive items in the generator (consumeValue multiplier tapering with price), or clerk-side buy-limit enforcement.
-- Gate hardening: add a magnitude ceiling to the balance gate (e.g. every tier < 20× tier 1's median) so printers can't hide behind sign/ordering checks again.
+## Phase 6k — DONE 2026-06-10 (tier-3 printer closed: vol ceiling 0.12 / cadence 4; gate magnitude ceiling 20×; FINDINGS #35)
 
 ## Next candidates
 - Quests/contracts: NPC buy-contracts at premium ("deliver 50 lobsters") — goal-directed trading (FINDINGS #28)
-- Tier-3 clerk perk: "trades events too" (currently all tiers stand aside from event markets)
+- ~~Tier-3 clerk perk: "trades events too"~~ DROPPED: contradicts the human-territory design rule (FINDINGS #27/#35 — clerks farm neither events nor exotics)
 - ~~News history panel + event outcomes~~ DONE (Chronicle phase 6g; outcome % chips phase 6j); prestige/rebirth loop; ghost leaderboards (needs P5 server)
 - ~~Offline-cap/payback design pass~~ CLOSED: cap 100k vs paybacks 43k–90k — tier 1 pays back in ~half a cap, by design
 - Offline-cap/payback design pass (cap 50k ticks vs tier paybacks 40k–97k — tier 1 pays back in ~one full offline cap; intentional?)

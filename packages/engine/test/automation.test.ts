@@ -190,4 +190,37 @@ describe('automation upgrades', () => {
     expect(myBuys).toHaveLength(2); // tier 2 = two concurrent flips
     checkInvariants(state);
   });
+
+  it('tier 3 refuses exotic-volatility books even at fat margins (FINDINGS #33)', () => {
+    const TWO: ItemDef[] = [
+      { id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.08 },
+      // Exotic-track volatility (the wiki generator pins exotics at 0.13).
+      { id: 'orb', name: 'Orb', baseCost: 200, consumeValue: 450, volatility: 0.13 },
+    ];
+    const state = createWorld({
+      seed: 1,
+      items: TWO,
+      producersPerItem: 0,
+      consumersPerItem: 0,
+      marketMakersPerItem: 0,
+      momentumTraders: 0,
+      noiseTraders: 0,
+      players: 0,
+    });
+    const rng = createRng(7);
+    const mm = addAgent(state, 'player', 200_000, { ore: 50, orb: 50 });
+    placeOrder(state, mm, 'ore', 'buy', 100, 5);
+    placeOrder(state, mm, 'ore', 'sell', 110, 5); // thin but eligible margin
+    placeOrder(state, mm, 'orb', 'buy', 200, 5);
+    placeOrder(state, mm, 'orb', 'sell', 300, 5); // fat margin — the printer's bait
+    const idle = addAgent(state, 'player', 800_000, {});
+    idle.policy = 'idle';
+    for (let i = 0; i < 3; i++) applyCommand(state, idle.id, { type: 'buyUpgrade', upgradeId: 'autoFlip' });
+    expect(idle.upgrades?.['autoFlip']).toBe(3);
+    alignTick(state, idle.id, TUNING.automation.autoFlip[2]!.cadence);
+    actAgent(state, idle, rng);
+    expect(state.books['orb']!.buys.some((o) => o.agentId === idle.id)).toBe(false);
+    expect(state.books['ore']!.buys.some((o) => o.agentId === idle.id)).toBe(true);
+    checkInvariants(state);
+  });
 });

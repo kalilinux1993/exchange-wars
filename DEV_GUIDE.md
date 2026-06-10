@@ -1,5 +1,12 @@
 # Dev Guide
 
+## Phase 6k — Tier-3 Money Printer Fix (2026-06-10)
+
+- **Tier-3 vol ceiling 1 → 0.12, cadence 5 → 4** (TUNING.automation.autoFlip[2], packages/engine/src/agents.ts) — closes FINDINGS #33 (clerk farming high-priced exotics for +140k–195k/8k ticks). Two-leg cadence sweep: cad 4 min +2,094, medians +4,801/+4,257. Design rule: events AND exotics are human territory.
+- **No UI/commands change needed**: `actIdlePlayer` min()s `botConfig.maxVolatility` against the tier ceiling, so the UpgradeShop "tier max" risk option is bounded automatically.
+- **Balance gate magnitude ceiling** (packages/engine/test/balance.test.ts): every tier median < 20× tier-1 median, both scenarios — printers can no longer hide behind sign/ordering-only checks.
+- **New test** (packages/engine/test/automation.test.ts): tier 3 refuses a vol-0.13 book at a fat margin while flipping the stable item next to it.
+
 ## Phase 6j — Catalog 68 & Event Outcomes (2026-06-10)
 
 - **Catalog 68** (48 staples + 20 exotics; new staples incl. silver ore, soft clay, mithril nails). Routine re-roll sweep → tier 2 **cadence 8 / vol 0.12** (FINDINGS #34: the competitive-only sweep picked a config that failed isolated — always sweep both scenarios).

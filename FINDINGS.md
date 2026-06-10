@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 6k (2026-06-10)
+
+35. **The printer fix was a deletion, not a mechanism.** Tier 3's vol ceiling 1 → 0.12 excludes the exotic track entirely, and nothing else had to change: clerk config can only *tighten* its tier ceiling (the engine `Math.min`s them), so the UI's "tier max" risk option became honestly bounded for free. Design rule now symmetric with events (FINDINGS #27): **events and exotics are human territory; clerks farm neither.** Cadence sweep (both legs, per #34): 4 dominant — min +2,094, medians +4,801 competitive / +4,257 isolated, giving a clean monotonic tier curve (t1 ≈1.2k → t2 ≈3.1k → t3 ≈4.8k) at last. Cadence 6 reproduces tier 2's isolated-seed-7 hole exactly (−2,582), more evidence that seed-7 phase interference punishes that cadence band. The balance gate now also enforces a magnitude ceiling (every tier median < 20× tier 1) so the next printer can't hide behind sign/ordering checks.
+
 ## Phase 6j (2026-06-10)
 
 33. **Tier 3 is a money printer on the wiki catalog.** Its vol ceiling of 1.0 admits all 20 exotics (generator-fixed vol 0.13), and the high-priced ones (top: Prayer regeneration potion(4) at ~65k gp) carry cost→value corridors tens of thousands of gp wide *per unit*. Measured: tier 3 makes **+140k–195k per 8k ticks** on 150k working capital, vs +1–3k for tiers 1–2. Pre-existing, not a regression — old/new catalog exotic top-ends are identical within ±1% — and invisible to the balance gate because it checks only sign and median ordering, never magnitude. Fix queued as its own phase: compress expensive-item corridors or cap per-flip gp exposure, and add a magnitude ceiling to the gate so printers can't hide again.
