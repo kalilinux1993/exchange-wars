@@ -1,9 +1,9 @@
-import { actAgent } from './agents';
+import { actAgent, TUNING } from './agents';
 import { DEFAULT_ITEMS } from './catalog';
 import { PROGRESSION } from './commands';
 import { createBook } from './exchange';
 import { createRng } from './rng';
-import type { AgentKind, AgentState, ItemDef, ItemId, WorldState } from './types';
+import type { AgentKind, AgentState, ItemDef, ItemId, WorldEvent, WorldState } from './types';
 
 export interface SimConfig {
   seed: number;
@@ -27,6 +27,7 @@ export function createWorld(cfg: SimConfig): WorldState {
     agents: [],
     books: {},
     trades: [],
+    events: [],
     ledger: {
       gpInitial: 0,
       gpMinted: 0,
@@ -35,7 +36,14 @@ export function createWorld(cfg: SimConfig): WorldState {
       itemsMinted: {},
       itemsBurned: {},
     },
-    stats: { tradesTotal: 0, ordersPlaced: 0, ordersRejected: 0, ordersCancelled: 0, npcBailouts: 0 },
+    stats: {
+      tradesTotal: 0,
+      ordersPlaced: 0,
+      ordersRejected: 0,
+      ordersCancelled: 0,
+      npcBailouts: 0,
+      eventsSpawned: 0,
+    },
   };
   for (const def of items) {
     state.books[def.id] = createBook(def.id, Math.round((def.baseCost + def.consumeValue) / 2));
@@ -98,6 +106,26 @@ export function addAgent(
 export function tickWorld(state: WorldState): void {
   const rng = createRng(state.rngState);
   state.tick++;
+  if (!state.events) state.events = []; // migrate pre-event saves
+  if (state.tick % TUNING.events.checkEvery === 0) {
+    state.events = state.events.filter((e) => e.endTick > state.tick);
+    if (rng.chance(TUNING.events.chance)) {
+      const def = rng.pick(state.items);
+      if (!state.events.some((e) => e.itemId === def.id)) {
+        const kinds: WorldEvent['kind'][] = ['supply_shock', 'demand_surge', 'supply_glut', 'demand_slump'];
+        const kind = rng.pick(kinds);
+        const duration = rng.int(TUNING.events.minDuration, TUNING.events.maxDuration);
+        state.events.push({
+          id: `${kind}_${def.id}_${state.tick}`,
+          itemId: def.id,
+          kind,
+          startTick: state.tick,
+          endTick: state.tick + duration,
+        });
+        state.stats.eventsSpawned++;
+      }
+    }
+  }
   for (const agent of state.agents) {
     actAgent(state, agent, rng);
   }

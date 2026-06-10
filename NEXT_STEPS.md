@@ -24,6 +24,10 @@
 Repo: https://github.com/kalilinux1993/exchange-wars (public). Redeploy = `npm run build -w @exchange-wars/ui -- --base=/exchange-wars/`, then push dist to gh-pages.
 
 ## Next candidates
+- Quests/contracts: NPC buy-contracts at premium ("deliver 50 lobsters") — goal-directed trading (FINDINGS #28)
+- Tier-3 clerk perk: "trades events too" (currently all tiers stand aside from event markets)
+- News history panel + event outcomes on the Tape; prestige/rebirth loop; ghost leaderboards (needs P5 server)
+- ~~Offline-cap/payback design pass~~ CLOSED: cap 100k vs paybacks 43k–90k — tier 1 pays back in ~half a cap, by design
 - Offline-cap/payback design pass (cap 50k ticks vs tier paybacks 40k–97k — tier 1 pays back in ~one full offline cap; intentional?)
 - CI actions deprecation: bump actions/checkout + setup-node majors before 2026-09 (Node 20 runner removal)
 - Achievements / milestones panel (first 100k, first whip, etc.) — cheap dopamine

@@ -1,5 +1,6 @@
-import { applyCommand, playerView, runTicks, tickWorld } from '@exchange-wars/engine';
+import { applyCommand, EVENT_LABELS, playerView, runTicks, tickWorld } from '@exchange-wars/engine';
 import type { CommandResult, ItemId, PlayerCommand } from '@exchange-wars/engine';
+import { BookLadder } from './components/BookLadder';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { MarketTable } from './components/MarketTable';
 import { MilestonesPanel } from './components/MilestonesPanel';
@@ -139,6 +140,22 @@ export function App({ initial }: { initial?: Game }) {
           })()}
         </div>
       </header>
+      {(() => {
+        const active = (game.world.events ?? []).filter(
+          (e) => e.startTick <= game.world.tick && e.endTick > game.world.tick,
+        );
+        if (active.length === 0) return null;
+        const names = new Map(game.world.items.map((i) => [i.id, i.name]));
+        return (
+          <div className="newsbar">
+            {active.map((e) => (
+              <span key={e.id} className={`event-chip ${e.kind}`}>
+                ⚡ {names.get(e.itemId) ?? e.itemId} {EVENT_LABELS[e.kind]}
+              </span>
+            ))}
+          </div>
+        );
+      })()}
       {offlineRef.current && !awayDismissed && (
         <div className="awaybar">
           while you were away: <b>{offlineRef.current.ticks.toLocaleString('en-US')}</b> ticks passed · net
@@ -162,6 +179,7 @@ export function App({ initial }: { initial?: Game }) {
         />
         <section className="middle">
           <TradeTicket view={view} selected={selected} onCommand={command} lastResult={lastResult} />
+          <BookLadder book={game.world.books[selected]} playerId={game.playerId} />
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
           <WorthChart history={game.worthHistory} startGp={game.startGp} />
         </section>

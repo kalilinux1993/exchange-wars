@@ -13,6 +13,8 @@ export const DEFAULT_ITEMS: ItemDef[] = [
   { id: 'lobster', name: 'Lobster', baseCost: 120, consumeValue: 300, volatility: 0.08 },
   { id: 'nature_rune', name: 'Nature rune', baseCost: 150, consumeValue: 280, volatility: 0.06 },
   { id: 'cannonball', name: 'Cannonball', baseCost: 150, consumeValue: 320, volatility: 0.06 },
+  { id: 'snape_grass', name: 'Snape grass', baseCost: 300, consumeValue: 650, volatility: 0.12 },
+  { id: 'gold_ore', name: 'Gold ore', baseCost: 350, consumeValue: 700, volatility: 0.09 },
   { id: 'law_rune', name: 'Law rune', baseCost: 180, consumeValue: 350, volatility: 0.07 },
   { id: 'yew_log', name: 'Yew logs', baseCost: 200, consumeValue: 450, volatility: 0.12 },
   { id: 'steel_bar', name: 'Steel bar', baseCost: 550, consumeValue: 1050, volatility: 0.07 },

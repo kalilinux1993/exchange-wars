@@ -102,6 +102,16 @@ describe('UI shell', () => {
     expect(game.world.agents[game.playerId]!.botConfig?.maxVolatility).toBe(0.06);
   });
 
+  it('depth ladder shows the selected book with the player marked', () => {
+    const game = freshApp();
+    fireEvent.click(screen.getByText('+1k')); // populate books
+    expect(screen.getByText(/Depth · feather/i)).toBeTruthy(); // first item selected by default
+    expect(screen.getByText(/spread/i)).toBeTruthy();
+    placeBuy('2', '1'); // deep bid rests → appears as our level
+    const ladder = screen.getByText(/Depth · feather/i).closest('.ladder')!;
+    expect(ladder.textContent).toContain('◆');
+  });
+
   it('offline accrual: real time away fast-forwards the world, capped, ignoring blips', () => {
     const game = newGame(42);
     // No lastSeenMs yet (never saved) → nothing applied.

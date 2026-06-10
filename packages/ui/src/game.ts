@@ -78,6 +78,27 @@ export const MILESTONES: Milestone[] = [
     flavor: 'Tier three. The counter runs itself.',
     achieved: (_g, view) => (view.upgrades['autoFlip'] ?? 0) >= 3,
   },
+  {
+    id: 'cornered',
+    name: 'Market Corner',
+    flavor: 'More than half of everything there is.',
+    achieved: (g, view) => {
+      const ledger = g.world.ledger;
+      for (const item of g.world.items) {
+        const sellEscrow = view.openOrders
+          .filter((o) => o.itemId === item.id && o.side === 'sell')
+          .reduce((a, o) => a + o.remaining, 0);
+        const held = (view.inventory[item.id] ?? 0) + sellEscrow;
+        if (held < 25) continue; // no trivial corners
+        const circulating =
+          (ledger.itemsInitial[item.id] ?? 0) +
+          (ledger.itemsMinted[item.id] ?? 0) -
+          (ledger.itemsBurned[item.id] ?? 0);
+        if (circulating > 0 && held / circulating >= 0.5) return true;
+      }
+      return false;
+    },
+  },
 ];
 
 /** Latch any newly-achieved milestones into the save; returns just the new ones. */

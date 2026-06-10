@@ -1,7 +1,24 @@
 import { applyCommand, playerView } from './commands';
 import { bestAsk, bestBid, cancelAgentOrders, GE_TAX_RATE, placeOrder } from './exchange';
 import type { RNG } from './rng';
-import type { AgentKind, AgentState, ItemDef, ItemId, WorldState } from './types';
+import type { AgentKind, AgentState, ItemDef, ItemId, WorldEvent, WorldState } from './types';
+
+/** Speculators are greedy, not insane: NPC speculative orders stay inside a
+ * wide fundamental band, which bounds event bubbles/crashes at world level. */
+function saneClamp(def: ItemDef, price: number): number {
+  const floor = Math.max(1, Math.round(def.baseCost * 0.55));
+  const ceil = Math.round(def.consumeValue * 1.25);
+  return Math.min(ceil, Math.max(floor, price));
+}
+
+/** The active event bending this item's market right now, if any. */
+export function activeEvent(state: WorldState, itemId: ItemId): WorldEvent | undefined {
+  if (!state.events) return undefined;
+  for (const e of state.events) {
+    if (e.itemId === itemId && e.startTick <= state.tick && e.endTick > state.tick) return e;
+  }
+  return undefined;
+}
 
 // All balance numbers live here so tuning passes touch one object.
 export const TUNING = {
@@ -11,6 +28,8 @@ export const TUNING = {
   momentum: { cadence: 7, band: 0.02 },
   noise: { cadence: 4, cancelChance: 0.15 },
   npc: { bailoutFloor: 0.2, bailoutCooldownTicks: 500 },
+  /** Seeded market shocks — the drama generator. */
+  events: { checkEvery: 250, chance: 0.35, minDuration: 800, maxDuration: 2000 },
   player: {
     cadence: 5,
     maxQty: 8,
@@ -80,8 +99,12 @@ function actProducer(state: WorldState, agent: AgentState): void {
   const def = defFor(state, agent.itemId);
   const book = state.books[def.id];
   if (!book) return;
+  const ev = activeEvent(state, def.id);
+  let batch: number = TUNING.producer.batch;
+  if (ev?.kind === 'supply_shock') batch = 0; // strike/blight — production halts
+  if (ev?.kind === 'supply_glut') batch = TUNING.producer.batch * 2;
   const held = agent.inventory[def.id] ?? 0;
-  const make = Math.min(TUNING.producer.batch, Math.max(0, TUNING.producer.inventoryCap - held));
+  const make = Math.min(batch, Math.max(0, TUNING.producer.inventoryCap - held));
   if (make > 0) {
     // Production consumes gp at cost (raw materials leave the economy — the
     // sink that tames producer hoarding). Broke producers still work, so the
@@ -115,20 +138,24 @@ function actConsumer(state: WorldState, agent: AgentState): void {
   const def = defFor(state, agent.itemId);
   const book = state.books[def.id];
   if (!book) return;
-  const wage = Math.ceil(def.consumeValue * TUNING.consumer.wageFactor);
+  const ev = activeEvent(state, def.id);
+  const surge = ev?.kind === 'demand_surge';
+  const wage = Math.ceil(def.consumeValue * TUNING.consumer.wageFactor * (surge ? 1.5 : 1));
   agent.gp += wage;
   state.ledger.gpMinted += wage;
+  if (ev?.kind === 'demand_slump') return; // nobody's buying — wage piles up
   const held = agent.inventory[def.id] ?? 0;
   if (held > 0) {
     agent.inventory[def.id] = held - 1;
     state.ledger.itemsBurned[def.id] = (state.ledger.itemsBurned[def.id] ?? 0) + 1;
   }
-  if ((agent.inventory[def.id] ?? 0) >= TUNING.consumer.buffer) return;
+  const buffer = TUNING.consumer.buffer + (surge ? 2 : 0);
+  if ((agent.inventory[def.id] ?? 0) >= buffer) return;
   cancelAgentOrders(state, agent, def.id);
   const ask = bestAsk(book);
   const target = ask ? ask.price : Math.round(book.lastPrice);
   const price = Math.max(1, Math.min(def.consumeValue, target));
-  const want = TUNING.consumer.buffer - (agent.inventory[def.id] ?? 0);
+  const want = buffer - (agent.inventory[def.id] ?? 0);
   const qty = Math.min(want, Math.floor(agent.gp / price));
   if (qty >= 1) placeOrder(state, agent, def.id, 'buy', price, qty);
 }
@@ -142,8 +169,12 @@ function actMarketMaker(state: WorldState, agent: AgentState): void {
   const mid = Math.max(2, Math.round(book.ema));
   const spread = Math.max(4, Math.round(mid * TUNING.marketMaker.spreadPct));
   const half = Math.floor(spread / 2);
-  const bidPrice = Math.max(1, mid - half);
-  const askPrice = mid + (spread - half);
+  // Bargain-hunter floor: never bid below 60% of production cost. This is the
+  // hard bottom for event-driven crashes — without it, a demand slump removes
+  // the value anchor and speculators walk prices into a death spiral.
+  const bidFloor = Math.max(1, Math.round(def.baseCost * 0.6));
+  const bidPrice = Math.max(bidFloor, mid - half);
+  const askPrice = Math.max(bidPrice + 1, Math.min(Math.round(def.consumeValue * 1.25), mid + (spread - half)));
   const buyQty = Math.min(TUNING.marketMaker.quoteQty, Math.floor(agent.gp / bidPrice));
   if (buyQty >= 1) placeOrder(state, agent, def.id, 'buy', bidPrice, buyQty);
   const sellQty = Math.min(TUNING.marketMaker.quoteQty, agent.inventory[def.id] ?? 0);
@@ -180,13 +211,15 @@ function actMomentum(state: WorldState, agent: AgentState, rng: RNG): void {
   if (rising) {
     const ask = bestAsk(book);
     const price = ask ? ask.price : Math.max(1, Math.round(book.lastPrice * 1.03));
+    if (price > saneClamp(def, price)) return; // won't chase a bubble past sanity
     const qty = Math.min(rng.int(1, 2), Math.floor(agent.gp / price));
     if (qty >= 1) placeOrder(state, agent, def.id, 'buy', price, qty);
   } else if (falling) {
     const held = agent.inventory[def.id] ?? 0;
     if (held > 0) {
       const bid = bestBid(book);
-      const price = bid ? bid.price : Math.max(1, Math.round(book.lastPrice * 0.97));
+      const raw = bid ? bid.price : Math.max(1, Math.round(book.lastPrice * 0.97));
+      const price = Math.max(raw, Math.max(1, Math.round(def.baseCost * 0.55)));
       placeOrder(state, agent, def.id, 'sell', price, Math.min(held, rng.int(1, 2)));
     }
   }
@@ -200,7 +233,7 @@ function actNoise(state: WorldState, agent: AgentState, rng: RNG): void {
   const book = state.books[def.id];
   if (!book) return;
   const perturb = 1 + (rng.next() * 2 - 1) * def.volatility;
-  const price = Math.max(1, Math.round(book.lastPrice * perturb));
+  const price = saneClamp(def, Math.round(book.lastPrice * perturb));
   if (rng.chance(0.5)) {
     const qty = Math.min(rng.int(1, 3), Math.floor(agent.gp / price));
     if (qty >= 1) placeOrder(state, agent, def.id, 'buy', price, qty);
@@ -332,6 +365,10 @@ function runFlipper(state: WorldState, agent: AgentState, opts: FlipperOpts): vo
     if (opts.focusItemId !== null && m.itemId !== opts.focusItemId) continue;
     const def = state.items.find((i) => i.id === m.itemId);
     if (!def || def.volatility > opts.maxVolatility) continue;
+    // Read the news: never open a flip on an item with ANY active event.
+    // Falling events crash into you; rising events mean-revert the moment the
+    // event ends. Event markets are for the human to play, not the clerk.
+    if (activeEvent(state, m.itemId)) continue;
     const buyAt = m.bestBid + 1;
     const sellAt = m.bestAsk - 1;
     if (sellAt <= buyAt) continue;

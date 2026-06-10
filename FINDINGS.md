@@ -1,5 +1,11 @@
 # Findings
 
+## Phase 4h (2026-06-10)
+
+26. **Events exposed that anchors only bind the anchored.** Producers floor their asks at cost and consumers cap bids at value — but during events those anchors LEAVE the market (slump: consumers gone → speculator death spiral to 0.24×cost; shock: producers gone → momentum bubble to 6× value). The economy's stability lived entirely in two agent archetypes' presence. Fixes: market makers became bargain hunters (bid floor 0.6×cost — the crash bottom), and all NPC speculative orders clamp to a fundamental band [0.55×cost, 1.25×value] ("greedy, not insane"). Bubbles and crashes still happen — dramatically — but inside survivable bounds.
+27. **The clerk reads the news and stands aside.** Bots opening flips into event markets ate both directions (knife-catching in crashes, mean-reversion losses after bubbles). Rule: never open a flip on an item with an active event. This restored the entire balance gate without re-tuning a single tier number — and it makes events purely a HUMAN opportunity, which is exactly the right game design.
+28. **Brainstorm runners-up** (queued, not built): NPC buy-contracts/quests ("deliver 50 lobsters at a premium"), prestige/rebirth loop, ghost-run leaderboards (deterministic replay = fair ghosts), tier-3 clerk perk "trades events too", news history panel.
+
 ## Phase 4g (2026-06-10)
 
 24. **Sweep, don't probe.** Three sequential single-knob "fixes" for tier-1 marginality (cadence 7, vol 0.09, double stale-patience) each traded one failing seed for another — every config was tuned to the previous catalog size. A 6-config sweep over {cadence}×{vol ceiling} measuring the MIN cell across all scenario-seeds found cadence 8/vol 0.10 dominant on both min (+8,360) and average (+11,353) in minutes. Also measured-and-rejected: patience for a 1-flip bot (frozen capital = pure opportunity cost; made 3 seeds negative).

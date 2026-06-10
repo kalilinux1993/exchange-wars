@@ -90,7 +90,25 @@ export interface SimStats {
   ordersCancelled: number;
   /** Times a near-broke noise/momentum trader was topped up (ledger-minted). */
   npcBailouts: number;
+  eventsSpawned: number;
 }
+
+/** A temporary, seeded market shock. Effects apply only through the normal
+ * producer/consumer mint-burn paths — conservation holds through any event. */
+export interface WorldEvent {
+  id: string;
+  itemId: ItemId;
+  kind: 'supply_shock' | 'demand_surge' | 'supply_glut' | 'demand_slump';
+  startTick: number;
+  endTick: number;
+}
+
+export const EVENT_LABELS: Record<WorldEvent['kind'], string> = {
+  supply_shock: 'shortage',
+  demand_surge: 'craze',
+  supply_glut: 'glut',
+  demand_slump: 'slump',
+};
 
 export interface WorldState {
   tick: number;
@@ -103,6 +121,8 @@ export interface WorldState {
   books: Record<ItemId, OrderBook>;
   /** Recent trades window (capped); cumulative counts live in stats. */
   trades: Trade[];
+  /** Active market events (pruned on spawn checks). Absent in pre-event saves. */
+  events?: WorldEvent[];
   ledger: Ledger;
   stats: SimStats;
 }
