@@ -10,6 +10,7 @@ export const DEFAULT_ITEMS: ItemDef[] = [
   { id: 'coal', name: 'Coal', baseCost: 120, consumeValue: 260, volatility: 0.09 },
   { id: 'lobster', name: 'Lobster', baseCost: 120, consumeValue: 300, volatility: 0.08 },
   { id: 'nature_rune', name: 'Nature rune', baseCost: 150, consumeValue: 280, volatility: 0.06 },
+  { id: 'cannonball', name: 'Cannonball', baseCost: 150, consumeValue: 320, volatility: 0.06 },
   { id: 'law_rune', name: 'Law rune', baseCost: 180, consumeValue: 350, volatility: 0.07 },
   { id: 'yew_log', name: 'Yew logs', baseCost: 200, consumeValue: 450, volatility: 0.12 },
   { id: 'shark', name: 'Shark', baseCost: 600, consumeValue: 1100, volatility: 0.08 },
@@ -22,4 +23,6 @@ export const DEFAULT_ITEMS: ItemDef[] = [
   { id: 'runite_ore', name: 'Runite ore', baseCost: 10500, consumeValue: 19500, volatility: 0.12 },
   { id: 'rune_scimitar', name: 'Rune scimitar', baseCost: 14000, consumeValue: 26000, volatility: 0.05 },
   { id: 'rune_platebody', name: 'Rune platebody', baseCost: 38000, consumeValue: 65000, volatility: 0.06 },
+  // Aspirational top shelf — automation budgets can't touch it (by design).
+  { id: 'abyssal_whip', name: 'Abyssal whip', baseCost: 120000, consumeValue: 220000, volatility: 0.07 },
 ];

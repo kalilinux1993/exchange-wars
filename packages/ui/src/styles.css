@@ -328,6 +328,20 @@ th.num {
   font-size: 0.75rem;
 }
 
+.awaybar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  margin: -8px 0 16px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  background: rgba(212, 169, 55, 0.08);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  animation: rise 360ms ease-out backwards;
+}
+
 .small {
   font-size: 0.75rem;
 }

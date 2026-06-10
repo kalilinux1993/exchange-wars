@@ -1,0 +1,17 @@
+{
+  "name": "Exchange Wars",
+  "short_name": "ExchWars",
+  "description": "Deterministic market-sim tycoon — flip, corner markets, automate.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#14110d",
+  "theme_color": "#d4a937",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

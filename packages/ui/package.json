@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@exchange-wars/engine": "*",
+    "@fontsource/cinzel": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

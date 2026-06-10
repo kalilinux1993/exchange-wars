@@ -2,7 +2,13 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { App } from '../src/App';
-import { HUMAN_START_GP, newGame, type Game } from '../src/game';
+import {
+  applyOfflineProgress,
+  HUMAN_START_GP,
+  newGame,
+  OFFLINE_CAP_TICKS,
+  type Game,
+} from '../src/game';
 
 afterEach(() => {
   cleanup();
@@ -64,6 +70,35 @@ describe('UI shell', () => {
     expect(game.world.tick).toBe(11_000);
     expect(game.worthHistory.length).toBeGreaterThan(1); // sampled during fast-forward
     expect(screen.queryByText(/let the world run/i)).toBeNull(); // chart now renders
+  });
+
+  it('offline accrual: real time away fast-forwards the world, capped, ignoring blips', () => {
+    const game = newGame(42);
+    // No lastSeenMs yet (never saved) → nothing applied.
+    expect(applyOfflineProgress(game, 1_000_000)).toBeNull();
+    expect(game.world.tick).toBe(0);
+    // 10 minutes away at 1 tick/sec → 600 ticks.
+    game.lastSeenMs = 1_000_000;
+    const res = applyOfflineProgress(game, 1_000_000 + 600_000);
+    expect(res?.ticks).toBe(600);
+    expect(game.world.tick).toBe(600);
+    // 30 seconds is a blip → ignored.
+    game.lastSeenMs = 2_000_000;
+    expect(applyOfflineProgress(game, 2_000_000 + 30_000)).toBeNull();
+    expect(game.world.tick).toBe(600);
+    // A week away hits the cap.
+    game.lastSeenMs = 3_000_000;
+    const capped = applyOfflineProgress(game, 3_000_000 + 7 * 24 * 3_600_000);
+    expect(capped?.ticks).toBe(OFFLINE_CAP_TICKS);
+    expect(game.world.tick).toBe(600 + OFFLINE_CAP_TICKS);
+  });
+
+  it('shows the away banner when reopening after time has passed', () => {
+    const game = newGame(42);
+    game.lastSeenMs = Date.now() - 600_000; // "saved" 10 minutes ago
+    render(<App initial={game} />);
+    expect(screen.getByText(/while you were away/i)).toBeTruthy();
+    expect(game.world.tick).toBeGreaterThanOrEqual(600);
   });
 
   it('upgrade shop gates purchases by affordability', () => {

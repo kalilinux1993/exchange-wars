@@ -1,5 +1,5 @@
 import { applyCommand, playerView, runTicks, tickWorld } from '@exchange-wars/engine';
-import type { CommandResult, ItemId, PlayerCommand, PlayerView } from '@exchange-wars/engine';
+import type { CommandResult, ItemId, PlayerCommand } from '@exchange-wars/engine';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { MarketTable } from './components/MarketTable';
 import { PlayerPanel } from './components/PlayerPanel';
@@ -7,29 +7,33 @@ import { TradeFeed } from './components/TradeFeed';
 import { TradeTicket } from './components/TradeTicket';
 import { UpgradeShop } from './components/UpgradeShop';
 import { WorthChart } from './components/WorthChart';
-import { clearSave, loadGame, newGame, recordWorth, saveGame, type Game } from './game';
+import {
+  applyOfflineProgress,
+  clearSave,
+  loadGame,
+  newGame,
+  recordWorth,
+  saveGame,
+  viewNetWorth,
+  type Game,
+  type OfflineResult,
+} from './game';
 
 const SPEEDS = [0, 1, 5, 20] as const;
 
-/** Liquid net worth from the view: gp + inventory and open orders at last price. */
-function viewNetWorth(view: PlayerView): number {
-  const last = new Map(view.markets.map((m) => [m.itemId, m.lastPrice]));
-  let total = view.gp;
-  for (const [id, qty] of Object.entries(view.inventory)) total += qty * (last.get(id) ?? 0);
-  for (const o of view.openOrders) {
-    total += o.side === 'buy' ? o.price * o.remaining : o.remaining * (last.get(o.itemId) ?? 0);
-  }
-  return total;
-}
-
 export function App({ initial }: { initial?: Game }) {
   const gameRef = useRef<Game | null>(null);
-  if (gameRef.current === null) gameRef.current = initial ?? loadGame() ?? newGame(42);
+  const offlineRef = useRef<OfflineResult | null>(null);
+  if (gameRef.current === null) {
+    gameRef.current = initial ?? loadGame() ?? newGame(42);
+    offlineRef.current = applyOfflineProgress(gameRef.current, Date.now());
+  }
   const game = gameRef.current;
   const [, force] = useReducer((x: number) => x + 1, 0);
   const [speed, setSpeed] = useState(0); // ticks per second; world starts paused
   const [selected, setSelected] = useState<ItemId>(game.world.items[0]?.id ?? '');
   const [lastResult, setLastResult] = useState<CommandResult | null>(null);
+  const [awayDismissed, setAwayDismissed] = useState(false);
 
   useEffect(() => {
     if (speed === 0) return;
@@ -114,6 +118,19 @@ export function App({ initial }: { initial?: Game }) {
           })()}
         </div>
       </header>
+      {offlineRef.current && !awayDismissed && (
+        <div className="awaybar">
+          while you were away: <b>{offlineRef.current.ticks.toLocaleString('en-US')}</b> ticks passed · net
+          worth{' '}
+          <b className={offlineRef.current.worthAfter >= offlineRef.current.worthBefore ? 'up' : 'down'}>
+            {offlineRef.current.worthAfter - offlineRef.current.worthBefore >= 0 ? '+' : ''}
+            {(offlineRef.current.worthAfter - offlineRef.current.worthBefore).toLocaleString('en-US')} gp
+          </b>
+          <button className="chip" onClick={() => setAwayDismissed(true)}>
+            ×
+          </button>
+        </div>
+      )}
       <main className="board">
         <MarketTable
           view={view}
