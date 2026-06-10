@@ -30,6 +30,17 @@ export const TUNING = {
   npc: { bailoutFloor: 0.2, bailoutCooldownTicks: 500 },
   /** Seeded market shocks — the drama generator. */
   events: { checkEvery: 250, chance: 0.35, minDuration: 800, maxDuration: 2000 },
+  /** Quartermaster contracts — goal-directed premium buy-orders. */
+  contracts: {
+    checkEvery: 400,
+    chance: 0.5,
+    maxOpen: 3,
+    minDuration: 1500,
+    maxDuration: 3000,
+    premiumMin: 1.15,
+    premiumMax: 1.35,
+    targetGp: 8_000,
+  },
   player: {
     cadence: 5,
     maxQty: 8,
@@ -47,9 +58,10 @@ export const TUNING = {
     autoFlip: [
       // maxVolatility: junior clerks only trade stable goods — volatile books
       // are where automation bleeds (adverse selection on wide % spreads).
-      // Swept at 28 items: {6,7,8}×{0.09,0.10} → cadence 8 / vol 0.10 has the
-      // best min-cell (+8,360) AND best average (+11,353). Sweep, don't probe.
-      { cadence: 8, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.1 },
+      // Re-swept whenever the world's RNG path changes (catalog growth, new
+      // spawners). Current best (32 items + events + contracts): cadence 10 /
+      // vol 0.10 — min cell +3,933, avg +7,952. Sweep, don't probe.
+      { cadence: 10, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.1 },
       { cadence: 6, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
       { cadence: 4, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 1 },
     ],

@@ -22,7 +22,8 @@ export type PlayerCommand =
   | { type: 'cancel'; itemId?: ItemId; side?: Side }
   | { type: 'buySlot' }
   | { type: 'buyUpgrade'; upgradeId: string }
-  | { type: 'configureBot'; maxVolatility?: number; capitalFraction?: number; focusItemId?: ItemId | null };
+  | { type: 'configureBot'; maxVolatility?: number; capitalFraction?: number; focusItemId?: ItemId | null }
+  | { type: 'fulfillContract'; contractId: number };
 
 export interface CommandResult {
   ok: boolean;
@@ -62,6 +63,8 @@ export interface PlayerView {
   upgrades: Record<string, number>;
   /** Clerk Orders — null fields mean "tier default". */
   botConfig: { maxVolatility: number | null; capitalFraction: number | null; focusItemId: ItemId | null };
+  /** Open quartermaster contracts (world-public). */
+  contracts: { id: number; itemId: ItemId; qty: number; unitPrice: number; expiresTick: number }[];
   inventory: Record<ItemId, number>;
   openOrders: OpenOrderView[];
   markets: MarketView[];
@@ -158,6 +161,26 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       agent.botConfig = cfg;
       return { ok: true, trades: [] };
     }
+    case 'fulfillContract': {
+      const contracts = state.contracts ?? [];
+      const idx = contracts.findIndex((c) => c.id === cmd.contractId);
+      if (idx === -1) return { ok: false, reason: 'unknown-contract', trades: [] };
+      const contract = contracts[idx]!;
+      if (contract.expiresTick <= state.tick) return { ok: false, reason: 'contract-expired', trades: [] };
+      // Delivery comes from free inventory only — escrowed items don't count.
+      if ((agent.inventory[contract.itemId] ?? 0) < contract.qty) {
+        return { ok: false, reason: 'insufficient-items', trades: [] };
+      }
+      agent.inventory[contract.itemId] = (agent.inventory[contract.itemId] ?? 0) - contract.qty;
+      state.ledger.itemsBurned[contract.itemId] =
+        (state.ledger.itemsBurned[contract.itemId] ?? 0) + contract.qty; // goods leave the world
+      const payout = contract.qty * contract.unitPrice;
+      agent.gp += payout;
+      state.ledger.gpMinted += payout; // the quartermaster's coin is freshly struck
+      contracts.splice(idx, 1);
+      state.stats.contractsFilled = (state.stats.contractsFilled ?? 0) + 1;
+      return { ok: true, trades: [] };
+    }
   }
 }
 
@@ -210,6 +233,9 @@ export function playerView(state: WorldState, playerId: number): PlayerView | nu
       capitalFraction: agent.botConfig?.capitalFraction ?? null,
       focusItemId: agent.botConfig?.focusItemId ?? null,
     },
+    contracts: (state.contracts ?? [])
+      .filter((c) => c.expiresTick > state.tick)
+      .map((c) => ({ id: c.id, itemId: c.itemId, qty: c.qty, unitPrice: c.unitPrice, expiresTick: c.expiresTick })),
     inventory: { ...agent.inventory },
     openOrders,
     markets,

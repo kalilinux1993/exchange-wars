@@ -1,6 +1,7 @@
 import { applyCommand, EVENT_LABELS, playerView, runTicks, tickWorld } from '@exchange-wars/engine';
 import type { CommandResult, ItemId, PlayerCommand } from '@exchange-wars/engine';
 import { BookLadder } from './components/BookLadder';
+import { ContractsBoard } from './components/ContractsBoard';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { MarketTable } from './components/MarketTable';
 import { MilestonesPanel } from './components/MilestonesPanel';
@@ -185,6 +186,7 @@ export function App({ initial }: { initial?: Game }) {
         </section>
         <section className="middle">
           <PlayerPanel view={view} items={game.world.items} onCommand={command} />
+          <ContractsBoard view={view} items={game.world.items} tick={game.world.tick} onCommand={command} />
           <TradeFeed trades={game.world.trades} items={game.world.items} playerId={game.playerId} />
           <MilestonesPanel unlocked={game.milestones} />
         </section>

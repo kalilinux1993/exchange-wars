@@ -112,6 +112,27 @@ describe('UI shell', () => {
     expect(ladder.textContent).toContain('◆');
   });
 
+  it('quartermaster board: deliver gates on inventory, pays out, and latches the milestone', () => {
+    const game = freshApp();
+    expect(screen.getByText(/no contracts posted/i)).toBeTruthy();
+    fireEvent.click(screen.getByText('+1k')); // populate books (real contracts may spawn)
+    game.world.contracts!.length = 0; // isolate the test contract from spawned ones
+    game.world.contracts!.push({ id: 999, itemId: 'iron_ore', qty: 1, unitPrice: 500, expiresTick: 99_999 });
+    const marketCell = screen.getAllByText('Iron ore').find((el) => el.closest('.market') !== null)!;
+    fireEvent.click(marketCell); // select + re-render
+    const deliver = screen.getByText('deliver') as HTMLButtonElement;
+    expect(deliver.disabled).toBe(true); // nothing in the satchel yet
+    // Buy 1 iron ore at a crossing price for an instant fill.
+    placeBuy('500', '1');
+    const gpBefore = game.world.agents[game.playerId]!.gp;
+    const deliverNow = screen.getByText('deliver') as HTMLButtonElement;
+    expect(deliverNow.disabled).toBe(false);
+    fireEvent.click(deliverNow);
+    expect(game.world.agents[game.playerId]!.gp).toBe(gpBefore + 500);
+    expect(game.milestones).toContain('contractor');
+    expect(game.world.stats.contractsFilled).toBe(1);
+  });
+
   it('offline accrual: real time away fast-forwards the world, capped, ignoring blips', () => {
     const game = newGame(42);
     // No lastSeenMs yet (never saved) → nothing applied.

@@ -1,5 +1,10 @@
 # Findings
 
+## Phase 4i (2026-06-10)
+
+29. **New RNG consumers re-roll the universe.** The contract spawner draws from the tick RNG stream, which shifted every downstream random decision on every seed — the balance gate tripped not because contracts touch markets (they don't) but because all the worlds changed. Corollary: ANY new world-RNG consumer triggers the routine tier-1 sweep. Tier 1 has now cycled cadence 10→8→7→8→9→10 across the catalog's life — landing back at its original value, with each stop locally correct for its era's world.
+30. **Test collisions with live systems are good news.** The contracts UI test failed because a REAL contract spawned during its fast-forward and collided with the injected fixture — the spawner working as designed. Fixture isolation (clear spawned state) beats turning the system off.
+
 ## Phase 4h (2026-06-10)
 
 26. **Events exposed that anchors only bind the anchored.** Producers floor their asks at cost and consumers cap bids at value — but during events those anchors LEAVE the market (slump: consumers gone → speculator death spiral to 0.24×cost; shock: producers gone → momentum bubble to 6× value). The economy's stability lived entirely in two agent archetypes' presence. Fixes: market makers became bargain hunters (bid floor 0.6×cost — the crash bottom), and all NPC speculative orders clamp to a fundamental band [0.55×cost, 1.25×value] ("greedy, not insane"). Bubbles and crashes still happen — dramatically — but inside survivable bounds.

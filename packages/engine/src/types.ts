@@ -91,6 +91,17 @@ export interface SimStats {
   /** Times a near-broke noise/momentum trader was topped up (ledger-minted). */
   npcBailouts: number;
   eventsSpawned: number;
+  contractsFilled: number;
+}
+
+/** A standing NPC buy-order at a premium — the realm's quartermaster pays
+ * via ledger mint; delivered items leave the world via ledger burn. */
+export interface Contract {
+  id: number;
+  itemId: ItemId;
+  qty: number;
+  unitPrice: number;
+  expiresTick: number;
 }
 
 /** A temporary, seeded market shock. Effects apply only through the normal
@@ -123,6 +134,9 @@ export interface WorldState {
   trades: Trade[];
   /** Active market events (pruned on spawn checks). Absent in pre-event saves. */
   events?: WorldEvent[];
+  /** Open quartermaster contracts. Absent in pre-contract saves. */
+  contracts?: Contract[];
+  nextContractId?: number;
   ledger: Ledger;
   stats: SimStats;
 }

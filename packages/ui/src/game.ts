@@ -79,6 +79,12 @@ export const MILESTONES: Milestone[] = [
     achieved: (_g, view) => (view.upgrades['autoFlip'] ?? 0) >= 3,
   },
   {
+    id: 'contractor',
+    name: 'Royal Contractor',
+    flavor: 'The quartermaster pays in full.',
+    achieved: (g) => (g.world.stats.contractsFilled ?? 0) > 0,
+  },
+  {
     id: 'cornered',
     name: 'Market Corner',
     flavor: 'More than half of everything there is.',

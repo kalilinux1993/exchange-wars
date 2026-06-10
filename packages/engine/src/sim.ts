@@ -28,6 +28,8 @@ export function createWorld(cfg: SimConfig): WorldState {
     books: {},
     trades: [],
     events: [],
+    contracts: [],
+    nextContractId: 1,
     ledger: {
       gpInitial: 0,
       gpMinted: 0,
@@ -43,6 +45,7 @@ export function createWorld(cfg: SimConfig): WorldState {
       ordersCancelled: 0,
       npcBailouts: 0,
       eventsSpawned: 0,
+      contractsFilled: 0,
     },
   };
   for (const def of items) {
@@ -107,6 +110,29 @@ export function tickWorld(state: WorldState): void {
   const rng = createRng(state.rngState);
   state.tick++;
   if (!state.events) state.events = []; // migrate pre-event saves
+  if (!state.contracts) state.contracts = []; // migrate pre-contract saves
+  if (state.nextContractId === undefined) state.nextContractId = 1;
+  if (state.tick % TUNING.contracts.checkEvery === 0) {
+    state.contracts = state.contracts.filter((c) => c.expiresTick > state.tick);
+    if (state.contracts.length < TUNING.contracts.maxOpen && rng.chance(TUNING.contracts.chance)) {
+      const def = rng.pick(state.items);
+      const book = state.books[def.id];
+      if (book) {
+        const mid = Math.max(1, Math.round(book.ema));
+        const qty = Math.min(80, Math.max(2, Math.round(TUNING.contracts.targetGp / mid)));
+        const premium =
+          TUNING.contracts.premiumMin + rng.next() * (TUNING.contracts.premiumMax - TUNING.contracts.premiumMin);
+        const duration = rng.int(TUNING.contracts.minDuration, TUNING.contracts.maxDuration);
+        state.contracts.push({
+          id: state.nextContractId++,
+          itemId: def.id,
+          qty,
+          unitPrice: Math.max(1, Math.round(mid * premium)),
+          expiresTick: state.tick + duration,
+        });
+      }
+    }
+  }
   if (state.tick % TUNING.events.checkEvery === 0) {
     state.events = state.events.filter((e) => e.endTick > state.tick);
     if (rng.chance(TUNING.events.chance)) {
