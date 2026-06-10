@@ -6,3 +6,5 @@ coverage/
 .claude/scheduled_tasks.lock
 .claude/scheduled_tasks.json
 packages/ui/dist/
+test-results/
+playwright-report/

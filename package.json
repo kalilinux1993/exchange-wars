@@ -14,7 +14,8 @@
     "sim": "tsx packages/cli/src/run.ts",
     "balance": "tsx packages/cli/src/balance.ts",
     "dev": "npm run dev -w @exchange-wars/ui",
-    "build:ui": "npm run build -w @exchange-wars/ui"
+    "build:ui": "npm run build -w @exchange-wars/ui",
+    "e2e": "playwright test -c packages/ui"
   },
   "devDependencies": {
     "@types/node": "^25.9.2",

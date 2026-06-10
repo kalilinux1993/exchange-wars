@@ -18,11 +18,13 @@
 
 ## Phase 4a — DONE 2026-06-10 (UI shell: packages/ui, playable in browser)
 
+## Phase 4b — DONE 2026-06-10 (Playwright E2E green; caught + fixed broken dev server)
+
 ## Next candidates
-- **Phase 4b — Playwright E2E**: browser-level gate on seeded worlds (needs `npx playwright install chromium`, ~100MB)
+- **Publish to GitHub Pages** — IN PROGRESS, blocked on `gh auth login` (token in keyring is revoked; Jesse must re-auth). Then: repo create + push, `vite build --base=/exchange-wars/`, push dist to gh-pages, enable Pages → https://kalilinux1993.github.io/exchange-wars/
+- **CI (GitHub Actions)**: typecheck + test + e2e once the remote exists
 - **Phase 4c — PWA**: manifest, service worker, offline accrual on reopen (compute elapsed → fast-forward)
 - Jesse steering pass on art direction / game-feel (current theme explicitly provisional)
-- CI (GitHub Actions): typecheck + test; needs a remote first (Jesse's call)
 - Payback-period design targets for upgrades; momentum bleed (FINDINGS #12) — both low priority
 
 ## Phase 3 — Workspace hardening
