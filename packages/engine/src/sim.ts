@@ -44,8 +44,11 @@ export function createWorld(cfg: SimConfig): WorldState {
   const producersPerItem = cfg.producersPerItem ?? 2;
   const consumersPerItem = cfg.consumersPerItem ?? 3;
   const marketMakersPerItem = cfg.marketMakersPerItem ?? 1;
-  const momentumTraders = cfg.momentumTraders ?? 4;
-  const noiseTraders = cfg.noiseTraders ?? 6;
+  // Speculators scale with catalog size — a fixed pool spread over more books
+  // dilutes per-book liquidity until books go thin and one-sided (the 5→14
+  // item expansion broke idle automation this way before this scaled).
+  const momentumTraders = cfg.momentumTraders ?? Math.max(4, Math.round(items.length * 0.8));
+  const noiseTraders = cfg.noiseTraders ?? Math.max(6, Math.round(items.length * 1.2));
   const players = cfg.players ?? 1;
 
   for (const def of items) {

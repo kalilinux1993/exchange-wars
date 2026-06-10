@@ -11,6 +11,9 @@ Deterministic headless market-sim game (TypeScript, vitest, tsx). See README.md 
 5. **Integer gp:** prices and balances are integers; tax is `Math.floor`. No float gp anywhere.
 6. **Iteration order:** iterate items via `state.items`, agents via `state.agents` array order, Record keys only after `.sort()`.
 
+## UI/bot access rule
+Reading `WorldState` for display (sparklines from `state.trades`, report rendering) is fine. **Mutations go through `applyCommand` only** — no UI or bot may call `placeOrder`/`cancelAgentOrders`/ledger fields directly on behalf of a player.
+
 ## Workflow
 - Run `npm run typecheck` and `npm test` before declaring anything done. The market-sanity gate is deterministic per seed — if you change agent behavior or TUNING, re-run sims on seeds 11/42/1337 and re-tune before blaming the test.
 - Balance numbers live ONLY in `TUNING` (packages/engine/src/agents.ts). Tuning passes touch that object, nothing else.

@@ -176,9 +176,10 @@ describe('flipper cost basis', () => {
     flipper.memo['since_ore'] = 0;
     alignTick(state, flipper.id, TUNING.player.cadence);
     actAgent(state, flipper, rng);
-    // Top-up buy of 8 @81 against a held position of 5 @basis 100:
-    // round((100*5 + 81*8) / 13) = 88. Position age must NOT reset.
-    expect(flipper.memo['basis_ore']).toBe(88);
+    // Top-up buy against a held position of 5 @basis 100. The exit-liquidity
+    // cap limits qty to floor(bidDepth 5 / 2) = 2 @81:
+    // round((100*5 + 81*2) / 7) = 95. Position age must NOT reset.
+    expect(flipper.memo['basis_ore']).toBe(95);
     expect(flipper.memo['since_ore']).toBe(0);
     const oreBuys = state.books['ore']!.buys.filter((o) => o.agentId === flipper.id);
     expect(oreBuys).toHaveLength(1);

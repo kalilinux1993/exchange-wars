@@ -281,6 +281,24 @@ th.num {
   color: var(--parchment-dim);
 }
 
+.spark {
+  display: block;
+}
+
+.spark.up {
+  color: var(--rise);
+}
+
+.spark.down {
+  color: var(--fall);
+}
+
+.sparkcell {
+  width: 44px;
+  padding: 0 2px !important;
+  vertical-align: middle;
+}
+
 .small {
   font-size: 0.75rem;
 }

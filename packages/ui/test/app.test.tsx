@@ -22,13 +22,13 @@ function placeBuy(price: string, qty: string): void {
 }
 
 describe('UI shell', () => {
-  it('renders the market with all five items', () => {
+  it('renders the market catalog across price tiers, with net worth in the header', () => {
     freshApp();
-    expect(screen.getByText('Iron ore')).toBeTruthy();
-    expect(screen.getByText('Lobster')).toBeTruthy();
-    expect(screen.getByText('Yew logs')).toBeTruthy();
-    expect(screen.getByText('Nature rune')).toBeTruthy();
-    expect(screen.getByText('Rune scimitar')).toBeTruthy();
+    for (const name of ['Iron ore', 'Coal', 'Shark', 'Grimy ranarr', 'Rune scimitar', 'Rune platebody']) {
+      expect(screen.getByText(name)).toBeTruthy();
+    }
+    expect(screen.getByText('net')).toBeTruthy();
+    expect(screen.getByText('+0')).toBeTruthy(); // net worth delta at boot
   });
 
   it('places a buy offer through the ticket; escrow debits gp and a slot fills', () => {

@@ -37,6 +37,9 @@ export interface MarketView {
   bestAsk: number | null;
   bestBidIsMine: boolean;
   bestAskIsMine: boolean;
+  /** Total resting quantity on each side — exit-liquidity signal for bots. */
+  bidDepth: number;
+  askDepth: number;
   volume: number;
 }
 
@@ -143,12 +146,16 @@ export function playerView(state: WorldState, playerId: number): PlayerView | nu
   for (const def of state.items) {
     const book = state.books[def.id];
     if (!book) continue;
+    let bidDepth = 0;
+    let askDepth = 0;
     for (const o of book.buys) {
+      bidDepth += o.remaining;
       if (o.agentId === agent.id) {
         openOrders.push({ id: o.id, itemId: o.itemId, side: o.side, price: o.price, remaining: o.remaining });
       }
     }
     for (const o of book.sells) {
+      askDepth += o.remaining;
       if (o.agentId === agent.id) {
         openOrders.push({ id: o.id, itemId: o.itemId, side: o.side, price: o.price, remaining: o.remaining });
       }
@@ -163,6 +170,8 @@ export function playerView(state: WorldState, playerId: number): PlayerView | nu
       bestAsk: ask ? ask.price : null,
       bestBidIsMine: bid !== undefined && bid.agentId === agent.id,
       bestAskIsMine: ask !== undefined && ask.agentId === agent.id,
+      bidDepth,
+      askDepth,
       volume: book.volume,
     });
   }

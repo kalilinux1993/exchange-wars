@@ -1,17 +1,44 @@
-import type { ItemDef, ItemId, PlayerView } from '@exchange-wars/engine';
+import type { ItemDef, ItemId, PlayerView, Trade } from '@exchange-wars/engine';
+
+const SPARK_POINTS = 20;
+
+/** Tiny price history from the engine's recent-trades window (display-only read). */
+function Spark({ prices }: { prices: number[] }) {
+  if (prices.length < 2) return <span className="dim">·</span>;
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const range = Math.max(1, max - min);
+  const pts = prices
+    .map((p, i) => `${((i / (prices.length - 1)) * 40).toFixed(1)},${(11 - ((p - min) / range) * 10).toFixed(1)}`)
+    .join(' ');
+  const up = prices[prices.length - 1]! >= prices[0]!;
+  return (
+    <svg className={`spark ${up ? 'up' : 'down'}`} width="40" height="12" viewBox="0 0 40 12" aria-hidden="true">
+      <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
 
 export function MarketTable({
   view,
   items,
+  trades,
   selected,
   onSelect,
 }: {
   view: PlayerView;
   items: ItemDef[];
+  trades: Trade[];
   selected: ItemId;
   onSelect: (id: ItemId) => void;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
+  const sparks = new Map<ItemId, number[]>();
+  for (const t of trades) {
+    const arr = sparks.get(t.itemId) ?? [];
+    arr.push(t.price);
+    sparks.set(t.itemId, arr);
+  }
   return (
     <section className="panel market">
       <h2>Grand Exchange</h2>
@@ -22,7 +49,7 @@ export function MarketTable({
             <th className="num">bid</th>
             <th className="num">ask</th>
             <th className="num">last</th>
-            <th className="num">ema</th>
+            <th aria-label="trend" />
             <th className="num">volume</th>
           </tr>
         </thead>
@@ -47,7 +74,9 @@ export function MarketTable({
               <td className={`num ${m.lastPrice >= m.ema ? 'up' : 'down'}`}>
                 {m.lastPrice.toLocaleString('en-US')}
               </td>
-              <td className="num dim">{Math.round(m.ema).toLocaleString('en-US')}</td>
+              <td className="sparkcell">
+                <Spark prices={(sparks.get(m.itemId) ?? []).slice(-SPARK_POINTS)} />
+              </td>
               <td className="num dim">{m.volume.toLocaleString('en-US')}</td>
             </tr>
           ))}

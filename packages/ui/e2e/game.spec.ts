@@ -10,9 +10,10 @@ test('boots a fresh seed-42 world, paused, with the full market', async ({ page 
   await expect(page.locator('.masthead h1')).toHaveText('Exchange Wars');
   await expect(page.locator('.clock .value').first()).toHaveText('0');
   await expect(page.locator('.purse .gold')).toHaveText('30,000');
-  for (const item of ['Iron ore', 'Lobster', 'Yew logs', 'Nature rune', 'Rune scimitar']) {
+  for (const item of ['Iron ore', 'Coal', 'Shark', 'Grimy ranarr', 'Rune scimitar', 'Rune platebody']) {
     await expect(page.locator('.market')).toContainText(item);
   }
+  await expect(page.locator('.purse')).toContainText('net');
   await expect(page.locator('.player')).toContainText('empty satchel');
 });
 

@@ -26,9 +26,11 @@ export const TUNING = {
    * losses (measured: seed 99 isolated −4,306). Tier 3's perk is speed. */
   automation: {
     autoFlip: [
-      { cadence: 8, maxFlips: 1, maxQty: 6, capitalFraction: 0.25 },
-      { cadence: 6, maxFlips: 2, maxQty: 8, capitalFraction: 0.25 },
-      { cadence: 4, maxFlips: 2, maxQty: 10, capitalFraction: 0.35 },
+      // maxVolatility: junior clerks only trade stable goods — volatile books
+      // are where automation bleeds (adverse selection on wide % spreads).
+      { cadence: 8, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.1 },
+      { cadence: 6, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
+      { cadence: 4, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 1 },
     ],
   },
 } as const;
@@ -213,6 +215,7 @@ function actPlayer(state: WorldState, agent: AgentState): void {
     maxQty: TUNING.player.maxQty,
     capitalFraction: TUNING.player.capitalFraction,
     manageSlots: true,
+    maxVolatility: 1, // the active player takes whatever risk it likes
   });
 }
 
@@ -228,6 +231,7 @@ function actIdlePlayer(state: WorldState, agent: AgentState): void {
     maxQty: conf.maxQty,
     capitalFraction: conf.capitalFraction,
     manageSlots: false, // automation never spends on unlocks — purchases are deliberate
+    maxVolatility: conf.maxVolatility,
   });
 }
 
@@ -236,6 +240,8 @@ interface FlipperOpts {
   maxQty: number;
   capitalFraction: number;
   manageSlots: boolean;
+  /** Skip items more volatile than this (1 = trade everything). */
+  maxVolatility: number;
 }
 
 /**
@@ -299,23 +305,29 @@ function runFlipper(state: WorldState, agent: AgentState, opts: FlipperOpts): vo
   }
 
   // Hunt flips — up to maxConcurrentFlips across distinct items, while slots
-  // and capital allow. Candidates come pre-sorted by items order; the stable
-  // sort by profit keeps ties deterministic.
+  // and capital allow. Rank by margin PERCENTAGE, not absolute gp: absolute
+  // ranking chases high-ticket illiquid spreads whose stale-dump losses scale
+  // with item price (measured: −16k over 6k ticks on the 14-item catalog).
+  // Ties keep catalog order via stable sort — cheapest, most liquid first.
   let vBuy = playerView(state, agent.id);
   if (!vBuy) return;
-  const candidates: { itemId: ItemId; buyAt: number; profit: number }[] = [];
+  const candidates: { itemId: ItemId; buyAt: number; profit: number; pct: number; bidDepth: number }[] = [];
   for (const m of vBuy.markets) {
     if (m.bestBid === null || m.bestAsk === null) continue;
     if (m.bestAskIsMine) continue; // our own sell is best ask — no flip here
+    const def = state.items.find((i) => i.id === m.itemId);
+    if (!def || def.volatility > opts.maxVolatility) continue;
     const buyAt = m.bestBid + 1;
     const sellAt = m.bestAsk - 1;
     if (sellAt <= buyAt) continue;
     const profit = sellAt - Math.floor(sellAt * GE_TAX_RATE) - buyAt;
     // Skip flips that barely clear tax — thin margins lose to price drift.
     const minProfit = Math.max(TUNING.player.minProfit, Math.ceil(buyAt * TUNING.player.minMarginPct));
-    if (profit >= minProfit) candidates.push({ itemId: m.itemId, buyAt, profit });
+    if (profit >= minProfit) {
+      candidates.push({ itemId: m.itemId, buyAt, profit, pct: profit / buyAt, bidDepth: m.bidDepth });
+    }
   }
-  candidates.sort((a, b) => b.profit - a.profit);
+  candidates.sort((a, b) => b.pct - a.pct);
   let placed = 0;
   for (const c of candidates) {
     if (placed >= opts.maxFlips) break;
@@ -323,7 +335,11 @@ function runFlipper(state: WorldState, agent: AgentState, opts: FlipperOpts): vo
     if (!vBuy) return;
     if (vBuy.openOrders.length >= vBuy.slots) break;
     const budget = Math.floor(vBuy.gp * opts.capitalFraction);
-    const qty = Math.min(opts.maxQty, Math.floor(budget / c.buyAt));
+    // Never hold more than the bid side can absorb — a stale dump into a
+    // thin book realizes losses that scale with position size (measured:
+    // −12.4k in one event from 5 prayer potions vs a ~5-deep bid book).
+    const exitCap = Math.max(1, Math.floor(c.bidDepth / 2));
+    const qty = Math.min(opts.maxQty, Math.floor(budget / c.buyAt), exitCap);
     if (qty < 1) continue;
     const r = applyCommand(state, agent.id, { type: 'place', itemId: c.itemId, side: 'buy', price: c.buyAt, qty });
     if (r.ok) {

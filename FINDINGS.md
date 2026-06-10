@@ -1,5 +1,11 @@
 # Findings
 
+## Phase 4c (2026-06-10)
+
+21. **Catalog growth breaks economies through liquidity dilution, not item math.** Tripling items (5→14) with a FIXED global speculator pool (4 momentum + 6 noise) spread liquidity so thin that books went one-sided and idle automation collapsed (tier 1 seed 7: −16,201). The real fix was world-generation: speculators now scale with catalog size (`max(4, items×0.8)` momentum, `max(6, items×1.2)` noise). After scaling, the tier curve isn't just repaired — it's the best it's ever been (tier 1 avg +6.5k/+8.4k, tier 3 +33.6k/+41.3k, monotonic, every seed positive, paybacks 48k–143k ticks).
+22. **Two bot disciplines that earned their keep** (kept even after the root fix): exit-liquidity cap — never hold more than `bidDepth/2`, since stale-dump losses scale with position size (one 5-potion dump = −12.4k); volatility ceilings per automation tier (0.10/0.12/∞) — junior clerks trade staples, which is both risk control and progression flavor.
+23. **Two plausible fixes that measured WORSE, reverted with data:** margin-%-ranking alone (didn't bind on the failing path) and a buy-below-EMA filter (backwards — EMA lags, so it admits falling-knife entries and blocks rising-market ones). Diagnosis by instrumented runs beats stacking clever heuristics.
+
 ## Phase 4b (2026-06-10)
 
 20. **Browser E2E caught what build + jsdom structurally could not: `npm run dev` was broken since Phase 4a.** vitest 4 hoisted vite 8 (rolldown) to the root; `@vitejs/plugin-react` deduped against it; the UI's own vite 7 dev server then received vite-8-protocol plugin output (`Missing field 'moduleType'`). `vite build` worked (different pipeline) and jsdom tests bypass vite entirely — so every gate was green while the actual dev server 500'd. Fix: one vite (^8) across the tree. Lesson: **a layer you never execute is a layer that's broken** — the E2E suite now executes the served app for real.

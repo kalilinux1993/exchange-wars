@@ -1,5 +1,5 @@
 import { applyCommand, playerView, runTicks, tickWorld } from '@exchange-wars/engine';
-import type { CommandResult, ItemId, PlayerCommand } from '@exchange-wars/engine';
+import type { CommandResult, ItemId, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { MarketTable } from './components/MarketTable';
 import { PlayerPanel } from './components/PlayerPanel';
@@ -8,6 +8,17 @@ import { UpgradeShop } from './components/UpgradeShop';
 import { clearSave, loadGame, newGame, saveGame, type Game } from './game';
 
 const SPEEDS = [0, 1, 5, 20] as const;
+
+/** Liquid net worth from the view: gp + inventory and open orders at last price. */
+function viewNetWorth(view: PlayerView): number {
+  const last = new Map(view.markets.map((m) => [m.itemId, m.lastPrice]));
+  let total = view.gp;
+  for (const [id, qty] of Object.entries(view.inventory)) total += qty * (last.get(id) ?? 0);
+  for (const o of view.openOrders) {
+    total += o.side === 'buy' ? o.price * o.remaining : o.remaining * (last.get(o.itemId) ?? 0);
+  }
+  return total;
+}
 
 export function App({ initial }: { initial?: Game }) {
   const gameRef = useRef<Game | null>(null);
@@ -84,10 +95,27 @@ export function App({ initial }: { initial?: Game }) {
         <div className="purse">
           <span className="value gold">{view.gp.toLocaleString('en-US')}</span>
           <span className="label">gp</span>
+          <span className="value">{viewNetWorth(view).toLocaleString('en-US')}</span>
+          <span className="label">net</span>
+          {(() => {
+            const delta = viewNetWorth(view) - game.startGp;
+            return (
+              <span className={delta >= 0 ? 'value up' : 'value down'}>
+                {delta >= 0 ? '+' : ''}
+                {delta.toLocaleString('en-US')}
+              </span>
+            );
+          })()}
         </div>
       </header>
       <main className="board">
-        <MarketTable view={view} items={game.world.items} selected={selected} onSelect={setSelected} />
+        <MarketTable
+          view={view}
+          items={game.world.items}
+          trades={game.world.trades}
+          selected={selected}
+          onSelect={setSelected}
+        />
         <section className="middle">
           <TradeTicket view={view} selected={selected} onCommand={command} lastResult={lastResult} />
           <UpgradeShop view={view} onCommand={command} />
