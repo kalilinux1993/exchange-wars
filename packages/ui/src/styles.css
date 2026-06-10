@@ -209,8 +209,13 @@ body {
 }
 
 /* ── market table ─────────────────────────────────────── */
+.market {
+  overflow-x: auto;
+}
+
 .market table {
   width: 100%;
+  min-width: 520px;
   border-collapse: collapse;
   font-size: 0.88rem;
 }
@@ -514,4 +519,42 @@ th.num {
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-align: center;
+}
+
+/* ── phone-sized screens ──────────────────────────────── */
+@media (max-width: 640px) {
+  :root {
+    font-size: 14px;
+  }
+
+  .shell {
+    padding: 10px 10px 28px;
+  }
+
+  .masthead {
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+
+  .masthead h1 {
+    font-size: 1.35rem;
+  }
+
+  .purse {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .board {
+    gap: 10px;
+  }
+
+  .panel {
+    padding: 10px 12px;
+  }
+
+  .fields input {
+    width: 90px;
+  }
 }

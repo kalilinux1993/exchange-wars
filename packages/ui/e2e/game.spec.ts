@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 test('boots a fresh seed-42 world, paused, with the full market', async ({ page }) => {
   await expect(page.locator('.masthead h1')).toHaveText('Exchange Wars');
   await expect(page.locator('.clock .value').first()).toHaveText('0');
-  await expect(page.locator('.purse .gold')).toHaveText('30,000');
+  await expect(page.locator('.purse .gold')).toHaveText('50,000');
   for (const item of ['Iron ore', 'Coal', 'Shark', 'Grimy ranarr', 'Rune scimitar', 'Rune platebody']) {
     await expect(page.locator('.market')).toContainText(item);
   }
@@ -46,9 +46,19 @@ test('fast-forward advances the world and the save survives reload', async ({ pa
 test('slot purchase debits the purse and raises the cap', async ({ page }) => {
   await expect(page.locator('.ticket')).toContainText('0/3 offer slots used');
   await page.getByText('25,000 gp').click();
-  await expect(page.locator('.purse .gold')).toHaveText('5,000');
+  await expect(page.locator('.purse .gold')).toHaveText('25,000');
   await expect(page.locator('.ticket')).toContainText('0/4 offer slots used');
   await expect(page.getByText('50,000 gp')).toBeDisabled(); // autoFlip tier 1 now unaffordable
+});
+
+test('mobile viewport: full ticket flow works on a phone-sized screen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByText('+1k').click();
+  await page.locator('.market tbody tr', { hasText: 'Iron ore' }).click();
+  await page.getByLabel('price').fill('500');
+  await page.getByLabel('qty').fill('1');
+  await page.getByText('place buy offer').click();
+  await expect(page.locator('.filled')).toContainText('filled 1 instantly');
 });
 
 test('engine rejection reasons surface in the ticket', async ({ page }) => {

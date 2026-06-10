@@ -38,7 +38,7 @@ export function recordWorth(game: Game, worth: number): void {
 }
 
 export const SAVE_KEY = 'exchange-wars-save-v1';
-export const HUMAN_START_GP = 30_000;
+export const HUMAN_START_GP = 50_000;
 
 export function newGame(seed: number): Game {
   const world = createWorld({ seed });

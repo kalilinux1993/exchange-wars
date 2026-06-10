@@ -102,13 +102,14 @@ describe('UI shell', () => {
   });
 
   it('upgrade shop gates purchases by affordability', () => {
-    const game = freshApp(); // 30k gp: first slot (25k) affordable, autoFlip tier 1 (50k) not
+    const game = freshApp(); // 50k gp: slot (25k) and autoFlip tier 1 (50k) both within reach
     const slotBtn = screen.getByText('25,000 gp') as HTMLButtonElement;
     const flipBtn = screen.getByText('50,000 gp') as HTMLButtonElement;
     expect(slotBtn.disabled).toBe(false);
-    expect(flipBtn.disabled).toBe(true);
-    fireEvent.click(slotBtn);
+    expect(flipBtn.disabled).toBe(false);
+    fireEvent.click(slotBtn); // 25k left — autoFlip no longer affordable
     expect(game.world.agents[game.playerId]!.slots).toBe(4);
     expect(screen.getByText(/0\/4 offer slots used/i)).toBeTruthy();
+    expect((screen.getByText('50,000 gp') as HTMLButtonElement).disabled).toBe(true);
   });
 });
