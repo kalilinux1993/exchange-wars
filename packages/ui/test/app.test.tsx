@@ -195,6 +195,24 @@ describe('UI shell', () => {
     expect(game.world.tick).toBeGreaterThanOrEqual(600);
   });
 
+  it('first-run help overlay shows once per device and reopens via ?', () => {
+    freshApp();
+    expect(screen.getByText('How to Play')).toBeTruthy();
+    fireEvent.click(screen.getByText('start trading'));
+    expect(screen.queryByText('How to Play')).toBeNull();
+    cleanup();
+    render(<App initial={newGame(7)} />); // same device — flag persisted
+    expect(screen.queryByText('How to Play')).toBeNull();
+    fireEvent.click(screen.getByText('?'));
+    expect(screen.getByText('How to Play')).toBeTruthy();
+  });
+
+  it('locked worth deeds show progress percentages', () => {
+    freshApp();
+    expect(screen.getByText('22%')).toBeTruthy(); // Merchant Prince: 55k / 250k
+    expect(screen.getByText('5%')).toBeTruthy(); // Millionaire: 55k / 1M
+  });
+
   it('the Chronicle records event begins and ends', () => {
     const game = newGame(42);
     game.world.events!.push({ id: 'ev1', itemId: FIRST.id, kind: 'demand_surge', startTick: 0, endTick: 100 });

@@ -7,7 +7,14 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
-test('boots a fresh seed-42 world, paused, with the full market', async ({ page }) => {
+/** Fresh contexts always see the first-run guide — dismiss it to trade. */
+async function dismissHelp(page: import('@playwright/test').Page): Promise<void> {
+  await page.getByText('start trading').click();
+}
+
+test('boots a fresh seed-42 world with the first-run guide, paused, full market', async ({ page }) => {
+  await expect(page.locator('.help')).toContainText('How to Play');
+  await dismissHelp(page);
   await expect(page.locator('.masthead h1')).toHaveText('Exchange Wars');
   await expect(page.locator('.clock .value').first()).toHaveText('0');
   await expect(page.locator('.purse .gold')).toHaveText('55,000');
@@ -24,6 +31,7 @@ test('boots a fresh seed-42 world, paused, with the full market', async ({ page 
 });
 
 test('full trade round-trip: instant buy fill, then instant sell', async ({ page }) => {
+  await dismissHelp(page);
   await page.getByText('+1k').click(); // populate the books
   await page.locator('.market tbody tr').first().click(); // cheapest item
   await page.getByLabel('price').fill('9999'); // crosses best ask, well within 55k
@@ -39,6 +47,7 @@ test('full trade round-trip: instant buy fill, then instant sell', async ({ page
 });
 
 test('fast-forward advances the world and the save survives reload', async ({ page }) => {
+  await dismissHelp(page);
   await page.getByText('+1k').click();
   await expect(page.locator('.clock')).toContainText('1,000');
   await page.reload();
@@ -46,6 +55,7 @@ test('fast-forward advances the world and the save survives reload', async ({ pa
 });
 
 test('slot purchase debits the purse and raises the cap', async ({ page }) => {
+  await dismissHelp(page);
   await expect(page.locator('.ticket')).toContainText('0/3 offer slots used');
   await page.getByText('25,000 gp').click();
   await expect(page.locator('.purse .gold')).toHaveText('30,000');
@@ -54,6 +64,7 @@ test('slot purchase debits the purse and raises the cap', async ({ page }) => {
 });
 
 test('mobile viewport: full ticket flow works on a phone-sized screen', async ({ page }) => {
+  await dismissHelp(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByText('+1k').click();
   await page.locator('.market tbody tr').first().click();
@@ -64,6 +75,7 @@ test('mobile viewport: full ticket flow works on a phone-sized screen', async ({
 });
 
 test('engine rejection reasons surface in the ticket', async ({ page }) => {
+  await dismissHelp(page);
   await page.locator('.market tbody tr').first().click();
   await page.getByLabel('price').fill('49999');
   await page.getByLabel('qty').fill('99'); // ~5M on a 55k purse

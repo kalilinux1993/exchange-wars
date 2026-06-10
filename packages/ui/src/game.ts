@@ -54,6 +54,8 @@ export interface Milestone {
   name: string;
   flavor: string;
   achieved: (game: Game, view: PlayerView, worth: number) => boolean;
+  /** Optional 0..1 progress toward the deed (shown on locked entries). */
+  progress?: (game: Game, view: PlayerView, worth: number) => number;
 }
 
 export const MILESTONES: Milestone[] = [
@@ -74,24 +76,28 @@ export const MILESTONES: Milestone[] = [
     name: 'Six Figures',
     flavor: 'The satchel jingles differently now.',
     achieved: (_g, _v, worth) => worth >= 100_000,
+    progress: (_g, _v, worth) => worth / 100_000,
   },
   {
     id: 'doubled',
     name: 'Doubled Up',
     flavor: 'Twice what you walked in with.',
     achieved: (g, _v, worth) => worth >= g.startGp * 2,
+    progress: (g, _v, worth) => worth / (g.startGp * 2),
   },
   {
     id: 'quarter-m',
     name: 'Merchant Prince',
     flavor: 'Clerks nod when you pass.',
     achieved: (_g, _v, worth) => worth >= 250_000,
+    progress: (_g, _v, worth) => worth / 250_000,
   },
   {
     id: 'millionaire',
     name: 'gp Millionaire',
     flavor: 'The ledger needs wider columns.',
     achieved: (_g, _v, worth) => worth >= 1_000_000,
+    progress: (_g, _v, worth) => worth / 1_000_000,
   },
   {
     id: 'full-counter',

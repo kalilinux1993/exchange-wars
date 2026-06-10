@@ -2,6 +2,7 @@ import { applyCommand, EVENT_LABELS, playerView, runTicks, tickWorld } from '@ex
 import type { CommandResult, ItemId, PlayerCommand } from '@exchange-wars/engine';
 import { chooseSave, getSupabase, loadCloudSave, pushCloudSave, type Session } from './cloud';
 import { AccountBar } from './components/AccountBar';
+import { HELP_SEEN_KEY, HelpOverlay } from './components/HelpOverlay';
 import { BookLadder } from './components/BookLadder';
 import { ContractsBoard } from './components/ContractsBoard';
 import { NewsLog } from './components/NewsLog';
@@ -52,6 +53,11 @@ export function App({ initial }: { initial?: Game }) {
   const [seedDraft, setSeedDraft] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<number | null>(null);
   const [prefill, setPrefill] = useState<TicketPrefill | null>(null);
+  const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_SEEN_KEY) === null);
+  const closeHelp = (): void => {
+    localStorage.setItem(HELP_SEEN_KEY, '1');
+    setHelpOpen(false);
+  };
   const prefillNonce = useRef(0);
   const onLevel = (side: 'buy' | 'sell', price: number): void => {
     prefillNonce.current++;
@@ -186,6 +192,9 @@ export function App({ initial }: { initial?: Game }) {
           <button className="chip" onClick={() => saveGame(game)}>
             save
           </button>
+          <button className="chip" title="how to play" onClick={() => setHelpOpen(true)}>
+            ?
+          </button>
           {seedDraft === null ? (
             <button className="chip" onClick={() => setSeedDraft(String(game.world.seed + 1))}>
               new game
@@ -284,9 +293,10 @@ export function App({ initial }: { initial?: Game }) {
           <PlayerPanel view={view} items={game.world.items} onCommand={command} />
           <ContractsBoard view={view} items={game.world.items} tick={game.world.tick} onCommand={command} />
           <TradeFeed trades={game.world.trades} items={game.world.items} playerId={game.playerId} />
-          <MilestonesPanel unlocked={game.milestones} />
+          <MilestonesPanel unlocked={game.milestones} game={game} view={view} worth={viewNetWorth(view)} />
         </section>
       </main>
+      {helpOpen && <HelpOverlay onClose={closeHelp} />}
       {toast && (
         <div className="toast" onClick={() => setToast(null)}>
           <span className="mine">◆</span> <b>{toast.name}</b>

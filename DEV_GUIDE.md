@@ -1,5 +1,10 @@
 # Dev Guide
 
+## Phase 6d — Onboarding & Deeds Progress (2026-06-10)
+
+- **First-run guide** — HelpOverlay (scrim + parchment, 7-point how-to) shows once per DEVICE (localStorage `ew-help-seen`, deliberately not in the save); "?" chip reopens. E2E specs dismiss it via `dismissHelp(page)`; jsdom is unaffected (no hit-testing).
+- **Deeds progress** — Milestone defs gained optional `progress()`; locked worth deeds show % (capped 99).
+
 ## Phase 6c — Trader UX & Catalog VII (2026-06-10)
 
 - **Clickable ladder** — lifting an ask loads a BUY at that price into the ticket; hitting a bid loads a SELL (BookLadder `onLevel` → `TicketPrefill` with a nonce so repeat clicks re-apply).
