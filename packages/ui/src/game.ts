@@ -17,7 +17,7 @@ export interface Game {
   /** The Chronicle: event begin/end headlines (capped, persisted). */
   newsLog: NewsEntry[];
   /** Events we've already headlined (so endings can be detected). */
-  seenEvents: { id: string; itemId: string; kind: WorldEvent['kind'] }[];
+  seenEvents: { id: string; itemId: string; kind: WorldEvent['kind']; startPrice?: number }[];
   /** Personal fill history, latched from the rolling trades window (capped). */
   fills: Fill[];
   /** Trades-window scan cursor for fill latching. */
@@ -68,6 +68,8 @@ export interface NewsEntry {
   tick: number;
   text: string;
   kind: WorldEvent['kind'] | 'ended';
+  /** Endings only: % EMA move over the event's life. Absent on pre-outcome saves. */
+  move?: number;
 }
 
 const NEWS_CAP = 12;
@@ -79,7 +81,10 @@ export function updateNews(game: Game): void {
   const active = (game.world.events ?? []).filter((e) => e.startTick <= tick && e.endTick > tick);
   for (const e of active) {
     if (!game.seenEvents.some((s) => s.id === e.id)) {
-      game.seenEvents.push({ id: e.id, itemId: e.itemId, kind: e.kind });
+      const seen: Game['seenEvents'][number] = { id: e.id, itemId: e.itemId, kind: e.kind };
+      const startEma = game.world.books[e.itemId]?.ema;
+      if (startEma !== undefined) seen.startPrice = startEma;
+      game.seenEvents.push(seen);
       game.newsLog.push({ tick, text: `${names.get(e.itemId) ?? e.itemId} ${EVENT_LABELS[e.kind]} begins`, kind: e.kind });
     }
   }
@@ -87,7 +92,12 @@ export function updateNews(game: Game): void {
     const s = game.seenEvents[i]!;
     if (!active.some((e) => e.id === s.id)) {
       game.seenEvents.splice(i, 1);
-      game.newsLog.push({ tick, text: `${names.get(s.itemId) ?? s.itemId} ${EVENT_LABELS[s.kind]} ends`, kind: 'ended' });
+      const entry: NewsEntry = { tick, text: `${names.get(s.itemId) ?? s.itemId} ${EVENT_LABELS[s.kind]} ends`, kind: 'ended' };
+      const endPrice = game.world.books[s.itemId]?.ema;
+      if (s.startPrice && s.startPrice > 0 && endPrice !== undefined) {
+        entry.move = Math.round(((endPrice - s.startPrice) / s.startPrice) * 100);
+      }
+      game.newsLog.push(entry);
     }
   }
   if (game.newsLog.length > NEWS_CAP) game.newsLog.splice(0, game.newsLog.length - NEWS_CAP);

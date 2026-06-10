@@ -9,6 +9,9 @@ export function NewsLog({ log }: { log: NewsEntry[] }) {
           <li key={`${n.tick}-${i}`} className={n.kind === 'ended' ? 'dim' : ''}>
             <span className="dim num">t{n.tick.toLocaleString('en-US')}</span>
             <span>⚡ {n.text}</span>
+            {n.move !== undefined && (
+              <span className={`num ${n.move >= 0 ? 'up' : 'down'}`}>{`${n.move >= 0 ? '+' : ''}${n.move}%`}</span>
+            )}
           </li>
         ))}
         {log.length === 0 && <li className="dim">quiet markets — so far</li>}

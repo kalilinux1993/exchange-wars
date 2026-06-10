@@ -324,6 +324,37 @@ describe('UI shell', () => {
     expect(game.newsLog[1]!.kind).toBe('ended');
   });
 
+  it('event endings report the EMA move over the run', () => {
+    const game = newGame(42);
+    const book = game.world.books[FIRST.id]!;
+    book.ema = 100;
+    game.world.events!.push({ id: 'ev1', itemId: FIRST.id, kind: 'supply_shock', startTick: 0, endTick: 100 });
+    updateNews(game); // headline captures startPrice = 100
+    book.ema = 142;
+    game.world.tick = 150;
+    updateNews(game);
+    expect(game.newsLog[1]!.move).toBe(42);
+    // pre-outcome saves have no startPrice — ending falls back to plain text
+    game.world.events!.push({ id: 'ev2', itemId: FIRST.id, kind: 'supply_glut', startTick: 150, endTick: 200 });
+    updateNews(game);
+    delete game.seenEvents[0]!.startPrice;
+    game.world.tick = 250;
+    updateNews(game); // log: begins, ends(+42), begins, ends(no move)
+    expect(game.newsLog[3]!.kind).toBe('ended');
+    expect(game.newsLog[3]!.move).toBeUndefined();
+  });
+
+  it('Chronicle outcome chips render signed', () => {
+    const game = newGame(42);
+    game.newsLog.push(
+      { tick: 1, text: 'up ends', kind: 'ended', move: 42 },
+      { tick: 2, text: 'down ends', kind: 'ended', move: -17 },
+    );
+    render(<App initial={game} />);
+    expect(screen.getByText('+42%')).toBeTruthy();
+    expect(screen.getByText('-17%')).toBeTruthy();
+  });
+
   it('renders the Chronicle panel and the ticket wiki line', () => {
     freshApp();
     expect(screen.getByText('Chronicle')).toBeTruthy();

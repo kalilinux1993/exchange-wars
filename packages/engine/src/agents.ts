@@ -59,10 +59,14 @@ export const TUNING = {
       // maxVolatility: junior clerks only trade stable goods — volatile books
       // are where automation bleeds (adverse selection on wide % spreads).
       // Re-swept whenever the world's RNG path changes (catalog growth, new
-      // spawners). Current best (64-item two-track wiki catalog): cadence 8 /
-      // vol 0.09 — min cell +550, avg +934. Sweep, don't probe.
+      // spawners). Current best (68-item two-track wiki catalog): tier 2
+      // cadence 8 / vol 0.12 — the only cell green in BOTH scenarios
+      // (competitive min +2,824, isolated min +3,071); cad 6 and 7 each
+      // fail seed 7 in one scenario. Sweep BOTH legs, not just the failing
+      // one. Do NOT raise tier-2 vol to 0.14: that admits all 20 exotics
+      // (fixed vol 0.13), whose wide gp corridors print 130k+/8k ticks.
       { cadence: 8, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.09 },
-      { cadence: 7, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
+      { cadence: 8, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
       { cadence: 5, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 1 },
     ],
   },

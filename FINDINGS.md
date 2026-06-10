@@ -1,5 +1,10 @@
 # Findings
 
+## Phase 6j (2026-06-10)
+
+33. **Tier 3 is a money printer on the wiki catalog.** Its vol ceiling of 1.0 admits all 20 exotics (generator-fixed vol 0.13), and the high-priced ones (top: Prayer regeneration potion(4) at ~65k gp) carry cost→value corridors tens of thousands of gp wide *per unit*. Measured: tier 3 makes **+140k–195k per 8k ticks** on 150k working capital, vs +1–3k for tiers 1–2. Pre-existing, not a regression — old/new catalog exotic top-ends are identical within ±1% — and invisible to the balance gate because it checks only sign and median ordering, never magnitude. Fix queued as its own phase: compress expensive-item corridors or cap per-flip gp exposure, and add a magnitude ceiling to the gate so printers can't hide again.
+34. **Sweep both scenarios — seed-7 failures flip sides with cadence.** The competitive-only sweep crowned cadence 6/vol 0.12 (min +3,357), which then failed *isolated* seed 7 at −2,582. Across the matrix: cad 7 fails seed 7 competitive, cad 6 fails it isolated, and cad 8/vol 0.12 is the only cell green everywhere (competitive min +2,824, isolated min +3,071). Cadence phase-interference against the same world stream means half a sweep is no sweep.
+
 ## Phase 5b (2026-06-10)
 
 31. **Real prices compressed the whole automation economy.** The all-staples wiki catalog (every item vol ≤ 0.10, prices ≤ ~2.7k, 1gp spreads) cut tier profits ~5× versus the fantasy catalog — realistic (actual GE staples are thin-margin) but it dissolved tier-3's "trades exotic goods" niche: its volatility ceiling is now inert because nothing exotic exists. Fix for the gate: tier-3 cadence 4→5. Design lever queued: give the generator a second selection track (a few high-volatility/high-price picks — herbs, gear) so tier 3 has a niche again and the price ladder regains a top end.

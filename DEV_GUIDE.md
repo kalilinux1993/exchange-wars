@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 6j — Catalog 68 & Event Outcomes (2026-06-10)
+
+- **Catalog 68** (48 staples + 20 exotics; new staples incl. silver ore, soft clay, mithril nails). Routine re-roll sweep → tier 2 **cadence 8 / vol 0.12** (FINDINGS #34: the competitive-only sweep picked a config that failed isolated — always sweep both scenarios).
+- **Chronicle event outcomes** — `updateNews` (packages/ui/src/game.ts) snapshots the book EMA when an event is headlined (`seenEvents[].startPrice`) and stamps the ending entry with `move` (% EMA change over the event's life); NewsLog renders it as a signed +/− chip colored up/down. Pre-outcome saves lack `startPrice` → plain ending, no chip.
+- **FINDINGS #33 (queued fix):** tier 3 farms high-priced exotics for +140–195k/8k ticks — the balance gate is sign/ordering-only and can't see magnitude. Next phase.
+
 ## Phase 6h — My Trades (2026-06-10)
 
 - **Personal fill log** — `recordFills` (packages/ui/src/game.ts) latches player-involved trades out of the rolling window into `Game.fills` (cap 50, persisted, scan-cursor + tail-dedupe for same-tick rescans). Tape panel toggles tape|mine.
