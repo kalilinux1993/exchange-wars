@@ -1,5 +1,7 @@
 import { applyCommand, EVENT_LABELS, playerView, runTicks, tickWorld } from '@exchange-wars/engine';
 import type { CommandResult, ItemId, PlayerCommand } from '@exchange-wars/engine';
+import { chooseSave, getSupabase, loadCloudSave, pushCloudSave, type Session } from './cloud';
+import { AccountBar } from './components/AccountBar';
 import { BookLadder } from './components/BookLadder';
 import { ContractsBoard } from './components/ContractsBoard';
 import { NewsLog } from './components/NewsLog';
@@ -45,6 +47,49 @@ export function App({ initial }: { initial?: Game }) {
   const [lastResult, setLastResult] = useState<CommandResult | null>(null);
   const [awayDismissed, setAwayDismissed] = useState(false);
   const [toast, setToast] = useState<Milestone | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const sessionRef = useRef<Session | null>(null);
+  sessionRef.current = session;
+  const adoptedRef = useRef(false);
+  const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const schedulePush = (): void => {
+    if (!sessionRef.current) return;
+    if (pushTimer.current) clearTimeout(pushTimer.current);
+    pushTimer.current = setTimeout(() => {
+      const g = gameRef.current;
+      if (g) void pushCloudSave(g);
+    }, 5_000);
+  };
+
+  useEffect(() => {
+    void getSupabase()
+      .auth.getSession()
+      .then(({ data }) => setSession(data.session));
+    const { data } = getSupabase().auth.onAuthStateChange((_event, s) => setSession(s));
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  // On sign-in: adopt whichever save is newer (cloud wins ties), then keep
+  // the loser updated. Adopting a cloud save runs offline accrual against
+  // NOW — close on the PC, open on the phone, the world kept going.
+  useEffect(() => {
+    if (!session || adoptedRef.current) return;
+    adoptedRef.current = true;
+    void loadCloudSave().then((cloud) => {
+      const local = gameRef.current;
+      if (cloud && chooseSave(local, cloud) === 'cloud') {
+        gameRef.current = cloud;
+        offlineRef.current = applyOfflineProgress(cloud, Date.now());
+        saveGame(cloud);
+        setSelected(cloud.world.items[0]?.id ?? '');
+        setAwayDismissed(false);
+        force();
+      } else if (local) {
+        void pushCloudSave(local);
+      }
+    });
+  }, [session]);
 
   const refreshProgress = (): void => {
     const v = playerView(game.world, game.playerId);
@@ -82,12 +127,14 @@ export function App({ initial }: { initial?: Game }) {
     setLastResult(applyCommand(game.world, game.playerId, cmd));
     refreshProgress();
     saveGame(game);
+    schedulePush();
     force();
   };
   const fastForward = (n: number): void => {
     runTicks(game.world, n);
     refreshProgress();
     saveGame(game);
+    schedulePush();
     force();
   };
   const restart = (): void => {
@@ -128,6 +175,7 @@ export function App({ initial }: { initial?: Game }) {
             new game
           </button>
         </div>
+        <AccountBar session={session} />
         <div className="purse">
           <span className="value gold">{view.gp.toLocaleString('en-US')}</span>
           <span className="label">gp</span>

@@ -78,8 +78,30 @@ body {
   font-weight: 600;
 }
 
-.purse {
+.account {
+  display: flex;
+  gap: 6px;
+  align-items: center;
   margin-left: auto;
+}
+
+.account input {
+  font: inherit;
+  font-size: 0.78rem;
+  width: 180px;
+  color: var(--parchment);
+  background: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 4px 8px;
+}
+
+.account input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.purse {
   display: flex;
   gap: 8px;
   align-items: baseline;

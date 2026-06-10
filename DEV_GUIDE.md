@@ -1,5 +1,12 @@
 # Dev Guide
 
+## Phase 6 — Login & Cloud Saves (2026-06-10)
+
+- **Supabase** (packages/ui/src/cloud.ts): magic-link email auth + a `saves` table (one row per user, RLS — supabase/schema.sql). Publishable key embedded (public by design). Engine untouched — the cloud stores the same save JSON as localStorage.
+- **Sync model**: on sign-in, `chooseSave` adopts whichever save has the newer `lastSeenMs` (cloud wins ties); adopting a cloud save runs offline accrual against NOW (cross-device "while you were away"); loser gets overwritten; 5s-debounced `pushCloudSave` after every command/fast-forward.
+- **One-time Supabase console steps** (Jesse): paste supabase/schema.sql in the SQL editor; set Auth → URL Configuration → Site URL to the live URL.
+- AccountBar in the masthead (sign-in input / signed-in email + sign out). `normalizeGame` shared by local + cloud loads.
+
 ## Phase 5d — GE Buy Limits (2026-06-10)
 
 - **Buy limits are live**: per-player rolling windows (`BUY_LIMIT_WINDOW_TICKS` = 4,000 in commands.ts) against the catalog's REAL `buyLimit` values. Enforced at the command layer only (players + their automation; NPCs unaffected). Counted at **placement**, never refunded on cancel — stricter than OSRS fill-counting, immune to place/cancel churn (documented divergence).

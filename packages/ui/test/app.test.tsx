@@ -5,6 +5,7 @@ import { DEFAULT_ITEMS, playerView } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { App } from '../src/App';
+import { chooseSave } from '../src/cloud';
 import {
   applyOfflineProgress,
   checkMilestones,
@@ -192,6 +193,26 @@ describe('UI shell', () => {
     expect(screen.getByText('Chronicle')).toBeTruthy();
     expect(screen.getByText(/quiet markets/i)).toBeTruthy();
     expect(screen.getByText(/wiki snapshot/i)).toBeTruthy();
+  });
+
+  it('cloud conflict chooser: latest lastSeenMs wins, cloud wins ties', () => {
+    const a = newGame(42);
+    const b = newGame(42);
+    expect(chooseSave(a, null)).toBe('local');
+    expect(chooseSave(null, b)).toBe('cloud');
+    a.lastSeenMs = 1_000;
+    b.lastSeenMs = 2_000;
+    expect(chooseSave(a, b)).toBe('cloud');
+    b.lastSeenMs = 500;
+    expect(chooseSave(a, b)).toBe('local');
+    b.lastSeenMs = 1_000;
+    expect(chooseSave(a, b)).toBe('cloud'); // tie → cloud
+  });
+
+  it('renders the sign-in bar when signed out', () => {
+    freshApp();
+    expect(screen.getByPlaceholderText(/sign in to sync/i)).toBeTruthy();
+    expect(screen.getByText('sign in')).toBeTruthy();
   });
 
   it('upgrade shop gates purchases by affordability', () => {

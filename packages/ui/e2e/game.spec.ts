@@ -20,6 +20,7 @@ test('boots a fresh seed-42 world, paused, with the full market', async ({ page 
   await expect(page.locator('.ladder')).toContainText('spread');
   await expect(page.locator('.contracts')).toContainText('Quartermaster');
   await expect(page.locator('.chronicle')).toContainText('Chronicle');
+  await expect(page.locator('.account')).toContainText('sign in');
 });
 
 test('full trade round-trip: instant buy fill, then instant sell', async ({ page }) => {

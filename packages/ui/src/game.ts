@@ -230,20 +230,23 @@ export function saveGame(game: Game): void {
   localStorage.setItem(SAVE_KEY, JSON.stringify(game));
 }
 
+/** Default fields that predate older save formats (local OR cloud saves). */
+export function normalizeGame(game: Game): Game {
+  return {
+    ...game,
+    startGp: game.startGp ?? HUMAN_START_GP,
+    worthHistory: game.worthHistory ?? [],
+    milestones: game.milestones ?? [],
+    newsLog: game.newsLog ?? [],
+    seenEvents: game.seenEvents ?? [],
+  };
+}
+
 export function loadGame(): Game | null {
   const raw = localStorage.getItem(SAVE_KEY);
   if (raw === null) return null;
   try {
-    const game = JSON.parse(raw) as Game;
-    // Default fields that predate older save formats.
-    return {
-      ...game,
-      startGp: game.startGp ?? HUMAN_START_GP,
-      worthHistory: game.worthHistory ?? [],
-      milestones: game.milestones ?? [],
-      newsLog: game.newsLog ?? [],
-      seenEvents: game.seenEvents ?? [],
-    };
+    return normalizeGame(JSON.parse(raw) as Game);
   } catch {
     return null;
   }
