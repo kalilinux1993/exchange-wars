@@ -13,7 +13,10 @@ function arg(name: string, fallback: number): number {
   return i === -1 || i === process.argv.length - 1 ? fallback : Number(process.argv[i + 1]);
 }
 
-const COUNT = arg('count', 48);
+const STAPLES = arg('staples', 40);
+const EXOTICS = arg('exotics', 12);
+const EXOTIC_MIN_PRICE = 20_000;
+const EXOTIC_VOLATILITY = 0.13; // above tier-2's 0.12 ceiling — tier-3 territory
 
 interface MapEntry {
   id: number;
@@ -52,7 +55,7 @@ const volumes = await getJson<{ data: Record<string, number> }>(
   'https://prices.runescape.wiki/api/v1/osrs/volumes',
 );
 
-const picked = mapping
+const candidates = mapping
   .map((m) => {
     const p = latest.data[String(m.id)];
     const vol = volumes.data[String(m.id)] ?? 0;
@@ -63,14 +66,25 @@ const picked = mapping
     ({ m, price, vol }) =>
       (m.limit ?? 0) > 0 && m.icon !== undefined && price >= 30 && price <= 10_000_000 && vol > 0,
   )
-  .sort((a, b) => b.vol - a.vol)
-  .slice(0, COUNT)
-  .map(({ m, price }) => ({
+  .sort((a, b) => b.vol - a.vol);
+
+// Two tracks: liquid staples by raw volume, plus high-ticket "exotics" so the
+// price ladder has a top end and tier-3 automation has a niche (vol 0.13 is
+// above tier-2's 0.12 ceiling — exotic books are tier-3/human territory).
+const staples = candidates.slice(0, STAPLES);
+const stapleIds = new Set(staples.map((c) => c.m.id));
+const exotics = candidates
+  .filter((c) => !stapleIds.has(c.m.id) && c.price >= EXOTIC_MIN_PRICE)
+  .slice(0, EXOTICS);
+
+const picked = [...staples, ...exotics.map((e) => ({ ...e, exotic: true as const }))]
+  .map((c) => ({ ...c, exotic: 'exotic' in c && c.exotic === true }))
+  .map(({ m, price, exotic }) => ({
     id: slug(m.name),
     name: m.name,
     baseCost: Math.max(1, Math.round(price * 0.75)),
     consumeValue: Math.max(2 * Math.max(1, Math.round(price * 0.75)), Math.round(price * 1.5)),
-    volatility: tierVolatility(price),
+    volatility: exotic ? EXOTIC_VOLATILITY : tierVolatility(price),
     wikiId: m.id,
     wikiPrice: price,
     buyLimit: m.limit ?? 0,
@@ -101,7 +115,9 @@ ${lines}
 `;
 
 writeFileSync(join(ROOT, 'packages', 'engine', 'src', 'catalog.ts'), file, 'utf8');
-console.log(`catalog.ts written: ${items.length} items (${items[0]?.name} … ${items[items.length - 1]?.name})`);
+console.log(
+  `catalog.ts written: ${items.length} items, ${items.filter((i) => i.volatility === EXOTIC_VOLATILITY).length} exotic (${items[0]?.name} … ${items[items.length - 1]?.name})`,
+);
 
 const iconDir = join(ROOT, 'packages', 'ui', 'public', 'icons');
 mkdirSync(iconDir, { recursive: true });

@@ -31,6 +31,15 @@ Build-time snapshot generator — keeps the engine deterministic:
 - Known recurring cost: catalog regen re-rolls all seeds → routine tier-1 sweep + gate re-verify; ~50 items ≈ 350 agents → suite slows (CI budget already 120s; trim balance seeds if needed)
 - Explicitly NOT live price sync (breaks determinism/saves/gates); a real-price display overlay could come later as decoration
 
+## PHASE 6 (per Jesse): Login & cloud saves — "trade on the GE from anywhere"
+Design (account-light, static-site-friendly — Supabase):
+- **Jesse's 2-minute part (BLOCKER):** create a free project at supabase.com → Settings → API → send me the Project URL + anon public key (safe to embed in the client)
+- My part: @supabase/supabase-js in packages/ui; magic-link (email) sign-in UI in the masthead; `saves` table (user_id PK, save_json jsonb, updated_at) with row-level security (SQL provided); sync: load cloud save on login (latest-wins vs local by updated_at), debounced autosave push; offline accrual unchanged (lastSeenMs works across devices — close on PC, open on phone, the world advanced)
+- Determinism untouched: the save IS the world; the server just stores it
+- Later in this arc: leaderboards via replay verification (submit seed+command-log; server re-runs it — the original anti-cheat-by-determinism design), name/flair on the board
+- Explicitly NOT (yet): shared-world multiplayer — that's a different engine (server-authoritative, non-deterministic); possible future arc, big
+- Alternative if preferred: Cloudflare Workers+D1 (also needs his account) — Supabase recommended (auth built in)
+
 ## Next candidates
 - Quests/contracts: NPC buy-contracts at premium ("deliver 50 lobsters") — goal-directed trading (FINDINGS #28)
 - Tier-3 clerk perk: "trades events too" (currently all tiers stand aside from event markets)

@@ -210,7 +210,15 @@ body {
 
 /* ── market table ─────────────────────────────────────── */
 .market {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 64vh;
+}
+
+.market thead th {
+  position: sticky;
+  top: 0;
+  background: var(--stone-2);
+  z-index: 1;
 }
 
 .market table {
