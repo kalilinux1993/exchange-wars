@@ -253,6 +253,25 @@ body {
   max-height: 64vh;
 }
 
+.market .filter {
+  font: inherit;
+  font-size: 0.78rem;
+  width: 140px;
+  color: var(--parchment);
+  background: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 3px 8px;
+  margin: 0 8px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.market .filter:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
 .market thead th {
   position: sticky;
   top: 0;

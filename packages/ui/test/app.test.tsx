@@ -195,6 +195,27 @@ describe('UI shell', () => {
     expect(game.world.tick).toBeGreaterThanOrEqual(600);
   });
 
+  it('market filter narrows the table live', () => {
+    freshApp();
+    const before = document.querySelectorAll('.market tbody tr').length;
+    expect(before).toBe(DEFAULT_ITEMS.length);
+    fireEvent.change(screen.getByPlaceholderText(/filter items/i), { target: { value: 'rune' } });
+    const after = document.querySelectorAll('.market tbody tr').length;
+    expect(after).toBeGreaterThan(0);
+    expect(after).toBeLessThan(before);
+  });
+
+  it('space bar toggles pause/play except while typing', () => {
+    freshApp();
+    fireEvent.keyDown(window, { code: 'Space' });
+    expect((screen.getByText('5×') as HTMLButtonElement).className).toContain('active');
+    fireEvent.keyDown(window, { code: 'Space' });
+    expect((screen.getByText('❚❚') as HTMLButtonElement).className).toContain('active');
+    // Typing in an input must NOT toggle.
+    fireEvent.keyDown(screen.getByLabelText(/qty/i), { code: 'Space' });
+    expect((screen.getByText('❚❚') as HTMLButtonElement).className).toContain('active');
+  });
+
   it('first-run help overlay shows once per device and reopens via ?', () => {
     freshApp();
     expect(screen.getByText('How to Play')).toBeTruthy();

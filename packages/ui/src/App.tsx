@@ -126,6 +126,24 @@ export function App({ initial }: { initial?: Game }) {
     return () => clearTimeout(id);
   }, [toast]);
 
+  // Space toggles pause/play — the idle-game standard. Never while typing.
+  const lastSpeed = useRef(5);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.code !== 'Space') return;
+      const t = e.target as HTMLElement | null;
+      if (t && ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(t.tagName)) return;
+      e.preventDefault();
+      setSpeed((s) => {
+        if (s === 0) return lastSpeed.current;
+        lastSpeed.current = s;
+        return 0;
+      });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   useEffect(() => {
     if (speed === 0) return;
     const id = setInterval(

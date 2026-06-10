@@ -1,4 +1,5 @@
 import type { ItemDef, ItemId, PlayerView, Trade } from '@exchange-wars/engine';
+import { useState } from 'react';
 
 const SPARK_POINTS = 20;
 
@@ -32,6 +33,7 @@ export function MarketTable({
   selected: ItemId;
   onSelect: (id: ItemId) => void;
 }) {
+  const [filter, setFilter] = useState('');
   const defs = new Map(items.map((i) => [i.id, i]));
   const sparks = new Map<ItemId, number[]>();
   for (const t of trades) {
@@ -39,9 +41,25 @@ export function MarketTable({
     arr.push(t.price);
     sparks.set(t.itemId, arr);
   }
+  const needle = filter.trim().toLowerCase();
+  const shown =
+    needle === ''
+      ? view.markets
+      : view.markets.filter((m) => (defs.get(m.itemId)?.name ?? m.itemId).toLowerCase().includes(needle));
   return (
     <section className="panel market">
-      <h2>Grand Exchange</h2>
+      <h2>
+        Grand Exchange{' '}
+        <input
+          className="filter"
+          placeholder="filter items…"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        />
+        <span className="dim small">
+          {shown.length}/{view.markets.length}
+        </span>
+      </h2>
       <table>
         <thead>
           <tr>
@@ -54,7 +72,7 @@ export function MarketTable({
           </tr>
         </thead>
         <tbody>
-          {view.markets.map((m) => (
+          {shown.map((m) => (
             <tr
               key={m.itemId}
               className={m.itemId === selected ? 'selected' : ''}

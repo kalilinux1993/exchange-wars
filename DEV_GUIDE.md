@@ -1,5 +1,10 @@
 # Dev Guide
 
+## Phase 6e — Market Filter & Keyboard (2026-06-10)
+
+- **Market filter** — live name-substring filter in the Grand Exchange header with shown/total count (local component state).
+- **Space = pause/play** — window keydown in App, toggles speed 0 ↔ last speed; ignores INPUT/SELECT/TEXTAREA/BUTTON targets.
+
 ## Phase 6d — Onboarding & Deeds Progress (2026-06-10)
 
 - **First-run guide** — HelpOverlay (scrim + parchment, 7-point how-to) shows once per DEVICE (localStorage `ew-help-seen`, deliberately not in the save); "?" chip reopens. E2E specs dismiss it via `dismissHelp(page)`; jsdom is unaffected (no hit-testing).
