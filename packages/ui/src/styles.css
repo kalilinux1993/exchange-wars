@@ -101,6 +101,23 @@ body {
   border-color: var(--gold);
 }
 
+.seedform {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.seedform input {
+  font: inherit;
+  font-size: 0.8rem;
+  width: 90px;
+  color: var(--parchment);
+  background: var(--ink);
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  padding: 4px 8px;
+}
+
 .purse {
   display: flex;
   gap: 8px;

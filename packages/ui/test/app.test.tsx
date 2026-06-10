@@ -195,6 +195,18 @@ describe('UI shell', () => {
     expect(screen.getByText(/wiki snapshot/i)).toBeTruthy();
   });
 
+  it('new game accepts a chosen seed — identical worlds for shared challenges', () => {
+    freshApp();
+    fireEvent.click(screen.getByText('new game'));
+    const seedInput = screen.getByLabelText('seed') as HTMLInputElement;
+    expect(seedInput.value).toBe('43'); // suggested: current seed + 1
+    fireEvent.change(seedInput, { target: { value: '12345' } });
+    fireEvent.click(screen.getByText('start'));
+    expect(screen.getByText('12345')).toBeTruthy(); // seed display in the clock
+    expect(screen.getAllByText('0').length).toBeGreaterThan(0); // fresh world at tick 0
+    expect(screen.getAllByText('55,000').length).toBeGreaterThan(0); // fresh purse (gp + net)
+  });
+
   it('cloud conflict chooser: latest lastSeenMs wins, cloud wins ties', () => {
     const a = newGame(42);
     const b = newGame(42);

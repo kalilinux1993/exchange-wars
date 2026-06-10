@@ -1,5 +1,10 @@
 # Dev Guide
 
+## Phase 6b — Challenge Seeds & Sync Polish (2026-06-10)
+
+- **Seed picker** — New Game opens an inline seed form (suggested current+1, any integer): identical seeds = identical worlds = shareable challenges (the determinism-native "compete with a friend" primitive; pairs with future leaderboards).
+- **Sync marker** — successful cloud pushes light "✓ synced" in the AccountBar (App tracks lastSync from pushCloudSave's result).
+
 ## Phase 6 — Login & Cloud Saves (2026-06-10)
 
 - **Supabase** (packages/ui/src/cloud.ts): magic-link email auth + a `saves` table (one row per user, RLS — supabase/schema.sql). Publishable key embedded (public by design). Engine untouched — the cloud stores the same save JSON as localStorage.

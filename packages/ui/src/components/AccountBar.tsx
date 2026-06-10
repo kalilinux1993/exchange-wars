@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { sendMagicLink, signOut, type Session } from '../cloud';
 
-export function AccountBar({ session }: { session: Session | null }) {
+export function AccountBar({ session, lastSync }: { session: Session | null; lastSync: number | null }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<string | null>(null);
 
@@ -9,6 +9,7 @@ export function AccountBar({ session }: { session: Session | null }) {
     return (
       <div className="account">
         <span className="dim small">{session.user.email}</span>
+        {lastSync !== null && <span className="up small">✓ synced</span>}
         <button className="chip" onClick={() => void signOut()}>
           sign out
         </button>

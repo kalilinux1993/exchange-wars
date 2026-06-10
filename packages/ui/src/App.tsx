@@ -48,6 +48,8 @@ export function App({ initial }: { initial?: Game }) {
   const [awayDismissed, setAwayDismissed] = useState(false);
   const [toast, setToast] = useState<Milestone | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [seedDraft, setSeedDraft] = useState<string | null>(null);
+  const [lastSync, setLastSync] = useState<number | null>(null);
   const sessionRef = useRef<Session | null>(null);
   sessionRef.current = session;
   const adoptedRef = useRef(false);
@@ -58,7 +60,11 @@ export function App({ initial }: { initial?: Game }) {
     if (pushTimer.current) clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(() => {
       const g = gameRef.current;
-      if (g) void pushCloudSave(g);
+      if (g) {
+        void pushCloudSave(g).then((ok) => {
+          if (ok) setLastSync(Date.now());
+        });
+      }
     }, 5_000);
   };
 
@@ -137,12 +143,14 @@ export function App({ initial }: { initial?: Game }) {
     schedulePush();
     force();
   };
-  const restart = (): void => {
+  const restart = (seed: number): void => {
     clearSave();
-    gameRef.current = newGame(game.world.seed + 1);
+    gameRef.current = newGame(seed);
     setSelected(gameRef.current.world.items[0]?.id ?? '');
     setLastResult(null);
     setSpeed(0);
+    setSeedDraft(null);
+    schedulePush();
     force();
   };
 
@@ -171,11 +179,31 @@ export function App({ initial }: { initial?: Game }) {
           <button className="chip" onClick={() => saveGame(game)}>
             save
           </button>
-          <button className="chip" onClick={restart}>
-            new game
-          </button>
+          {seedDraft === null ? (
+            <button className="chip" onClick={() => setSeedDraft(String(game.world.seed + 1))}>
+              new game
+            </button>
+          ) : (
+            <span className="seedform">
+              <input
+                value={seedDraft}
+                onChange={(e) => setSeedDraft(e.target.value)}
+                inputMode="numeric"
+                aria-label="seed"
+              />
+              <button
+                className="chip"
+                onClick={() => restart(Number.isFinite(Number(seedDraft)) ? Math.trunc(Number(seedDraft)) : game.world.seed + 1)}
+              >
+                start
+              </button>
+              <button className="chip" onClick={() => setSeedDraft(null)}>
+                ×
+              </button>
+            </span>
+          )}
         </div>
-        <AccountBar session={session} />
+        <AccountBar session={session} lastSync={lastSync} />
         <div className="purse">
           <span className="value gold">{view.gp.toLocaleString('en-US')}</span>
           <span className="label">gp</span>
