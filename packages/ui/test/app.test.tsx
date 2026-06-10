@@ -195,6 +195,16 @@ describe('UI shell', () => {
     expect(game.world.tick).toBeGreaterThanOrEqual(600);
   });
 
+  it('max button fills the buy qty from gp and the item buy limit', () => {
+    freshApp();
+    fireEvent.change(screen.getByLabelText(/price/i), { target: { value: '100' } });
+    fireEvent.click(screen.getByText('max'));
+    const afford = Math.floor(HUMAN_START_GP / 100);
+    const limit = FIRST.buyLimit && FIRST.buyLimit > 0 ? FIRST.buyLimit : Number.POSITIVE_INFINITY;
+    const expected = Math.min(afford, limit);
+    expect((screen.getByLabelText(/qty/i) as HTMLInputElement).value).toBe(String(expected));
+  });
+
   it('market filter narrows the table live', () => {
     freshApp();
     const before = document.querySelectorAll('.market tbody tr').length;

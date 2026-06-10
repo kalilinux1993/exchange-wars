@@ -97,6 +97,23 @@ export function TradeTicket({
             qty
             <input value={qty} onChange={(e) => setQty(e.target.value)} inputMode="numeric" />
           </label>
+          <button
+            type="button"
+            className="chip"
+            title={side === 'buy' ? 'max affordable (limit-aware)' : 'all held'}
+            onClick={() => {
+              if (side === 'sell') {
+                setQty(String(view.inventory[selected] ?? 0));
+                return;
+              }
+              if (!Number.isInteger(p) || p < 1) return;
+              const afford = Math.floor(view.gp / p);
+              const limit = market?.buyRemaining ?? null;
+              setQty(String(limit === null ? afford : Math.min(afford, limit)));
+            }}
+          >
+            max
+          </button>
         </div>
         <p className="sums">
           {side === 'buy' ? (

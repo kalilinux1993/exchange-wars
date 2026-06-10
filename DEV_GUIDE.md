@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 6f — Max Button, Chart Labels & Catalog VIII (2026-06-10)
+
+- **Ticket "max"** — fills qty: buys = floor(gp/price) capped by the item's remaining buy limit; sells = all held.
+- **Fortune chart** shows low/high/now alongside the start baseline.
+- **Catalog 64** (44 staples + 20 exotics). Routine sweep → tier 1 cadence 8 / vol 0.09. NOTE: dropping the ceiling below 0.10 required automation test fixtures to use vol ≤ 0.09 items (they were 0.10 — the bot correctly refused to trade them).
+
 ## Phase 6e — Market Filter & Keyboard (2026-06-10)
 
 - **Market filter** — live name-substring filter in the Grand Exchange header with shown/total count (local component state).

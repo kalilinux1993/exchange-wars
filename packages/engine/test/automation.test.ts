@@ -81,8 +81,8 @@ describe('automation upgrades', () => {
 
   it('tier 1 caps automation at one concurrent flip', () => {
     const TWO: ItemDef[] = [
-      { id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.1 },
-      { id: 'log', name: 'Log', baseCost: 200, consumeValue: 450, volatility: 0.1 },
+      { id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.08 },
+      { id: 'log', name: 'Log', baseCost: 200, consumeValue: 450, volatility: 0.08 },
     ];
     const state = createWorld({
       seed: 1,
@@ -116,7 +116,7 @@ describe('automation upgrades', () => {
 
   it('idle automation honors Clerk Orders: focus item and tightened risk ceiling', () => {
     const TWO: ItemDef[] = [
-      { id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.1 },
+      { id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.08 },
       { id: 'log', name: 'Log', baseCost: 200, consumeValue: 450, volatility: 0.05 },
     ];
     const state = createWorld({
@@ -157,8 +157,8 @@ describe('automation upgrades', () => {
 
   it('tier 2 runs two concurrent flips on its faster cadence', () => {
     const TWO: ItemDef[] = [
-      { id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.1 },
-      { id: 'log', name: 'Log', baseCost: 200, consumeValue: 450, volatility: 0.1 },
+      { id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.08 },
+      { id: 'log', name: 'Log', baseCost: 200, consumeValue: 450, volatility: 0.08 },
     ];
     const state = createWorld({
       seed: 1,

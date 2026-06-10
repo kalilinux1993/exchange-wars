@@ -39,7 +39,8 @@ export function WorthChart({
         />
       </svg>
       <p className="dim small">
-        net worth over ticks · dashed line = starting {startGp.toLocaleString('en-US')} gp
+        low {Math.min(...worths).toLocaleString('en-US')} · high {Math.max(...worths).toLocaleString('en-US')}{' '}
+        · now <b>{last.toLocaleString('en-US')}</b> · dashed = start {startGp.toLocaleString('en-US')}
       </p>
     </section>
   );
