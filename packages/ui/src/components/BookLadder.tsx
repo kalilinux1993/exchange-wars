@@ -21,8 +21,18 @@ function levels(orders: Order[], n: number, playerId: number): Level[] {
   return out;
 }
 
-/** Live order-book depth for the selected item (display-only world read). */
-export function BookLadder({ book, playerId }: { book: OrderBook | undefined; playerId: number }) {
+/** Live order-book depth for the selected item (display-only world read).
+ * Clicking a level loads it into the ticket: lift an ask (buy at it) or hit a
+ * bid (sell into it) — terminal behavior. */
+export function BookLadder({
+  book,
+  playerId,
+  onLevel,
+}: {
+  book: OrderBook | undefined;
+  playerId: number;
+  onLevel: (side: 'buy' | 'sell', price: number) => void;
+}) {
   if (!book) return null;
   const asks = levels(book.sells, 5, playerId).reverse(); // best ask nearest the spread
   const bids = levels(book.buys, 5, playerId);
@@ -31,7 +41,12 @@ export function BookLadder({ book, playerId }: { book: OrderBook | undefined; pl
   const spread = bestAsk !== null && bestBid !== null ? bestAsk - bestBid : null;
   const maxQty = Math.max(1, ...asks.map((l) => l.qty), ...bids.map((l) => l.qty));
   const row = (l: Level, side: 'bid' | 'ask') => (
-    <li key={`${side}-${l.price}`} className={`level ${side}`}>
+    <li
+      key={`${side}-${l.price}`}
+      className={`level ${side}`}
+      title={side === 'ask' ? 'buy at this price' : 'sell at this price'}
+      onClick={() => onLevel(side === 'ask' ? 'buy' : 'sell', l.price)}
+    >
       <span className="bar" style={{ width: `${Math.round((l.qty / maxQty) * 100)}%` }} />
       <span className="num price">{l.price.toLocaleString('en-US')}</span>
       <span className="num qty">{l.qty.toLocaleString('en-US')}</span>

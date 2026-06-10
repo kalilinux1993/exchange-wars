@@ -1,5 +1,12 @@
 # Dev Guide
 
+## Phase 6c — Trader UX & Catalog VII (2026-06-10)
+
+- **Clickable ladder** — lifting an ask loads a BUY at that price into the ticket; hitting a bid loads a SELL (BookLadder `onLevel` → `TicketPrefill` with a nonce so repeat clicks re-apply).
+- **Satchel value** total row in the Ledger.
+- **Catalog 56** (`--exotics 16`); routine tier-1 sweep → cadence 9 / vol 0.10. Note: profits in the realistic-catalog era run ~1–3k per 8k ticks (thin real spreads) — the gate's positivity floor matters more than magnitude now.
+- Test lesson (quartermaster spec): clicking the already-selected row bails out of React re-render — bounce through another row when a fresh render is required.
+
 ## Phase 6b — Challenge Seeds & Sync Polish (2026-06-10)
 
 - **Seed picker** — New Game opens an inline seed form (suggested current+1, any integer): identical seeds = identical worlds = shareable challenges (the determinism-native "compete with a friend" primitive; pairs with future leaderboards).

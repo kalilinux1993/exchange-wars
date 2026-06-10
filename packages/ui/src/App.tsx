@@ -8,6 +8,7 @@ import { NewsLog } from './components/NewsLog';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { MarketTable } from './components/MarketTable';
 import { MilestonesPanel } from './components/MilestonesPanel';
+import type { TicketPrefill } from './components/TradeTicket';
 import { PlayerPanel } from './components/PlayerPanel';
 import { TradeFeed } from './components/TradeFeed';
 import { TradeTicket } from './components/TradeTicket';
@@ -50,6 +51,12 @@ export function App({ initial }: { initial?: Game }) {
   const [session, setSession] = useState<Session | null>(null);
   const [seedDraft, setSeedDraft] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<number | null>(null);
+  const [prefill, setPrefill] = useState<TicketPrefill | null>(null);
+  const prefillNonce = useRef(0);
+  const onLevel = (side: 'buy' | 'sell', price: number): void => {
+    prefillNonce.current++;
+    setPrefill({ side, price, n: prefillNonce.current });
+  };
   const sessionRef = useRef<Session | null>(null);
   sessionRef.current = session;
   const adoptedRef = useRef(false);
@@ -265,10 +272,11 @@ export function App({ initial }: { initial?: Game }) {
             view={view}
             selected={selected}
             items={game.world.items}
+            prefill={prefill}
             onCommand={command}
             lastResult={lastResult}
           />
-          <BookLadder book={game.world.books[selected]} playerId={game.playerId} />
+          <BookLadder book={game.world.books[selected]} playerId={game.playerId} onLevel={onLevel} />
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
           <WorthChart history={game.worthHistory} startGp={game.startGp} />
         </section>

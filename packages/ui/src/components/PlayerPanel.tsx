@@ -28,6 +28,21 @@ export function PlayerPanel({
           );
         })}
         {held.length === 0 && <li className="dim">empty satchel</li>}
+        {held.length > 0 && (
+          <li>
+            <span className="dim">satchel value</span>
+            <span className="num">
+              ≈
+              {held
+                .reduce((total, i) => {
+                  const last = view.markets.find((m) => m.itemId === i.id)?.lastPrice ?? 0;
+                  return total + (view.inventory[i.id] ?? 0) * last;
+                }, 0)
+                .toLocaleString('en-US')}{' '}
+              gp
+            </span>
+          </li>
+        )}
       </ul>
       <h3>Open offers</h3>
       <ul className="rows">

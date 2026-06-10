@@ -128,12 +128,34 @@ describe('UI shell', () => {
     expect(ladder.textContent).toContain('◆');
   });
 
+  it('clicking a ladder level loads side + price into the ticket', () => {
+    freshApp();
+    fireEvent.click(screen.getByText('+1k'));
+    const ask = document.querySelector('.ladder .level.ask') as HTMLElement;
+    expect(ask).toBeTruthy();
+    const levelPrice = ask.querySelector('.price')!.textContent!.replace(/,/g, '');
+    fireEvent.click(ask);
+    expect((screen.getByLabelText(/price/i) as HTMLInputElement).value).toBe(levelPrice);
+    // Lifting an ask means buying at it.
+    const buyBtn = screen.getByRole('button', { name: 'buy' }) as HTMLButtonElement;
+    expect(buyBtn.className).toContain('active');
+    const bid = document.querySelector('.ladder .level.bid') as HTMLElement;
+    if (bid) {
+      fireEvent.click(bid);
+      const sellBtn = screen.getByRole('button', { name: 'sell' }) as HTMLButtonElement;
+      expect(sellBtn.className).toContain('active');
+    }
+  });
+
   it('quartermaster board: deliver gates on inventory, pays out, and latches the milestone', () => {
     const game = freshApp();
     expect(screen.getByText(/no contracts posted/i)).toBeTruthy();
     fireEvent.click(screen.getByText('+1k'));
     game.world.contracts!.length = 0;
     game.world.contracts!.push({ id: 999, itemId: FIRST.id, qty: 1, unitPrice: 500, expiresTick: 99_999 });
+    // FIRST is already selected — clicking it would bail out of re-rendering.
+    // Bounce through the second row, then back, to force fresh renders.
+    fireEvent.click(screen.getAllByText(DEFAULT_ITEMS[1]!.name).find((el) => el.closest('.market') !== null)!);
     const marketCell = screen.getAllByText(FIRST.name).find((el) => el.closest('.market') !== null)!;
     fireEvent.click(marketCell);
     const deliver = screen.getByText('deliver') as HTMLButtonElement;
