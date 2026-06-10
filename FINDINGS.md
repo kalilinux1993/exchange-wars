@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 6m (2026-06-10)
+
+37. **The vol fences bought re-roll robustness for free.** Catalog 68→76 was the first regen since clerks were bounded to vol ≤ 0.12 (FINDINGS #33/#35), and for the first time since the wiki catalog landed, the balance gate passed a re-roll with NO sweep — all tiers, both scenarios, magnitude ceiling included. Plausible mechanism: staple books are deep and speculator counts scale with catalog size, so the clerk's hunting ground gets *more* liquid as the catalog grows, while the thin chaotic books that made every earlier regen a re-tune (exotics) are no longer in any tier's universe. Catalog growth may now be routine content work rather than a balance event — one more regen needed to confirm the pattern.
+
 ## Phase 6l (2026-06-10)
 
 36. **React keys are an animation system.** A CSS mount animation plays exactly once per DOM node, and keys decide when nodes mount: content-based keys turn "row mounted" into "new fill happened" (one clean flash), while index-based keys (like the Tape's sliding window) remount constantly and would strobe. This is why the flash lives only on the My Trades list — the Tape's window keys can't carry it. Free corollary: the cap-trim that drops old fills never re-flashes anything because surviving rows keep their keys.

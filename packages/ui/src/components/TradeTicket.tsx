@@ -41,6 +41,11 @@ export function TradeTicket({
   const valid = Number.isInteger(p) && p >= 1 && Number.isInteger(q) && q >= 1;
   const total = valid ? p * q : 0;
   const proceeds = valid ? total - Math.floor(total * GE_TAX_RATE) : 0;
+  // Advisory only — the engine stays the authority on rejections (and slots /
+  // buy limits can still reject an offer this check can't predict).
+  const held = view.inventory[selected] ?? 0;
+  const shortGp = side === 'buy' && valid && total > view.gp;
+  const shortItems = side === 'sell' && valid && q > held;
 
   const useMarketPrice = (): void => {
     if (!market) return;
@@ -125,6 +130,8 @@ export function TradeTicket({
               after 2% tax <b>{proceeds.toLocaleString('en-US')}</b> gp
             </>
           )}
+          {shortGp && <span className="warn"> · exceeds your {view.gp.toLocaleString('en-US')} gp</span>}
+          {shortItems && <span className="warn"> · you hold only {held.toLocaleString('en-US')}</span>}
         </p>
         <button type="submit" className={`submit ${side}`} disabled={!valid}>
           place {side} offer

@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 6m — Catalog 76 & Ticket Warnings (2026-06-10)
+
+- **Catalog 76** (52 staples + 24 exotics; top exotic now Magic sapling). First regen to pass the balance gate with NO sweep (FINDINGS #37) — the vol fences decoupled clerk balance from catalog re-rolls.
+- **Ticket advisory warnings** (TradeTicket.tsx): live "· exceeds your N gp" (buy) / "· you hold only N" (sell) hints on the sums line, class `.warn` — deliberately NOT `.reject` (the e2e rejection spec targets `.reject`; reusing it was a strict-mode locator collision, caught by the e2e run) and deliberately NOT disabling submit: the engine stays the authority (slots/buy-limits can reject what the hint can't predict).
+- Note: the tax/cost preview this phase originally planned already existed (`.sums` since the max-button phase) — read before writing.
+
 ## Phase 6l — Fill Flash & CI Action Bumps (2026-06-10)
 
 - **Fill juice** — TradeFeed (packages/ui/src/components/TradeFeed.tsx): My Trades rows use content-based keys (`fillKey`; unique because `recordFills` dedupes identical fills), so a row's DOM mount == a new fill and the CSS mount animation (`fill-flash`, styles.css) is a one-shot flash. The panel itself glows (`feed-glow`) once per new personal fill via a lazy-init max-tick ref — loading an old save doesn't glow. `prefers-reduced-motion` disables both.

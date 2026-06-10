@@ -2,7 +2,7 @@
 // Catalog-agnostic: everything derives from DEFAULT_ITEMS so `npm run
 // gen:catalog` regens never break these tests.
 import { addAgent, createWorld, DEFAULT_ITEMS, playerView } from '@exchange-wars/engine';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { App } from '../src/App';
 import { TradeFeed } from '../src/components/TradeFeed';
@@ -343,6 +343,17 @@ describe('UI shell', () => {
     updateNews(game); // log: begins, ends(+42), begins, ends(no move)
     expect(game.newsLog[3]!.kind).toBe('ended');
     expect(game.newsLog[3]!.move).toBeUndefined();
+  });
+
+  it('the ticket warns on unaffordable buys and overdrawn sells (advisory only)', () => {
+    freshApp();
+    fireEvent.change(screen.getByLabelText('price'), { target: { value: '49999' } });
+    fireEvent.change(screen.getByLabelText('qty'), { target: { value: '99' } }); // ~4.95M on a 55k purse
+    expect(screen.getByText(/exceeds your 55,000 gp/)).toBeTruthy();
+    expect((screen.getByText('place buy offer') as HTMLButtonElement).disabled).toBe(false); // engine stays the authority
+    const ticket = document.querySelector('.ticket') as HTMLElement;
+    fireEvent.click(within(ticket).getByRole('button', { name: 'sell' }));
+    expect(screen.getByText(/you hold only 0/)).toBeTruthy(); // empty satchel
   });
 
   it('the feed glows on a NEW personal fill, not on save load', () => {

@@ -732,6 +732,13 @@ th.num {
   font-size: 0.82rem;
 }
 
+/* Advisory (pre-submit) hint — distinct from .reject so e2e can target
+   engine rejections specifically. */
+.warn {
+  color: var(--fall);
+  opacity: 0.85;
+}
+
 .filled {
   color: var(--rise);
   font-size: 0.82rem;
