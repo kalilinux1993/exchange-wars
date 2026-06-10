@@ -48,9 +48,9 @@ Design (account-light, static-site-friendly — Supabase):
 - ~~News history panel + event outcomes~~ DONE (Chronicle phase 6g; outcome % chips phase 6j); prestige/rebirth loop; ghost leaderboards (needs P5 server)
 - ~~Offline-cap/payback design pass~~ CLOSED: cap 100k vs paybacks 43k–90k — tier 1 pays back in ~half a cap, by design
 - Offline-cap/payback design pass (cap 50k ticks vs tier paybacks 40k–97k — tier 1 pays back in ~one full offline cap; intentional?)
-- CI actions deprecation: bump actions/checkout + setup-node majors before 2026-09 (Node 20 runner removal)
+- ~~CI actions deprecation~~ DONE phase 6l (checkout v6, setup-node v6, pages artifact v5, deploy-pages v5)
 - Achievements / milestones panel (first 100k, first whip, etc.) — cheap dopamine
-- Sound-free juice: fill flash animations on the Tape/orders when player trades land
+- ~~Sound-free juice: fill flash animations~~ DONE phase 6l (My Trades row flash + feed panel glow)
 - **CI (GitHub Actions)**: typecheck + test + e2e on push; auto-deploy Pages on main (replaces the manual gh-pages push)
 - **Phase 4c — PWA**: manifest, service worker, offline accrual on reopen (compute elapsed → fast-forward)
 - Jesse steering pass on art direction / game-feel (current theme explicitly provisional)

@@ -5,6 +5,7 @@ import { addAgent, createWorld, DEFAULT_ITEMS, playerView } from '@exchange-wars
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { App } from '../src/App';
+import { TradeFeed } from '../src/components/TradeFeed';
 import { chooseSave } from '../src/cloud';
 import {
   applyOfflineProgress,
@@ -342,6 +343,17 @@ describe('UI shell', () => {
     updateNews(game); // log: begins, ends(+42), begins, ends(no move)
     expect(game.newsLog[3]!.kind).toBe('ended');
     expect(game.newsLog[3]!.move).toBeUndefined();
+  });
+
+  it('the feed glows on a NEW personal fill, not on save load', () => {
+    const fill = { tick: 5, itemId: FIRST.id, side: 'buy' as const, qty: 1, price: 100 };
+    const { container, rerender } = render(
+      <TradeFeed trades={[]} fills={[fill]} items={[FIRST]} playerId={1} />,
+    );
+    // Pre-existing fills (loading a save) must not glow.
+    expect(container.querySelector('.feed-flash')).toBeNull();
+    rerender(<TradeFeed trades={[]} fills={[fill, { ...fill, tick: 9 }]} items={[FIRST]} playerId={1} />);
+    expect(container.querySelector('.feed-flash')).toBeTruthy();
   });
 
   it('Chronicle outcome chips render signed', () => {

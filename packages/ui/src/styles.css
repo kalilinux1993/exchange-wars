@@ -827,3 +827,41 @@ th.num {
     width: 90px;
   }
 }
+
+/* --- fill juice: new personal fills flash their row and glow the panel --- */
+.feed.feed-flash {
+  animation: feed-glow 1.2s ease-out;
+}
+
+@keyframes feed-glow {
+  0% {
+    box-shadow:
+      0 0 0 1px var(--gold),
+      0 0 18px rgba(212, 169, 55, 0.45);
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+/* Stable keys mean a mine-list row mounts exactly once per fill, so this
+   mount animation is a one-shot flash (rerenders reuse the DOM node). */
+.mine-list li {
+  animation: fill-flash 0.9s ease-out;
+}
+
+@keyframes fill-flash {
+  0% {
+    background: rgba(255, 215, 94, 0.28);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feed.feed-flash,
+  .mine-list li {
+    animation: none;
+  }
+}

@@ -1,5 +1,10 @@
 # Dev Guide
 
+## Phase 6l — Fill Flash & CI Action Bumps (2026-06-10)
+
+- **Fill juice** — TradeFeed (packages/ui/src/components/TradeFeed.tsx): My Trades rows use content-based keys (`fillKey`; unique because `recordFills` dedupes identical fills), so a row's DOM mount == a new fill and the CSS mount animation (`fill-flash`, styles.css) is a one-shot flash. The panel itself glows (`feed-glow`) once per new personal fill via a lazy-init max-tick ref — loading an old save doesn't glow. `prefers-reduced-motion` disables both.
+- **CI actions bumped** (.github/workflows/ci.yml): checkout v4→v6, setup-node v4→v6, upload-pages-artifact v3→v5, deploy-pages v4→v5 (verified current via releases pages; all Node-24 native — Node 20 action runtime dies 2026-09). The `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` env workaround is gone, now redundant. Caveat noted for the future: upload-pages-artifact v4+ excludes dotfiles unless `include-hidden-files: true` — our vite dist has none.
+
 ## Phase 6k — Tier-3 Money Printer Fix (2026-06-10)
 
 - **Tier-3 vol ceiling 1 → 0.12, cadence 5 → 4** (TUNING.automation.autoFlip[2], packages/engine/src/agents.ts) — closes FINDINGS #33 (clerk farming high-priced exotics for +140k–195k/8k ticks). Two-leg cadence sweep: cad 4 min +2,094, medians +4,801/+4,257. Design rule: events AND exotics are human territory.

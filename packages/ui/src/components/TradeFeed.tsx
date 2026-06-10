@@ -1,6 +1,11 @@
 import type { ItemDef, Trade } from '@exchange-wars/engine';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Fill } from '../game';
+
+/** Content key — unique in practice: recordFills dedupes identical fills. */
+function fillKey(f: Fill): string {
+  return `${f.tick}-${f.itemId}-${f.side}-${f.price}-${f.qty}`;
+}
 
 export function TradeFeed({
   trades,
@@ -15,8 +20,25 @@ export function TradeFeed({
 }) {
   const [mode, setMode] = useState<'tape' | 'mine'>('tape');
   const names = new Map(items.map((i) => [i.id, i.name]));
+
+  // Glow the panel once whenever a NEW personal fill lands (works on either
+  // tab). Lazy ref init: loading a save with old fills must not glow.
+  const maxFillTick = fills.length > 0 ? fills[fills.length - 1]!.tick : -1;
+  const prevMaxRef = useRef<number | null>(null);
+  if (prevMaxRef.current === null) prevMaxRef.current = maxFillTick;
+  const [glow, setGlow] = useState(false);
+  useEffect(() => {
+    if (maxFillTick > prevMaxRef.current!) {
+      prevMaxRef.current = maxFillTick;
+      setGlow(true);
+      const t = setTimeout(() => setGlow(false), 1300);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [maxFillTick]);
+
   return (
-    <section className="panel feed">
+    <section className={glow ? 'panel feed feed-flash' : 'panel feed'}>
       <h2>
         Tape{' '}
         <button className={mode === 'tape' ? 'chip active' : 'chip'} onClick={() => setMode('tape')}>
@@ -47,9 +69,11 @@ export function TradeFeed({
           {trades.length === 0 && <li className="dim">no trades yet — press play</li>}
         </ul>
       ) : (
-        <ul className="rows small">
-          {[...fills].reverse().map((f, i) => (
-            <li key={`${f.tick}-${i}`}>
+        // mine-list: stable keys mean a row's mount == a new fill, so the CSS
+        // mount animation flashes each fill exactly once (rerenders reuse DOM).
+        <ul className="rows small mine-list">
+          {[...fills].reverse().map((f) => (
+            <li key={fillKey(f)}>
               <span className="dim num">t{f.tick.toLocaleString('en-US')}</span>
               <span className={`badge ${f.side}`}>{f.side}</span>
               <span>{names.get(f.itemId) ?? f.itemId}</span>
