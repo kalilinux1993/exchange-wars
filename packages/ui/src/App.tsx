@@ -393,6 +393,28 @@ export function App({ initial }: { initial?: Game }) {
           <span className="label">seed</span>
           <span className="value">{game.world.seed}</span>
         </div>
+        {(() => {
+          // Market pulse: breadth (items above/below their EMA) + live events —
+          // a one-glance heartbeat, visible from every room. Derived per render.
+          let up = 0;
+          let down = 0;
+          for (const m of view.markets) {
+            if (m.volume <= 0 || m.ema <= 0) continue;
+            if (m.lastPrice > m.ema) up++;
+            else if (m.lastPrice < m.ema) down++;
+          }
+          const events = (game.world.events ?? []).filter(
+            (e) => e.startTick <= game.world.tick && e.endTick > game.world.tick,
+          ).length;
+          return (
+            <div className="pulse" title="market breadth — items above / below their trend, and active events">
+              <span className="label">market</span>
+              <span className="pct up">▲{up}</span>
+              <span className="pct down">▼{down}</span>
+              {events > 0 && <span className="warn">⚡{events}</span>}
+            </div>
+          );
+        })()}
         <div className="controls">
           {SPEEDS.map((s) => (
             <button key={s} className={speed === s ? 'chip active' : 'chip'} onClick={() => setSpeed(s)}>

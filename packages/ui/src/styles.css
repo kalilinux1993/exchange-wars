@@ -1001,6 +1001,18 @@ th.num {
   height: 6px;
 }
 
+.pulse {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+}
+.pulse .label {
+  color: var(--parchment-dim);
+}
+.pulse .warn {
+  color: var(--gold-bright);
+}
 .watchstar {
   background: none;
   border: none;

@@ -679,6 +679,16 @@ describe('UI shell', () => {
     }
   });
 
+  it('the masthead market pulse shows breadth once the market has traded', () => {
+    const game = newGame(42);
+    for (let t = 0; t < 400; t++) tickWorld(game.world);
+    render(<App initial={game} />);
+    const pulse = document.querySelector('.pulse') as HTMLElement;
+    expect(pulse).toBeTruthy();
+    expect(pulse.textContent).toMatch(/▲\d+/); // advancers
+    expect(pulse.textContent).toMatch(/▼\d+/); // decliners
+  });
+
   it('watchlist: star from the ticket, the item appears in the watch panel', () => {
     localStorage.removeItem('ew-watch');
     const game = newGame(42);
