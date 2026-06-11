@@ -68,10 +68,10 @@ export const TUNING = {
       // medians 1,534/1,917; cad 8-9 / vol 0.09 fail isolated seed 7 (the
       // recurring seed-7 cadence-band hole; see FINDINGS #34/#38).
       { cadence: 7, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.1 },
-      // Tier 2 (84 items): cad 7 / vol 0.12 — min +1,149, medians
-      // 2,740/3,212; ties cad 9 on stats, wins on design (a tier-2 clerk
-      // shouldn't be slower than tier 1). cad 8 fails seed 42 competitive.
-      { cadence: 7, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
+      // Tier 2 (100 items): cad 8 / vol 0.12 — min +3,306, medians
+      // 4,540/4,659 (cad 7 fails seed 11 competitive on this catalog; the
+      // winning cadence cycles with each catalog era, cf FINDINGS #29).
+      { cadence: 8, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
       // Tier 3 vol ceiling is 0.12, NOT 1: exotics are HUMAN territory —
       // same design rule as events (FINDINGS #27/#33). Tier 3 = speed +
       // size. 84-item re-verify: min +3,188, medians 5,216/3,791.

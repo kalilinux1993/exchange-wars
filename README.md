@@ -10,7 +10,7 @@ The defining constraint: **the entire game core is testable and debuggable with 
 
 ## What's in the game
 
-- **64 real OSRS items** (names, price scales, icons snapshotted from the wiki) trading on GE-style limit order books with escrow and a 2% sell tax
+- **100 real OSRS items** (names, price scales, icons snapshotted from the wiki) trading on GE-style limit order books with escrow and a 2% sell tax — staples for steady flipping, high-priced exotics for the brave
 - **A living economy**: producers, consumers, market makers, momentum and noise traders — plus ⚡ **world events** (shortages, crazes, gluts, slumps) and a **Chronicle** of their history
 - **Trader's cockpit**: filterable/sortable market, clickable depth ladder, offer ticket with max/limit awareness, personal fill log, fortune chart
 - **Progression**: GE offer slots (3→8), a hireable **auto-flipping clerk** with three tiers and configurable orders (risk / capital / focus), real **GE buy limits**, quartermaster **delivery contracts**, and 10 Deeds to earn

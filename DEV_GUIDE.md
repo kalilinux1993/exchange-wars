@@ -1,5 +1,10 @@
 # Dev Guide
 
+## Phase 6q — Catalog 100 (2026-06-10)
+
+- **Catalog 100** (68 staples + 32 exotics; exotic ladder tops at Dragon metal sheet). The re-roll broke tier 2 (competitive seed 11) — routine two-leg sweep relocked it at cad 8 / vol 0.12 (min +3,306); tiers 1/3 held. The whole sweep ran as ONE ~2.5-min command post-6p — re-rolls are now cheap maintenance.
+- README "What's in the game" updated (was still claiming 64 items).
+
 ## Phase 6p — Engine Performance Pass (2026-06-10)
 
 - **4.5× sim speedup, hash-identical** (FINDINGS #39). Two fixes: `packages/engine/src/items.ts` — `itemDef()` O(1) item lookup via WeakMap keyed on `state.items` identity (used by commands.ts buyRemaining/applyCommand and agents.ts defFor/runFlipper); and runFlipper's re-quote loop now rebuilds `playerView` only after an actual mutation (dirty flag) instead of ~2×items times per act.
