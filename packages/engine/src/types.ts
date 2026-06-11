@@ -131,6 +131,9 @@ export interface SimStats {
   deaths?: number;
   /** Kill bounties claimed (absent = none). */
   bountiesClaimed?: number;
+  /** The Sellsword's own kills + loot gp banked (absent = none) — 10k. */
+  sellswordKills?: number;
+  sellswordBanked?: number;
 }
 
 /** A posted kill order: slay `qty` of a monster before `expiresTick` and the

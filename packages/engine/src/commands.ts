@@ -415,7 +415,12 @@ export function actSellsword(state: WorldState, agent: AgentState): void {
     const danger = m.elite === true || m.dragonfire === true || (m.leech ?? 0) > 0 || m.atk >= T.fleeAtk;
     const action: import('./quest').CombatAction =
       danger || exp.combat.playerHp < T.retreatHp ? { kind: 'flee' } : { kind: 'fight' };
+    const slainBefore = state.stats.monstersSlain ?? 0;
     runCombatRound(state, agent, exp, action);
+    // Attribute the hireling's own kills so its offline haul is visible (10k).
+    if ((state.stats.monstersSlain ?? 0) > slainBefore) {
+      state.stats.sellswordKills = (state.stats.sellswordKills ?? 0) + 1;
+    }
     return;
   }
   if (exp.event) {
@@ -425,6 +430,7 @@ export function actSellsword(state: WorldState, agent: AgentState): void {
     return;
   }
   if (exp.cleared >= REGION_CLEAR_KILLS || exp.hp < T.retreatHp) {
+    state.stats.sellswordBanked = (state.stats.sellswordBanked ?? 0) + exp.packGp; // what it brought home
     finishExtract(agent, exp);
     return;
   }

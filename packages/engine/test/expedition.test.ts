@@ -423,6 +423,8 @@ describe('expeditions', () => {
     }
     checkInvariants(state);
     expect(state.stats.monstersSlain ?? 0).toBeGreaterThan(0); // it hunts
+    expect(state.stats.sellswordKills ?? 0).toBeGreaterThan(0); // its haul is tracked (10k)
+    expect(state.stats.sellswordBanked ?? 0).toBeGreaterThan(0); // and what it banked
     expect(agent.combatXp?.atk ?? 0).toBeGreaterThan(0); // it trains YOUR stats
     expect(deepest).toBeLessThanOrEqual(4); // ...it never enters fire country
     expect(hashState(state)).toBe(hashState(twin.state)); // bit-for-bit autonomous

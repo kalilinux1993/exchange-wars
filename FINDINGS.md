@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 10k — The Sellsword's Haul (2026-06-11)
+
+97. **Invisible idle work feels like no work — attribute it.** The Sellsword (9h) raids inside tickWorld, so it works offline for free — but its kills/loot folded into the shared player stats, so the player had no sense it was earning anything; the idle-adventuring half felt dead. Two attributed counters (sellswordKills via a slain-delta around its runCombatRound call, sellswordBanked = exp.packGp captured before its finishExtract) and an Almanac line ("🗡 sellsword haul: N kills · X gp") make the hireling's contribution legible. Worth-neutral (counters don't touch gp/items/RNG), so the leaderboard is unaffected — but the engine bundle changed (new stats written in tickWorld), redeployed to keep current. Mirror of the clerk: automation that you can't SEE working reads as broken (cf #69 clerk cap, #14 idle-engine-side) — surface what the bots do, or players assume nothing happened.
+
 ## Phase 10j — The Suggested Flip (2026-06-11)
 
 96. **The trading cockpit told you WHAT to trade, never the MARGIN.** Movers/watchlist/pulse/sparkline all answer "which item, which direction" — but the actual flipper's sum (undercut the spread a tick each way, net the 2% sell tax, is there profit?) lived only in the player's head. The ticket now surfaces it: `flip: buy bestBid+1 · sell bestAsk−1 · +N/ea` (green/red by sign), with the two prices as chips that load the form. Pure derived from the existing market view + GE_TAX_RATE, no engine change. This is the read that turns the cockpit from "information" into "decision" — the difference between showing a chart and showing whether the trade clears. Completes the trader toolset's core loop alongside abort-all (exit) and alerts (entry trigger).

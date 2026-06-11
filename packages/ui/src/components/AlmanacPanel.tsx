@@ -94,6 +94,14 @@ export function AlmanacPanel({ game }: { game: Game }) {
           <span>bounties claimed</span>
           <span className="num">{fmt(st.bountiesClaimed ?? 0)}</span>
         </li>
+        {((st.sellswordKills ?? 0) > 0 || (st.sellswordBanked ?? 0) > 0) && (
+          <li title="what your hireling has hunted and banked while you traded / were away">
+            <span>🗡 sellsword haul</span>
+            <span className="num">
+              {fmt(st.sellswordKills ?? 0)} kills · {fmt(st.sellswordBanked ?? 0)} gp
+            </span>
+          </li>
+        )}
         <li>
           <span>deeds done</span>
           <span className="num">{fmt(game.milestones.length)}</span>
