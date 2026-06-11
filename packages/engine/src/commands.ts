@@ -16,6 +16,8 @@ import {
   maxHpFor,
   monsterById,
   expeditionSeed,
+  COURIER_CUT,
+  COURIER_FRACTION,
   GAMBLE_STAKE,
   IMP_PRIZE,
   MERCHANT_MARKUP,
@@ -342,6 +344,7 @@ export function rollEncounter(
     if (rIdx >= 1 && rIdx < REGIONS.length - 1) kinds.push('portal');
     if (rIdx >= 1) kinds.push('spar');
     if (rIdx >= 2) kinds.push('toll');
+    if (rIdx >= 2) kinds.push('courier');
     if (rIdx >= 3) kinds.push('merchant');
     const kind = rng.pick(kinds);
     const prompt =
@@ -357,7 +360,9 @@ export function rollEncounter(
                 ? 'a grizzled swordmaster bars the path, blade flat — take a lesson in bruises?'
                 : kind === 'toll'
                   ? `a toll-keeper rattles his cup — ${TOLL_COST} gp for word of a nearby stash?`
-                  : 'a soot-cloaked merchant offers a shark at triple price — pay up?';
+                  : kind === 'courier'
+                    ? `a strongbox courier offers to ship half your loot home, safe from death — for a ${Math.round(COURIER_CUT * 100)}% cut?`
+                    : 'a soot-cloaked merchant offers a shark at triple price — pay up?';
     exp.event = { kind, prompt };
   }
   exp.rngState = rng.state();
@@ -638,6 +643,19 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
           } else {
             journal.push(`the toll-keeper's tip is good: a stash with ${found} gp`);
           }
+        }
+      } else if (ev.kind === 'courier') {
+        // Ship a fraction of loot gp to your SAFE purse (death burns packGp,
+        // not agent.gp), the courier keeping a cut that leaves the world.
+        const shipped = Math.floor(exp.packGp * COURIER_FRACTION);
+        if (shipped <= 0) {
+          journal.push('the courier shrugs — nothing worth shipping yet');
+        } else {
+          const cut = Math.floor(shipped * COURIER_CUT);
+          exp.packGp -= shipped;
+          agent.gp += shipped - cut; // banked, safe from death
+          state.ledger.gpBurned += cut; // the courier's fee leaves the world
+          journal.push(`the courier ships ${(shipped - cut).toLocaleString('en-US')} gp home (${cut} gp cut)`);
         }
       } else if (ev.kind === 'merchant') {
         const price = (itemDef(state, 'shark')?.baseCost ?? 700) * MERCHANT_MARKUP;

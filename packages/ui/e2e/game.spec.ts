@@ -124,7 +124,7 @@ test('expeditions: embark fists-first and meet whatever the dark sends', async (
   await page.getByText('venture deeper').click();
   // The encounter mix is deterministic per seed but varied by design:
   // monster, cache, snare, shrine, or dice — all leave a visible trace.
-  await expect(page.locator('.expedition')).toContainText(/blocks the path|cache|snare|shrine|dice|imp|portal|merchant|swordmaster|toll/);
+  await expect(page.locator('.expedition')).toContainText(/blocks the path|cache|snare|shrine|dice|imp|portal|merchant|swordmaster|toll|courier/);
   const fight = page.getByRole('button', { name: 'fight', exact: true });
   if (await fight.isVisible()) {
     await fight.click();

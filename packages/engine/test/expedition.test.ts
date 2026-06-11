@@ -255,6 +255,27 @@ describe('expeditions', () => {
     expect(snared).toBeGreaterThan(0);
   });
 
+  it('the strongbox courier banks half your loot safe from death, minus a cut, conserved', () => {
+    const { state, id } = fixture(41);
+    const agent = state.agents[id]!;
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    const exp = agent.expedition!;
+    exp.packGp += 1_000; // fixture loot (conserved as minted)
+    state.ledger.gpMinted += 1_000;
+    const gpBefore = agent.gp;
+    const burnBefore = state.ledger.gpBurned;
+    exp.event = { kind: 'courier', prompt: 't' };
+    ok(state, id, { type: 'choose', accept: true });
+    // Ships floor(1000*0.5)=500; cut floor(500*0.2)=100; banks 400 to safe gp.
+    expect(exp.packGp).toBe(500); // half still rides
+    expect(agent.gp).toBe(gpBefore + 400); // banked, safe from death
+    expect(state.ledger.gpBurned).toBe(burnBefore + 100); // the cut left the world
+    checkInvariants(state);
+    // Banked gp is in agent.gp, which expeditionDeath never touches (it burns
+    // only packGp) — so the shipped loot is genuinely safe from death.
+    expect(agent.gp).toBeGreaterThan(gpBefore);
+  });
+
   it('the swordmaster teaches and the toll-keeper sells stash tips, conserved', () => {
     // Spar: xp lands, bruises floor at 1 hp, never lethal.
     const { state, id } = fixture(33);

@@ -172,7 +172,7 @@ export function expeditionSeed(worldSeed: number, expeditionId: number): number 
  * repertoire grows with depth (8u): portals tempt you one region past your
  * right, imps gamble your blood, merchants surface where the food runs out. */
 export interface EventState {
-  kind: 'shrine' | 'gamble' | 'portal' | 'imp' | 'merchant' | 'spar' | 'toll';
+  kind: 'shrine' | 'gamble' | 'portal' | 'imp' | 'merchant' | 'spar' | 'toll' | 'courier';
   prompt: string;
 }
 
@@ -195,6 +195,10 @@ export const SPAR_XP = 25;
 export const SPAR_BRUISES: [number, number] = [5, 12];
 /** The toll-keeper's price for word of a nearby stash. */
 export const TOLL_COST = 150;
+/** The strongbox courier ships this fraction of your loot gp home (safe from
+ * death) and keeps COURIER_CUT of what's shipped — de-risk at a haircut. */
+export const COURIER_FRACTION = 0.5;
+export const COURIER_CUT = 0.2;
 
 /** Chance a cache holds an item on top of its coin. */
 export const CACHE_ITEM_CHANCE = 0.25;

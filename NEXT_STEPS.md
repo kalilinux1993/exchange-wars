@@ -11,7 +11,7 @@ Through brick 49 (9w): RPG layer (8 regions, stats/xp, brews, bounties, sellswor
 - **Trading**: ~~market-breadth line~~ DONE 10a; ~~price alerts~~ DONE 10b (buy-below threshold, latched toast, 🔔 row); sparkline in market-table rows.
 - **Code health**: ~~usePref helper~~ DONE 10c (loadouts/watch/alerts via usePref; title/room stay bespoke — raw-string / validated-enum).
 - **Robustness**: UI to restore/export a quarantined save on next boot; guard monsterById/itemDef at UI read sites; 100k-tick determinism gate in a CI-only suite.
-- **RPG content**: more event faces (each bends a system no other does, FINDINGS #64); a 9th region (needs a NEW resource to extort); an attack/strength brew (needs a clean attack-flavored catalog potion — none in the current snapshot); encounter depletion (only if an audit shows the TAS tail needs bounding).
+- **RPG content**: more event faces (8 so far: shrine/gamble/imp/portal/merchant/spar/toll/courier — 10d added risk-banking; next bends a still-untouched system); a 9th region (needs a NEW resource to extort); an attack/strength brew (needs a clean attack-flavored catalog potion); encounter depletion (only if an audit shows the TAS tail needs bounding).
 - **Jesse-gated**: prestige/rebirth loop; a deeper art-direction steering pass.
 
 ## Decided / dropped

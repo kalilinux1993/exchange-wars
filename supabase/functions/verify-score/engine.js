@@ -639,6 +639,8 @@ var MERCHANT_MARKUP = 3;
 var SPAR_XP = 25;
 var SPAR_BRUISES = [5, 12];
 var TOLL_COST = 150;
+var COURIER_FRACTION = 0.5;
+var COURIER_CUT = 0.2;
 var CACHE_ITEM_CHANCE = 0.25;
 var AMBUSH_CHANCE = 0.08;
 var CACHE_LOOT = [
@@ -1281,9 +1283,10 @@ function rollEncounter(state, agent, exp) {
     if (rIdx >= 1 && rIdx < REGIONS.length - 1) kinds.push("portal");
     if (rIdx >= 1) kinds.push("spar");
     if (rIdx >= 2) kinds.push("toll");
+    if (rIdx >= 2) kinds.push("courier");
     if (rIdx >= 3) kinds.push("merchant");
     const kind = rng.pick(kinds);
-    const prompt = kind === "shrine" ? "a shrine hums in the dark \u2014 tithe a quarter of your loot gp for full healing?" : kind === "gamble" ? `a goblin rattles a cup of dice \u2014 stake ${GAMBLE_STAKE} loot gp, double or nothing?` : kind === "imp" ? "an imp scampers past with a bulging coin pouch \u2014 give chase?" : kind === "portal" ? `a humming portal opens \u2014 beyond it, ${REGIONS[rIdx + 1].name}. step through?` : kind === "spar" ? "a grizzled swordmaster bars the path, blade flat \u2014 take a lesson in bruises?" : kind === "toll" ? `a toll-keeper rattles his cup \u2014 ${TOLL_COST} gp for word of a nearby stash?` : "a soot-cloaked merchant offers a shark at triple price \u2014 pay up?";
+    const prompt = kind === "shrine" ? "a shrine hums in the dark \u2014 tithe a quarter of your loot gp for full healing?" : kind === "gamble" ? `a goblin rattles a cup of dice \u2014 stake ${GAMBLE_STAKE} loot gp, double or nothing?` : kind === "imp" ? "an imp scampers past with a bulging coin pouch \u2014 give chase?" : kind === "portal" ? `a humming portal opens \u2014 beyond it, ${REGIONS[rIdx + 1].name}. step through?` : kind === "spar" ? "a grizzled swordmaster bars the path, blade flat \u2014 take a lesson in bruises?" : kind === "toll" ? `a toll-keeper rattles his cup \u2014 ${TOLL_COST} gp for word of a nearby stash?` : kind === "courier" ? `a strongbox courier offers to ship half your loot home, safe from death \u2014 for a ${Math.round(COURIER_CUT * 100)}% cut?` : "a soot-cloaked merchant offers a shark at triple price \u2014 pay up?";
     exp.event = { kind, prompt };
   }
   exp.rngState = rng.state();
@@ -1529,6 +1532,17 @@ function applyCommand(state, playerId, cmd) {
           } else {
             journal.push(`the toll-keeper's tip is good: a stash with ${found} gp`);
           }
+        }
+      } else if (ev.kind === "courier") {
+        const shipped = Math.floor(exp.packGp * COURIER_FRACTION);
+        if (shipped <= 0) {
+          journal.push("the courier shrugs \u2014 nothing worth shipping yet");
+        } else {
+          const cut = Math.floor(shipped * COURIER_CUT);
+          exp.packGp -= shipped;
+          agent.gp += shipped - cut;
+          state.ledger.gpBurned += cut;
+          journal.push(`the courier ships ${(shipped - cut).toLocaleString("en-US")} gp home (${cut} gp cut)`);
         }
       } else if (ev.kind === "merchant") {
         const price = (itemDef(state, "shark")?.baseCost ?? 700) * MERCHANT_MARKUP;
