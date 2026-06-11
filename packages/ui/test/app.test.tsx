@@ -15,6 +15,7 @@ import { chooseSave, sanitizeHandle, type Session } from '../src/cloud';
 import {
   applyOfflineProgress,
   checkMilestones,
+  dailySeed,
   deathRecap,
   exportSaveString,
   fmtDuration,
@@ -273,6 +274,14 @@ describe('UI shell', () => {
     expect(parseChallengeSeed('#seed=')).toBeNull();
     expect(parseChallengeSeed('')).toBeNull();
     expect(parseChallengeSeed('#seed=99999999999')).toBeNull(); // 11 digits
+  });
+
+  it('dailySeed derives a shared YYYYMMDD seed from the UTC date', () => {
+    expect(dailySeed(new Date(Date.UTC(2026, 5, 11)))).toBe(20260611); // month is 0-based
+    expect(dailySeed(new Date(Date.UTC(2026, 0, 1)))).toBe(20260101);
+    expect(dailySeed(new Date(Date.UTC(2026, 11, 31)))).toBe(20261231);
+    // late-UTC-day instant still resolves to that UTC calendar day, not the local one
+    expect(dailySeed(new Date(Date.UTC(2026, 5, 11, 23, 59, 59)))).toBe(20260611);
   });
 
   it('a #seed link starts fresh visitors on that seed directly', () => {

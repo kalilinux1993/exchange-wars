@@ -59,6 +59,15 @@ export function parseChallengeSeed(hash: string): number | null {
 }
 
 /**
+ * Today's shared seed (UTC), so everyone racing "the daily" plays the same world.
+ * UI-only — derived from the wall clock, which the deterministic engine never touches.
+ * Format YYYYMMDD as an integer (e.g. 2026-06-11 -> 20260611).
+ */
+export function dailySeed(now = new Date()): number {
+  return now.getUTCFullYear() * 10_000 + (now.getUTCMonth() + 1) * 100 + now.getUTCDate();
+}
+
+/**
  * Restarting the SAME seed keeps your best previous run as a chart ghost
  * (best = highest final worth, comparing the run being abandoned against any
  * ghost it was itself racing). Different seed → no ghost.

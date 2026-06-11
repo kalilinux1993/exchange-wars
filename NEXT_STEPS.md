@@ -12,6 +12,7 @@ Through brick 59 (10g): RPG layer (8 regions, stats/xp, brews, bounties, sellswo
 - **Robustness**: UI to restore/export a quarantined save on next boot; guard monsterById/itemDef at UI read sites; 100k-tick determinism gate in a CI-only suite.
 - **RPG content**: more event faces (each bends a still-untouched system — FINDINGS #64); a 9th region (needs a NEW resource to extort); ~~attack brew~~ DONE 10n (goading → +10 atk/dive, the offensive counterpart to bastion); encounter depletion (only if an audit shows the TAS tail needs bounding).
 - **Progression**: 10i region-mastery xp; 10k sellsword haul counters; 10l offline sellsword summary in the away-bar. More: final-region (Abyss) mastery hook; gp sinks that aid raiding.
+- **Social/retention**: ~~daily shared seed~~ DONE 10q (`dailySeed()` → "🗓 daily" races everyone on today's UTC world on one board). Next: a "daily" badge/label on the leaderboard view when the active seed == dailySeed(); a streak counter; surface the day's seed in the masthead.
 - **Jesse-gated**: prestige/rebirth loop; a deeper art-direction steering pass.
 
 ## Decided / dropped

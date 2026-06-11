@@ -24,6 +24,7 @@ import { WorthChart } from './components/WorthChart';
 import {
   checkMilestones,
   finishOfflineProgress,
+  dailySeed,
   fmtDuration,
   ghostForRestart,
   parseChallengeSeed,
@@ -471,6 +472,13 @@ export function App({ initial }: { initial?: Game }) {
             <>
               <button className="chip" onClick={() => setSeedDraft(String(game.world.seed + 1))}>
                 new game
+              </button>
+              <button
+                className="chip"
+                title="play today's shared seed — everyone racing the daily plays the same world"
+                onClick={() => setSeedDraft(String(dailySeed()))}
+              >
+                🗓 daily
               </button>
               <button
                 className="chip"
