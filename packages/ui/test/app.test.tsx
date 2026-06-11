@@ -447,6 +447,23 @@ describe('UI shell', () => {
     expect(screen.getByText(/no profitable flips right now/i)).toBeTruthy();
   });
 
+  it('rankFlips carries return-on-cost and the GE buy limit (null = unlimited)', () => {
+    const limited = rankFlips([{ itemId: 'a', bestBid: 1000, bestAsk: 1100, buyRemaining: 500 }], 0.02);
+    expect(limited[0]!.margin).toBe(77); // buy 1001, sell 1099, tax 21
+    expect(limited[0]!.limit).toBe(500);
+    expect(limited[0]!.roi).toBeCloseTo(77 / 1001, 5);
+    const unlimited = rankFlips([{ itemId: 'a', bestBid: 1000, bestAsk: 1100 }], 0.02);
+    expect(unlimited[0]!.limit).toBeNull();
+  });
+
+  it('TopFlips renders the buy limit and return-on-cost on a flip row', () => {
+    const view = { markets: [{ itemId: 'gold_bar', bestBid: 1000, bestAsk: 1100, buyRemaining: 500 }] } as unknown as PlayerView;
+    const items = [{ id: 'gold_bar', name: 'Gold bar' }] as unknown as ItemDef[];
+    render(<TopFlips view={view} items={items} onSelect={() => {}} />);
+    expect(screen.getByText(/≤500/)).toBeTruthy(); // buy limit badge
+    expect(screen.getByText('7.7%')).toBeTruthy(); // 77/1001 return-on-cost
+  });
+
   describe('lockedUpgrades', () => {
     // Atk 1 / Def 8: holds two better pieces it can't wear yet (dragon longsword
     // req 20, rune platebody req 12) over what it can (adamant dart, rune chainbody).

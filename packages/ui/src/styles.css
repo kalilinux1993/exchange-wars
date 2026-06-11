@@ -1182,6 +1182,17 @@ kbd {
   stroke: #ff6b5a;
 }
 
+/* TopFlips row extras: GE buy limit + return-on-cost, dimmer than the margin. */
+.flimit {
+  color: var(--parchment-dim);
+  font-size: 0.92em;
+}
+.froi {
+  color: var(--parchment-dim);
+  font-weight: 400;
+  font-size: 0.9em;
+}
+
 .mover {
   cursor: pointer;
 }

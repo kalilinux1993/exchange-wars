@@ -6,6 +6,10 @@ export interface FlipPick {
   buy: number;
   sell: number;
   margin: number;
+  /** Net margin as a fraction of buy cost — efficiency, not just absolute gp. */
+  roi: number;
+  /** GE buy allowance left this window (null = unlimited); how big the flip can go. */
+  limit: number | null;
 }
 
 /**
@@ -14,10 +18,12 @@ export interface FlipPick {
  * tax — the same sum the ticket shows for one item, computed across every book.
  * Pure: tax rate is passed in so it's testable without engine coupling. Only
  * genuine two-sided spreads (a real bid AND ask, both > 0) and strictly
- * positive net margins qualify; ties break by item id for determinism.
+ * positive net margins qualify; ranked by absolute margin (ties by item id).
+ * Each pick also carries return-on-cost and the buy limit as honest decision
+ * info — both well-defined from data, no order-flow guesswork in the ranking.
  */
 export function rankFlips(
-  markets: { itemId: string; bestBid: number | null; bestAsk: number | null }[],
+  markets: { itemId: string; bestBid: number | null; bestAsk: number | null; buyRemaining?: number | null }[],
   taxRate: number,
   limit = 4,
 ): FlipPick[] {
@@ -26,7 +32,8 @@ export function rankFlips(
     .map((m) => {
       const buy = m.bestBid! + 1;
       const sell = m.bestAsk! - 1;
-      return { id: m.itemId, buy, sell, margin: sell - buy - Math.floor(sell * taxRate) };
+      const margin = sell - buy - Math.floor(sell * taxRate);
+      return { id: m.itemId, buy, sell, margin, roi: buy > 0 ? margin / buy : 0, limit: m.buyRemaining ?? null };
     })
     .filter((f) => f.buy > 0 && f.sell > 0 && f.margin > 0)
     .sort((a, b) => b.margin - a.margin || (a.id < b.id ? -1 : 1))
@@ -66,13 +73,18 @@ export function TopFlips({
               onClick={() => onSelect(f.id)}
               title={`buy @ ${f.buy.toLocaleString('en-US')} → sell @ ${f.sell.toLocaleString(
                 'en-US',
-              )}, nets ${f.margin.toLocaleString('en-US')} gp/unit after the ${taxPct}% tax`}
+              )}, nets ${f.margin.toLocaleString('en-US')} gp/unit (${(f.roi * 100).toFixed(1)}% of cost) after the ${taxPct}% tax${
+                f.limit !== null ? ` · GE limit ${f.limit.toLocaleString('en-US')} this window` : ''
+              }`}
             >
               <span>{names.get(f.id) ?? f.id}</span>
               <span className="num dim">
                 {f.buy.toLocaleString('en-US')}→{f.sell.toLocaleString('en-US')}
+                {f.limit !== null && <span className="flimit"> ≤{f.limit.toLocaleString('en-US')}</span>}
               </span>
-              <span className="pct up">+{f.margin.toLocaleString('en-US')}</span>
+              <span className="pct up">
+                +{f.margin.toLocaleString('en-US')} <span className="froi">{(f.roi * 100).toFixed(f.roi < 0.1 ? 1 : 0)}%</span>
+              </span>
             </li>
           ))}
         </ul>
