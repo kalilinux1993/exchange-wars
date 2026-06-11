@@ -171,6 +171,184 @@ function itemDef(state, itemId) {
   return index.get(itemId);
 }
 
+// packages/engine/src/quest.ts
+var GEAR = {
+  adamant_dart: { slot: "weapon", atk: 10, def: 0 },
+  mystic_air_staff: { slot: "weapon", atk: 30, def: 1 },
+  mystic_earth_staff: { slot: "weapon", atk: 32, def: 1 },
+  rune_battleaxe: { slot: "weapon", atk: 38, def: 0 },
+  rune_2h_sword: { slot: "weapon", atk: 45, def: 0 },
+  dragon_med_helm: { slot: "helm", atk: 0, def: 16 },
+  rune_full_helm: { slot: "helm", atk: 0, def: 12 },
+  rune_platebody: { slot: "body", atk: 0, def: 28 },
+  rune_platelegs: { slot: "legs", atk: 0, def: 20 },
+  dragon_platelegs: { slot: "legs", atk: 0, def: 30 },
+  rune_kiteshield: { slot: "shield", atk: 0, def: 18 }
+};
+var CONSUMABLES = {
+  shark: { heal: 20 },
+  cooked_karambwan: { heal: 18 },
+  prayer_regeneration_potion_4: { heal: 30 },
+  super_antifire_potion_4: { heal: 5, antifire: true }
+};
+var MONSTERS = [
+  { id: "giant_rat", name: "Giant rat", hp: 8, atk: 3, def: 0, gp: [2, 12], drops: [] },
+  { id: "goblin", name: "Goblin", hp: 12, atk: 4, def: 1, gp: [5, 30], drops: [{ itemId: "adamant_dart", chance: 0.15 }] },
+  { id: "skeleton", name: "Skeleton", hp: 22, atk: 7, def: 3, gp: [15, 60], drops: [{ itemId: "law_rune", chance: 0.12 }] },
+  { id: "hill_giant", name: "Hill giant", hp: 35, atk: 9, def: 4, gp: [40, 180], drops: [{ itemId: "nature_rune", chance: 0.25 }, { itemId: "death_rune", chance: 0.1 }] },
+  { id: "moss_giant", name: "Moss giant", hp: 45, atk: 11, def: 6, gp: [60, 240], drops: [{ itemId: "blood_rune", chance: 0.18 }] },
+  { id: "lesser_demon", name: "Lesser demon", hp: 70, atk: 16, def: 9, gp: [120, 450], drops: [{ itemId: "death_rune", chance: 0.3 }, { itemId: "rune_full_helm", chance: 0.03 }] },
+  { id: "fire_giant", name: "Fire giant", hp: 85, atk: 19, def: 11, gp: [180, 600], drops: [{ itemId: "rune_battleaxe", chance: 0.04 }, { itemId: "blood_rune", chance: 0.35 }] },
+  { id: "green_dragon", name: "Green dragon", hp: 110, atk: 24, def: 12, gp: [300, 900], dragonfire: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "dragon_med_helm", chance: 0.01 }, { itemId: "rune_kiteshield", chance: 0.05 }] }
+];
+var PLAYER_BASE = { maxHp: 50, atk: 5, def: 2 };
+var REGIONS = [
+  { id: "lumbridge_plains", name: "Lumbridge Plains", flavor: "soft hills, soft monsters", monsters: ["giant_rat", "goblin"] },
+  { id: "varrock_sewers", name: "Varrock Sewers", flavor: "it smells like XP down here", monsters: ["goblin", "skeleton"] },
+  { id: "edgeville_dungeon", name: "Edgeville Dungeon", flavor: "the giants pay well", monsters: ["skeleton", "hill_giant"] },
+  { id: "brimhaven_caverns", name: "Brimhaven Caverns", flavor: "moss, mould, and money", monsters: ["moss_giant", "hill_giant"] },
+  { id: "wilderness_ruins", name: "Wilderness Ruins", flavor: "demons hoard runes", monsters: ["lesser_demon", "fire_giant"] },
+  { id: "dragons_maw", name: "The Dragon's Maw", flavor: "bring antifire or bring regrets", monsters: ["green_dragon", "fire_giant"] }
+];
+var REGION_CLEAR_KILLS = 3;
+function regionIndex(id) {
+  return REGIONS.findIndex((r) => r.id === id);
+}
+function expeditionSeed(worldSeed, expeditionId) {
+  return (worldSeed ^ 2654435769) + Math.imul(expeditionId, 2246822507) >>> 0;
+}
+function deriveStats(pack) {
+  const best = {};
+  for (const [itemId, qty] of Object.entries(pack)) {
+    if (qty < 1) continue;
+    const g = GEAR[itemId];
+    if (!g) continue;
+    const cur = best[g.slot];
+    if (!cur || g.atk + g.def > cur.atk + cur.def) best[g.slot] = g;
+  }
+  let atk = PLAYER_BASE.atk;
+  let def = PLAYER_BASE.def;
+  for (const g of Object.values(best)) {
+    atk += g.atk;
+    def += g.def;
+  }
+  return { atk, def };
+}
+function monsterById(id) {
+  const m = MONSTERS.find((x) => x.id === id);
+  if (!m) throw new Error(`unknown monster ${id}`);
+  return m;
+}
+function newCombat(monsterId, playerHp) {
+  const m = monsterById(monsterId);
+  return {
+    monsterId,
+    monsterHp: m.hp,
+    playerHp,
+    antifire: false,
+    outcome: "fighting",
+    lootGp: 0,
+    lootItems: [],
+    log: [`a ${m.name} blocks the path`]
+  };
+}
+var FLEE_CHANCE = 0.6;
+function hitChance(atk, def) {
+  return Math.min(0.95, Math.max(0.15, 0.55 + (atk - def) * 0.02));
+}
+function damage(rng, atk, def) {
+  const raw = rng.int(Math.max(1, Math.ceil(atk / 3)), Math.max(2, atk));
+  return Math.max(1, raw - Math.floor(def / 4));
+}
+function resolveRound(state, stats, action, rng) {
+  if (state.outcome !== "fighting") return;
+  const m = monsterById(state.monsterId);
+  if (action.kind === "flee") {
+    if (rng.chance(FLEE_CHANCE)) {
+      state.outcome = "fled";
+      state.log.push("you slip away into the shadows");
+      return;
+    }
+    state.log.push("no escape \u2014 it cuts you off");
+  } else if (action.kind === "eat") {
+    const c = CONSUMABLES[action.itemId];
+    if (c) {
+      state.playerHp = Math.min(PLAYER_BASE.maxHp, state.playerHp + c.heal);
+      if (c.antifire) state.antifire = true;
+      state.log.push(`you down the ${action.itemId.replace(/_/g, " ")} (+${c.heal} hp)`);
+    } else {
+      state.log.push("nothing edible there");
+    }
+  } else {
+    if (rng.chance(hitChance(stats.atk, m.def))) {
+      const dmg = damage(rng, stats.atk, m.def);
+      state.monsterHp -= dmg;
+      state.log.push(`you strike the ${m.name} for ${dmg}`);
+    } else {
+      state.log.push(`the ${m.name} turns your blow`);
+    }
+    if (state.monsterHp <= 0) {
+      state.outcome = "won";
+      state.lootGp = rng.int(m.gp[0], m.gp[1]);
+      for (const d of m.drops) {
+        if (rng.chance(d.chance)) state.lootItems.push(d.itemId);
+      }
+      state.log.push(`the ${m.name} falls \u2014 ${state.lootGp} gp${state.lootItems.length > 0 ? " and loot" : ""}`);
+      return;
+    }
+  }
+  if (rng.chance(hitChance(m.atk, stats.def))) {
+    let dmg = damage(rng, m.atk, stats.def);
+    if (m.dragonfire && state.antifire) dmg = Math.max(1, Math.floor(dmg / 2));
+    state.playerHp -= dmg;
+    state.log.push(`the ${m.name} hits you for ${dmg}${m.dragonfire && state.antifire ? " (antifire holds)" : ""}`);
+  } else {
+    state.log.push(`you dodge the ${m.name}`);
+  }
+  if (state.playerHp <= 0) {
+    state.playerHp = 0;
+    state.outcome = "dead";
+    state.log.push("darkness takes you");
+  }
+}
+
+// packages/engine/src/rng.ts
+function createRng(seed) {
+  let s = seed >>> 0;
+  const next = () => {
+    s = s + 1831565813 >>> 0;
+    let t = s;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+  return {
+    next,
+    int(min, max) {
+      if (max < min) throw new Error(`rng.int: max < min (${min}, ${max})`);
+      return min + Math.floor(next() * (max - min + 1));
+    },
+    pick(arr) {
+      if (arr.length === 0) throw new Error("rng.pick: empty array");
+      return arr[Math.floor(next() * arr.length)];
+    },
+    chance(p) {
+      return next() < p;
+    },
+    state() {
+      return s;
+    }
+  };
+}
+function fnv1a(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
 // packages/engine/src/commands.ts
 var BUY_LIMIT_WINDOW_TICKS = 4e3;
 function buyRemaining(state, agent, itemId) {
@@ -309,6 +487,108 @@ function applyCommand(state, playerId, cmd) {
       state.stats.contractsFilled = (state.stats.contractsFilled ?? 0) + 1;
       return { ok: true, trades: [] };
     }
+    case "startExpedition": {
+      if (agent.expedition) return { ok: false, reason: "already-out", trades: [] };
+      const idx = regionIndex(cmd.regionId);
+      if (idx === -1) return { ok: false, reason: "unknown-region", trades: [] };
+      if (idx > (agent.questProgress ?? 0)) return { ok: false, reason: "region-locked", trades: [] };
+      if (typeof cmd.pack !== "object" || cmd.pack === null) return { ok: false, reason: "bad-pack", trades: [] };
+      for (const [itemId, qty] of Object.entries(cmd.pack)) {
+        if (!Number.isSafeInteger(qty) || qty < 1) return { ok: false, reason: "bad-pack", trades: [] };
+        if ((agent.inventory[itemId] ?? 0) < qty) return { ok: false, reason: "insufficient-items", trades: [] };
+      }
+      const pack = {};
+      for (const [itemId, qty] of Object.entries(cmd.pack)) {
+        agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) - qty;
+        pack[itemId] = qty;
+      }
+      const expId = state.nextExpeditionId ?? 1;
+      state.nextExpeditionId = expId + 1;
+      agent.expedition = {
+        regionId: cmd.regionId,
+        rngState: expeditionSeed(state.seed, expId),
+        hp: PLAYER_BASE.maxHp,
+        pack,
+        packGp: 0,
+        cleared: 0,
+        combat: null
+      };
+      return { ok: true, trades: [] };
+    }
+    case "advance": {
+      const exp = agent.expedition;
+      if (!exp) return { ok: false, reason: "not-out", trades: [] };
+      if (exp.combat) return { ok: false, reason: "in-combat", trades: [] };
+      const region = REGIONS[regionIndex(exp.regionId)];
+      const rng = createRng(exp.rngState);
+      exp.combat = newCombat(rng.pick(region.monsters), exp.hp);
+      exp.rngState = rng.state();
+      return { ok: true, trades: [] };
+    }
+    case "fight":
+    case "fleeCombat":
+    case "eatFood": {
+      const exp = agent.expedition;
+      if (!exp || !exp.combat) return { ok: false, reason: "not-in-combat", trades: [] };
+      let action;
+      if (cmd.type === "fight") action = { kind: "fight" };
+      else if (cmd.type === "fleeCombat") action = { kind: "flee" };
+      else {
+        if (!CONSUMABLES[cmd.itemId]) return { ok: false, reason: "not-edible", trades: [] };
+        if ((exp.pack[cmd.itemId] ?? 0) < 1) return { ok: false, reason: "insufficient-items", trades: [] };
+        exp.pack[cmd.itemId] = exp.pack[cmd.itemId] - 1;
+        state.ledger.itemsBurned[cmd.itemId] = (state.ledger.itemsBurned[cmd.itemId] ?? 0) + 1;
+        action = { kind: "eat", itemId: cmd.itemId };
+      }
+      const rng = createRng(exp.rngState);
+      resolveRound(exp.combat, deriveStats(exp.pack), action, rng);
+      exp.rngState = rng.state();
+      const c = exp.combat;
+      if (c.outcome === "won") {
+        state.ledger.gpMinted += c.lootGp;
+        exp.packGp += c.lootGp;
+        for (const itemId of c.lootItems) {
+          state.ledger.itemsMinted[itemId] = (state.ledger.itemsMinted[itemId] ?? 0) + 1;
+          exp.pack[itemId] = (exp.pack[itemId] ?? 0) + 1;
+        }
+        exp.cleared += 1;
+        exp.hp = c.playerHp;
+        const idx = regionIndex(exp.regionId);
+        if (exp.cleared >= REGION_CLEAR_KILLS && idx === (agent.questProgress ?? 0) && idx < REGIONS.length - 1) {
+          agent.questProgress = idx + 1;
+        }
+        exp.combat = null;
+      } else if (c.outcome === "dead") {
+        const units = [];
+        for (const [itemId, qty] of Object.entries(exp.pack)) {
+          const cost = itemDef(state, itemId)?.baseCost ?? 0;
+          for (let i = 0; i < qty; i++) units.push({ itemId, cost });
+        }
+        units.sort((a, b) => b.cost - a.cost || (a.itemId < b.itemId ? -1 : 1));
+        for (let i = 0; i < units.length; i++) {
+          const u = units[i];
+          if (i < 3) agent.inventory[u.itemId] = (agent.inventory[u.itemId] ?? 0) + 1;
+          else state.ledger.itemsBurned[u.itemId] = (state.ledger.itemsBurned[u.itemId] ?? 0) + 1;
+        }
+        state.ledger.gpBurned += exp.packGp;
+        delete agent.expedition;
+      } else if (c.outcome === "fled") {
+        exp.hp = c.playerHp;
+        exp.combat = null;
+      }
+      return { ok: true, trades: [] };
+    }
+    case "extract": {
+      const exp = agent.expedition;
+      if (!exp) return { ok: false, reason: "not-out", trades: [] };
+      if (exp.combat) return { ok: false, reason: "in-combat", trades: [] };
+      for (const [itemId, qty] of Object.entries(exp.pack)) {
+        if (qty > 0) agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) + qty;
+      }
+      agent.gp += exp.packGp;
+      delete agent.expedition;
+      return { ok: true, trades: [] };
+    }
   }
 }
 function playerView(state, playerId) {
@@ -366,43 +646,6 @@ function playerView(state, playerId) {
     openOrders,
     markets
   };
-}
-
-// packages/engine/src/rng.ts
-function createRng(seed) {
-  let s = seed >>> 0;
-  const next = () => {
-    s = s + 1831565813 >>> 0;
-    let t = s;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  };
-  return {
-    next,
-    int(min, max) {
-      if (max < min) throw new Error(`rng.int: max < min (${min}, ${max})`);
-      return min + Math.floor(next() * (max - min + 1));
-    },
-    pick(arr) {
-      if (arr.length === 0) throw new Error("rng.pick: empty array");
-      return arr[Math.floor(next() * arr.length)];
-    },
-    chance(p) {
-      return next() < p;
-    },
-    state() {
-      return s;
-    }
-  };
-}
-function fnv1a(str) {
-  let h = 2166136261;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
 }
 
 // packages/engine/src/hash.ts

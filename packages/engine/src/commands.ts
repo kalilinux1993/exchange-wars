@@ -3,6 +3,18 @@
 // Everything in and out is plain JSON (null, never undefined in views).
 import { bestAsk, bestBid, cancelAgentOrders, placeOrder } from './exchange';
 import { itemDef } from './items';
+import {
+  CONSUMABLES,
+  deriveStats,
+  expeditionSeed,
+  newCombat,
+  PLAYER_BASE,
+  REGION_CLEAR_KILLS,
+  REGIONS,
+  regionIndex,
+  resolveRound,
+} from './quest';
+import { createRng } from './rng';
 import type { AgentState, ItemId, Side, Trade, WorldState } from './types';
 
 /** Rolling GE buy-limit window — a command-layer mechanic (NPCs unaffected). */
@@ -37,7 +49,13 @@ export type PlayerCommand =
   | { type: 'buySlot' }
   | { type: 'buyUpgrade'; upgradeId: string }
   | { type: 'configureBot'; maxVolatility?: number; capitalFraction?: number; focusItemId?: ItemId | null }
-  | { type: 'fulfillContract'; contractId: number };
+  | { type: 'fulfillContract'; contractId: number }
+  | { type: 'startExpedition'; regionId: string; pack: Record<ItemId, number> }
+  | { type: 'advance' }
+  | { type: 'fight' }
+  | { type: 'fleeCombat' }
+  | { type: 'eatFood'; itemId: ItemId }
+  | { type: 'extract' };
 
 export interface CommandResult {
   ok: boolean;
@@ -216,6 +234,110 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       state.ledger.gpMinted += payout; // the quartermaster's coin is freshly struck
       contracts.splice(idx, 1);
       state.stats.contractsFilled = (state.stats.contractsFilled ?? 0) + 1;
+      return { ok: true, trades: [] };
+    }
+    case 'startExpedition': {
+      if (agent.expedition) return { ok: false, reason: 'already-out', trades: [] };
+      const idx = regionIndex(cmd.regionId);
+      if (idx === -1) return { ok: false, reason: 'unknown-region', trades: [] };
+      if (idx > (agent.questProgress ?? 0)) return { ok: false, reason: 'region-locked', trades: [] };
+      if (typeof cmd.pack !== 'object' || cmd.pack === null) return { ok: false, reason: 'bad-pack', trades: [] };
+      for (const [itemId, qty] of Object.entries(cmd.pack)) {
+        if (!Number.isSafeInteger(qty) || qty < 1) return { ok: false, reason: 'bad-pack', trades: [] };
+        if ((agent.inventory[itemId] ?? 0) < qty) return { ok: false, reason: 'insufficient-items', trades: [] };
+      }
+      const pack: Record<ItemId, number> = {};
+      for (const [itemId, qty] of Object.entries(cmd.pack)) {
+        agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) - qty;
+        pack[itemId] = qty;
+      }
+      const expId = state.nextExpeditionId ?? 1;
+      state.nextExpeditionId = expId + 1;
+      agent.expedition = {
+        regionId: cmd.regionId,
+        rngState: expeditionSeed(state.seed, expId),
+        hp: PLAYER_BASE.maxHp,
+        pack,
+        packGp: 0,
+        cleared: 0,
+        combat: null,
+      };
+      return { ok: true, trades: [] };
+    }
+    case 'advance': {
+      const exp = agent.expedition;
+      if (!exp) return { ok: false, reason: 'not-out', trades: [] };
+      if (exp.combat) return { ok: false, reason: 'in-combat', trades: [] };
+      const region = REGIONS[regionIndex(exp.regionId)]!;
+      const rng = createRng(exp.rngState);
+      exp.combat = newCombat(rng.pick(region.monsters), exp.hp);
+      exp.rngState = rng.state();
+      return { ok: true, trades: [] };
+    }
+    case 'fight':
+    case 'fleeCombat':
+    case 'eatFood': {
+      const exp = agent.expedition;
+      if (!exp || !exp.combat) return { ok: false, reason: 'not-in-combat', trades: [] };
+      let action: import('./quest').CombatAction;
+      if (cmd.type === 'fight') action = { kind: 'fight' };
+      else if (cmd.type === 'fleeCombat') action = { kind: 'flee' };
+      else {
+        if (!CONSUMABLES[cmd.itemId]) return { ok: false, reason: 'not-edible', trades: [] };
+        if ((exp.pack[cmd.itemId] ?? 0) < 1) return { ok: false, reason: 'insufficient-items', trades: [] };
+        exp.pack[cmd.itemId] = exp.pack[cmd.itemId]! - 1;
+        state.ledger.itemsBurned[cmd.itemId] = (state.ledger.itemsBurned[cmd.itemId] ?? 0) + 1;
+        action = { kind: 'eat', itemId: cmd.itemId };
+      }
+      const rng = createRng(exp.rngState);
+      resolveRound(exp.combat, deriveStats(exp.pack), action, rng);
+      exp.rngState = rng.state();
+      const c = exp.combat;
+      if (c.outcome === 'won') {
+        state.ledger.gpMinted += c.lootGp; // monster coin is freshly struck
+        exp.packGp += c.lootGp;
+        for (const itemId of c.lootItems) {
+          state.ledger.itemsMinted[itemId] = (state.ledger.itemsMinted[itemId] ?? 0) + 1;
+          exp.pack[itemId] = (exp.pack[itemId] ?? 0) + 1;
+        }
+        exp.cleared += 1;
+        exp.hp = c.playerHp;
+        const idx = regionIndex(exp.regionId);
+        if (exp.cleared >= REGION_CLEAR_KILLS && idx === (agent.questProgress ?? 0) && idx < REGIONS.length - 1) {
+          agent.questProgress = idx + 1; // the frontier moves
+        }
+        exp.combat = null;
+      } else if (c.outcome === 'dead') {
+        // OSRS rules: keep your 3 most valuable carried UNITS; the rest —
+        // and all loot gp — is lost to the depths (burned; it was minted).
+        const units: { itemId: ItemId; cost: number }[] = [];
+        for (const [itemId, qty] of Object.entries(exp.pack)) {
+          const cost = itemDef(state, itemId)?.baseCost ?? 0;
+          for (let i = 0; i < qty; i++) units.push({ itemId, cost });
+        }
+        units.sort((a, b) => b.cost - a.cost || (a.itemId < b.itemId ? -1 : 1));
+        for (let i = 0; i < units.length; i++) {
+          const u = units[i]!;
+          if (i < 3) agent.inventory[u.itemId] = (agent.inventory[u.itemId] ?? 0) + 1;
+          else state.ledger.itemsBurned[u.itemId] = (state.ledger.itemsBurned[u.itemId] ?? 0) + 1;
+        }
+        state.ledger.gpBurned += exp.packGp;
+        delete agent.expedition;
+      } else if (c.outcome === 'fled') {
+        exp.hp = c.playerHp;
+        exp.combat = null; // escaped this encounter — no kill credit
+      }
+      return { ok: true, trades: [] };
+    }
+    case 'extract': {
+      const exp = agent.expedition;
+      if (!exp) return { ok: false, reason: 'not-out', trades: [] };
+      if (exp.combat) return { ok: false, reason: 'in-combat', trades: [] };
+      for (const [itemId, qty] of Object.entries(exp.pack)) {
+        if (qty > 0) agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) + qty;
+      }
+      agent.gp += exp.packGp; // already minted at each kill
+      delete agent.expedition;
       return { ok: true, trades: [] };
     }
   }

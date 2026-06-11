@@ -64,6 +64,10 @@ export interface AgentState {
   botConfig?: { maxVolatility?: number; capitalFraction?: number; focusItemId?: ItemId | null };
   /** Players only: rolling GE buy-limit windows per item (absent = fresh). */
   buyWindows?: Record<ItemId, { windowStart: number; bought: number }>;
+  /** Players only: the expedition in progress (shape in quest.ts; plain JSON). */
+  expedition?: import('./quest').ExpeditionState;
+  /** Players only: highest region index unlocked (absent = 0, the plains). */
+  questProgress?: number;
   /** Strategy scratch space — JSON-serializable numbers only. */
   memo: Record<string, number>;
 }
@@ -145,6 +149,9 @@ export interface WorldState {
   /** Open quartermaster contracts. Absent in pre-contract saves. */
   contracts?: Contract[];
   nextContractId?: number;
+  /** Expedition counter — seeds each expedition's private RNG stream.
+   * Appears on first use (pre-quest saves stay byte-identical). */
+  nextExpeditionId?: number;
   ledger: Ledger;
   stats: SimStats;
 }

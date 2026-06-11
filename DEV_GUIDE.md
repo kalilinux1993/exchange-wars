@@ -1,5 +1,13 @@
 # Dev Guide
 
+## Phase 8b — Expedition State Machine (2026-06-11, Expeditions brick 2)
+
+- **Six-region node graph** (quest.ts REGIONS): Lumbridge Plains → Varrock Sewers → Edgeville Dungeon → Brimhaven Caverns → Wilderness Ruins → The Dragon's Maw. Clearing `REGION_CLEAR_KILLS` (3) encounters in your frontier region bumps `agent.questProgress` — the map unlocks one node at a time.
+- **Six new commands** (commands.ts): `startExpedition {regionId, pack}` (escrows items out of inventory; validates unlock/holdings; seeds a PRIVATE RNG stream via `expeditionSeed(world.seed, nextExpeditionId++)` — the market cursor never moves, gates untouched), `advance` (encounter from the region pool), `fight`/`fleeCombat`/`eatFood {itemId}` (one combat round; eating burns the food via ledger), `extract` (pack + loot gp home).
+- **Conservation through everything**: monster gp and item drops MINT at the kill (`ledger.gpMinted`/`itemsMinted` → pack); death keeps the 3 most valuable carried units (rest BURNED, loot gp burned); `checkInvariants` now counts expedition packs and packGp. Tested with invariants after EVERY command.
+- **verify-score redeployed in sync** — sprint logs can now contain expedition commands; an out-of-date server bundle would silently skip them and mis-replay.
+- Next: 8c Expedition UI panel.
+
 ## Phase 8a — Combat Core (2026-06-11, Expeditions arc brick 1)
 
 - **The RPG arc begins** (Jesse picked "Expeditions on the live market"; design decisions in the phase file: turn-per-command menu combat, death keeps 3 most valuable items, node-graph map, per-expedition RNG stream so the market never re-rolls).

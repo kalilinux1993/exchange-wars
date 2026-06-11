@@ -10,6 +10,12 @@ export function checkInvariants(state: WorldState): void {
     if (!Number.isSafeInteger(a.gp)) throw new Error(`agent ${a.id} gp not a safe integer: ${a.gp}`);
     if (a.gp < 0) throw new Error(`agent ${a.id} has negative gp: ${a.gp}`);
     gpTotal += a.gp;
+    if (a.expedition) {
+      if (!Number.isSafeInteger(a.expedition.packGp) || a.expedition.packGp < 0) {
+        throw new Error(`agent ${a.id} expedition packGp invalid: ${a.expedition.packGp}`);
+      }
+      gpTotal += a.expedition.packGp; // loot gp in the field still counts
+    }
   }
 
   for (const def of state.items) {
@@ -44,6 +50,9 @@ export function checkInvariants(state: WorldState): void {
       const held = a.inventory[def.id] ?? 0;
       if (held < 0) throw new Error(`agent ${a.id} has negative ${def.id}: ${held}`);
       total += held;
+      const packed = a.expedition?.pack[def.id] ?? 0;
+      if (packed < 0) throw new Error(`agent ${a.id} packed negative ${def.id}: ${packed}`);
+      total += packed; // expedition packs still count
     }
     const book = state.books[def.id];
     if (book) for (const o of book.sells) total += o.remaining;

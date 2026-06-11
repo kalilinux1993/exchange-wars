@@ -67,6 +67,53 @@ export const MONSTERS: MonsterDef[] = [
 
 export const PLAYER_BASE = { maxHp: 50, atk: 5, def: 2 };
 
+export interface RegionDef {
+  id: string;
+  name: string;
+  flavor: string;
+  /** Encounter pool — picked uniformly per advance. */
+  monsters: string[];
+}
+
+/** The node graph, easiest to deadliest. Clearing REGION_CLEAR_KILLS
+ * encounters in your FRONTIER region unlocks the next one (progression
+ * lives on the agent as questProgress — the highest index unlocked). */
+export const REGIONS: RegionDef[] = [
+  { id: 'lumbridge_plains', name: 'Lumbridge Plains', flavor: 'soft hills, soft monsters', monsters: ['giant_rat', 'goblin'] },
+  { id: 'varrock_sewers', name: 'Varrock Sewers', flavor: 'it smells like XP down here', monsters: ['goblin', 'skeleton'] },
+  { id: 'edgeville_dungeon', name: 'Edgeville Dungeon', flavor: 'the giants pay well', monsters: ['skeleton', 'hill_giant'] },
+  { id: 'brimhaven_caverns', name: 'Brimhaven Caverns', flavor: 'moss, mould, and money', monsters: ['moss_giant', 'hill_giant'] },
+  { id: 'wilderness_ruins', name: 'Wilderness Ruins', flavor: 'demons hoard runes', monsters: ['lesser_demon', 'fire_giant'] },
+  { id: 'dragons_maw', name: "The Dragon's Maw", flavor: 'bring antifire or bring regrets', monsters: ['green_dragon', 'fire_giant'] },
+];
+
+export const REGION_CLEAR_KILLS = 3;
+
+export function regionIndex(id: string): number {
+  return REGIONS.findIndex((r) => r.id === id);
+}
+
+/** Deterministic per-expedition RNG seed: dungeon rolls never touch the
+ * world's market cursor, so adventuring can't re-roll the economy. */
+export function expeditionSeed(worldSeed: number, expeditionId: number): number {
+  return ((worldSeed ^ 0x9e3779b9) + Math.imul(expeditionId, 0x85ebca6b)) >>> 0;
+}
+
+/** An expedition in progress — plain JSON, lives on the agent. */
+export interface ExpeditionState {
+  regionId: string;
+  /** Private RNG cursor (see expeditionSeed). */
+  rngState: number;
+  hp: number;
+  /** Carried items: escrowed OUT of inventory, COUNTED by checkInvariants. */
+  pack: Record<string, number>;
+  /** Loot gp (minted at each kill; burned on death, paid out on extract). */
+  packGp: number;
+  /** Encounters won this trip. */
+  cleared: number;
+  combat: CombatState | null;
+}
+
 export interface FighterStats {
   atk: number;
   def: number;
