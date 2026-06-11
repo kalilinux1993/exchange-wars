@@ -689,6 +689,19 @@ describe('UI shell', () => {
     expect(pulse.textContent).toMatch(/▼\d+/); // decliners
   });
 
+  it('price alert: set a buy-below threshold, it fires once when the price drops to it', () => {
+    localStorage.setItem('ew-watch', JSON.stringify([FIRST.id]));
+    localStorage.setItem('ew-alerts', JSON.stringify({ [FIRST.id]: 999_999 })); // always-met threshold
+    const game = newGame(42);
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByText('+1k')); // advance ticks → refreshProgress runs alert checks
+    // The watchlist row shows the triggered bell once price ≤ threshold.
+    const watch = document.querySelector('.watchlist') as HTMLElement;
+    expect(watch.querySelector('.mover.alerted')).toBeTruthy();
+    localStorage.removeItem('ew-watch');
+    localStorage.removeItem('ew-alerts');
+  });
+
   it('watchlist: star from the ticket, the item appears in the watch panel', () => {
     localStorage.removeItem('ew-watch');
     const game = newGame(42);

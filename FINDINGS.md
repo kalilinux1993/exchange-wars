@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 10b — Price Alerts (2026-06-11)
+
+88. **The hard part of alerts is NOT firing them — it's not firing them 60×/second.** A "buy below" threshold on a watched item is trivial; the discipline is the latch: a `fired` Set (ref, not state — it's control flow, not render data) marks an alert triggered so the toast fires ONCE on crossing, and only re-arms when price climbs back above. Detection lives in refreshProgress (runs per tick advance, the right cadence — prices only move on ticks), not in render (toasts are side effects). Editing a threshold clears its fired flag so a re-set re-arms. This makes the passive watchlist (9w) active: the row shows 🔔 + gold while live, a toast nudges once. localStorage map (5th UI-pref now — the `usePref`/alert-state dedupe is overdue, queued). Pattern: any "notify on condition" feature is 10% predicate, 90% debounce/latch — build the latch first.
+
 ## Phase 10a — Market Pulse (2026-06-11)
 
 87. **A global heartbeat belongs in the global chrome.** Movers and watchlist live in the Exchange room; the market pulse (breadth ▲up/▼down vs EMA + active-event count) went in the MASTHEAD because it's market state you want regardless of which room you're in — trading, raiding, or in the Hall. Derived per render from view.markets + world.events, no state. The naming-counter (#52) starts a new hundred: bricks are now 10a+ but the cadence holds. Small note: breadth filters to traded items (volume>0, ema>0) so a fresh world reads 0/0 rather than a misleading all-flat — the same "don't show noise as signal" guard the Movers panel uses.

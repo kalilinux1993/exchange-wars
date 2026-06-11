@@ -1001,6 +1001,26 @@ th.num {
   height: 6px;
 }
 
+.alertset {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--parchment-dim);
+  font-size: 0.72rem;
+}
+.alertset input {
+  width: 52px;
+  font: inherit;
+  font-size: 0.72rem;
+  color: var(--parchment);
+  background: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 1px 3px;
+}
+.mover.alerted {
+  color: var(--gold-bright);
+}
 .pulse {
   display: inline-flex;
   align-items: center;

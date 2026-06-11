@@ -443,6 +443,24 @@ export function saveLoadouts(list: Record<string, number>[]): void {
   }
 }
 
+/** Price alerts (10b): item id → "buy below" threshold, localStorage only. */
+const ALERTS_KEY = 'ew-alerts';
+export function loadAlerts(): Record<string, number> {
+  try {
+    const v = JSON.parse(localStorage.getItem(ALERTS_KEY) ?? '{}');
+    return v && typeof v === 'object' ? (v as Record<string, number>) : {};
+  } catch {
+    return {};
+  }
+}
+export function saveAlerts(a: Record<string, number>): void {
+  try {
+    localStorage.setItem(ALERTS_KEY, JSON.stringify(a));
+  } catch {
+    /* private mode — alerts are a nicety */
+  }
+}
+
 /** The trader's watchlist (9w) — item ids the player stars, localStorage only
  * (a cross-run UI preference, never in the world/save). */
 const WATCH_KEY = 'ew-watch';

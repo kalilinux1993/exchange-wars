@@ -31,12 +31,14 @@ import {
   clearSave,
   exportSaveString,
   importSaveString,
+  loadAlerts,
   loadGame,
   loadWatch,
   newGame,
   recordFills,
   playerWorth,
   recordWorth,
+  saveAlerts,
   saveGame,
   saveWatch,
   updateNews,
@@ -93,6 +95,18 @@ export function App({ initial }: { initial?: Game }) {
       saveWatch(next);
       return next;
     });
+  };
+  const [alerts, setAlerts] = useState<Record<string, number>>(loadAlerts);
+  const alertFired = useRef<Set<string>>(new Set());
+  const setAlert = (id: string, price: number | null): void => {
+    setAlerts((a) => {
+      const next = { ...a };
+      if (price === null || !Number.isFinite(price) || price <= 0) delete next[id];
+      else next[id] = price;
+      saveAlerts(next);
+      return next;
+    });
+    alertFired.current.delete(id); // re-arm on edit
   };
   const closeHelp = (): void => {
     localStorage.setItem(HELP_SEEN_KEY, '1');
@@ -229,6 +243,19 @@ export function App({ initial }: { initial?: Game }) {
     recordFills(game);
     const newly = checkMilestones(game, v, w);
     if (newly.length > 0) setToast(newly[newly.length - 1]!);
+    // Price alerts: fire once when a watched item drops to its threshold;
+    // re-arm only when it climbs back above (no toast spam at speed).
+    for (const [id, threshold] of Object.entries(alerts)) {
+      const last = v.markets.find((m) => m.itemId === id)?.lastPrice;
+      if (last === undefined) continue;
+      if (last <= threshold && !alertFired.current.has(id)) {
+        alertFired.current.add(id);
+        const name = game.world.items.find((i) => i.id === id)?.name ?? id;
+        setToast({ id: `alert-${id}`, name: `⏰ ${name} ≤ ${threshold.toLocaleString('en-US')}`, flavor: `now ${last.toLocaleString('en-US')} gp — time to buy?`, achieved: () => false });
+      } else if (last > threshold) {
+        alertFired.current.delete(id);
+      }
+    }
   };
 
   useEffect(() => {
@@ -598,8 +625,10 @@ export function App({ initial }: { initial?: Game }) {
             view={view}
             items={game.world.items}
             watch={watch}
+            alerts={alerts}
             onSelect={setSelected}
             onRemove={toggleWatch}
+            onSetAlert={setAlert}
           />
           <NewsLog log={game.newsLog} />
         </section>
