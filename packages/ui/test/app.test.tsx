@@ -26,6 +26,7 @@ import {
   discardCorruptSave,
   exportSaveString,
   loadCorruptSave,
+  fmtCompact,
   fmtDuration,
   ghostForRestart,
   HUMAN_START_GP,
@@ -459,6 +460,30 @@ describe('UI shell', () => {
       expect(lockedUpgrades(INV, { atk: 99, def: 99 }, worn)).toEqual({});
       expect(worn.weapon).toBe('dragon_longsword'); // now the best is actually worn
     });
+  });
+
+  describe('fmtCompact', () => {
+    it('keeps sub-10k exact, compacts larger aggregates to 3 sig figs', () => {
+      expect(fmtCompact(0)).toBe('0');
+      expect(fmtCompact(9_999)).toBe('9,999');
+      expect(fmtCompact(10_000)).toBe('10K');
+      expect(fmtCompact(12_345)).toBe('12.3K');
+      expect(fmtCompact(1_234_567)).toBe('1.23M');
+      expect(fmtCompact(-45_678)).toBe('-45.7K');
+      expect(fmtCompact(1_500_000_000)).toBe('1.5B');
+    });
+  });
+
+  it('compacts the masthead rate cue for large earning rates', () => {
+    const game = newGame(42);
+    game.lastSeenMs = Date.now();
+    // +1,000,000 over 600 ticks = +100,000/min → compacted
+    game.worthHistory = [
+      { tick: 0, worth: 55_000 },
+      { tick: 600, worth: 1_055_000 },
+    ];
+    render(<App initial={game} />);
+    expect(screen.getByText(/\+100K gp\/min/)).toBeTruthy();
   });
 
   describe('worthRate', () => {

@@ -34,6 +34,7 @@ import {
   clearSave,
   discardCorruptSave,
   exportSaveString,
+  fmtCompact,
   importSaveString,
   loadCorruptSave,
   loadGame,
@@ -570,16 +571,22 @@ export function App({ initial }: { initial?: Game }) {
         <div className="purse">
           <span className="value gold">{view.gp.toLocaleString('en-US')}</span>
           <span className="label">gp</span>
-          <span className="value" title="liquidation value — what the resting bids would pay for everything you hold, right now">
-            {playerWorth(game).toLocaleString('en-US')}
+          <span
+            className="value"
+            title={`${playerWorth(game).toLocaleString('en-US')} gp — liquidation value, what the resting bids would pay for everything you hold, right now`}
+          >
+            {fmtCompact(playerWorth(game))}
           </span>
           <span className="label">net</span>
           {(() => {
             const delta = playerWorth(game) - game.startGp;
             return (
-              <span className={delta >= 0 ? 'value up' : 'value down'}>
+              <span
+                className={delta >= 0 ? 'value up' : 'value down'}
+                title={`${delta >= 0 ? '+' : ''}${delta.toLocaleString('en-US')} gp vs your starting stake`}
+              >
                 {delta >= 0 ? '+' : ''}
-                {delta.toLocaleString('en-US')}
+                {fmtCompact(delta)}
               </span>
             );
           })()}
@@ -596,7 +603,7 @@ export function App({ initial }: { initial?: Game }) {
                 )} — your current setup's earning rate`}
               >
                 {rate.perMin >= 0 ? '▲' : '▼'} {rate.perMin >= 0 ? '+' : ''}
-                {rate.perMin.toLocaleString('en-US')} gp/min
+                {fmtCompact(rate.perMin)} gp/min
               </span>
             );
           })()}

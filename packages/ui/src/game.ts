@@ -522,6 +522,19 @@ export function bidWalk(game: Game, itemId: string, qty: number): { qty: number;
 const SAMPLE_EVERY_TICKS = 50;
 const SAMPLE_CAP = 240;
 
+const COMPACT_FMT = new Intl.NumberFormat('en-US', { notation: 'compact', maximumSignificantDigits: 3 });
+
+/**
+ * Compact gp for headline *aggregates* (net worth, deltas, rates) where scan-
+ * ability beats the last digit: 12_345 -> "12.3K", 1_234_567 -> "1.23M",
+ * 1.5e9 -> "1.5B". Anything under 10k stays exact-with-commas (precision is
+ * cheap there). NOT for cash/prices/quantities — those must read exactly; the
+ * full value belongs in a tooltip beside any compacted figure.
+ */
+export function fmtCompact(n: number): string {
+  return Math.abs(n) < 10_000 ? n.toLocaleString('en-US') : COMPACT_FMT.format(n);
+}
+
 /** Record a net-worth sample if enough ticks have passed since the last one. */
 export function recordWorth(game: Game, worth: number): void {
   const h = game.worthHistory;
