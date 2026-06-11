@@ -19,6 +19,45 @@ export interface ReplayResult {
   hash: string;
 }
 
+/** The leaderboard race format: best worth at EXACTLY this tick. A bounded
+ * horizon keeps server-side replay inside Edge Function CPU budgets AND
+ * makes scores comparable — open-ended worth isn't a fair ranking. */
+export const SPRINT_TICKS = 10_000;
+/** Sanity bound: ~1 command per 2 ticks is already inhuman. */
+export const SPRINT_MAX_COMMANDS = 5_000;
+
+export interface SprintVerdict {
+  ok: boolean;
+  reason?: string;
+  worth: number;
+  hash: string;
+}
+
+/**
+ * Validate + replay a sprint submission. Pure and total for JSON inputs:
+ * malformed commands replay as engine rejections, structural problems return
+ * a reason instead of throwing. This is what the verify-score Edge Function
+ * runs server-side — and what the client runs locally before submitting.
+ */
+export function verifySprint(seed: number, startGp: number, log: RunLogEntry[]): SprintVerdict {
+  const bad = (reason: string): SprintVerdict => ({ ok: false, reason, worth: 0, hash: '' });
+  if (!Number.isSafeInteger(seed) || seed < 0) return bad('bad-seed');
+  if (!Number.isSafeInteger(startGp) || startGp < 1) return bad('bad-start');
+  if (!Array.isArray(log) || log.length > SPRINT_MAX_COMMANDS) return bad('log-too-long');
+  for (let i = 0; i < log.length; i++) {
+    const e = log[i]!;
+    if (!e || !Number.isSafeInteger(e.tick) || e.tick < 0 || e.tick >= SPRINT_TICKS) return bad('bad-tick');
+    if (i > 0 && e.tick < log[i - 1]!.tick) return bad('out-of-order');
+    if (typeof e.cmd !== 'object' || e.cmd === null) return bad('bad-cmd');
+  }
+  try {
+    const r = replayRun(seed, startGp, log, SPRINT_TICKS);
+    return { ok: true, worth: r.worth, hash: r.hash };
+  } catch {
+    return bad('replay-error');
+  }
+}
+
 /**
  * Rebuild a run from its seed and command log. Commands recorded at tick T
  * are applied once the world reaches T, before T+1 advances — matching the

@@ -14,6 +14,7 @@
     "sim": "tsx packages/cli/src/run.ts",
     "balance": "tsx packages/cli/src/balance.ts",
     "gen:catalog": "tsx packages/cli/src/genCatalog.ts",
+    "build:fn": "esbuild packages/engine/src/replay.ts --bundle --format=esm --outfile=supabase/functions/verify-score/engine.js",
     "dev": "npm run dev -w @exchange-wars/ui",
     "build:ui": "npm run build -w @exchange-wars/ui",
     "e2e": "playwright test -c packages/ui"
