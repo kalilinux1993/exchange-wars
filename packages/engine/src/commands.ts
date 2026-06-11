@@ -458,15 +458,32 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
     case 'fleeCombat':
     case 'eatFood': {
       const exp = agent.expedition;
+      if (cmd.type === 'eatFood') {
+        if (!exp) return { ok: false, reason: 'not-out', trades: [] };
+        if (!CONSUMABLES[cmd.itemId]) return { ok: false, reason: 'not-edible', trades: [] };
+        if ((exp.pack[cmd.itemId] ?? 0) < 1) return { ok: false, reason: 'insufficient-items', trades: [] };
+        if (!exp.combat) {
+          if (exp.event) return { ok: false, reason: 'in-event', trades: [] };
+          // The camp meal (9a): eat between fights — time passes, nothing
+          // swings at you. Heal by the fire; drink the antifire BEFORE the
+          // Maw instead of at the first dragon's face.
+          tickWorld(state);
+          exp.pack[cmd.itemId] = exp.pack[cmd.itemId]! - 1;
+          state.ledger.itemsBurned[cmd.itemId] = (state.ledger.itemsBurned[cmd.itemId] ?? 0) + 1;
+          const c = CONSUMABLES[cmd.itemId]!;
+          exp.hp = Math.min(maxHpFor(levelsOf(agent.combatXp).hp), exp.hp + c.heal);
+          if (c.antifire) exp.antifire = true;
+          (exp.journal ??= []).push(
+            `you ${c.antifire ? 'down' : 'eat'} the ${cmd.itemId.replace(/_/g, ' ')} by the fire (+${c.heal} hp)`,
+          );
+          return { ok: true, trades: [] };
+        }
+      }
       if (!exp || !exp.combat) return { ok: false, reason: 'not-in-combat', trades: [] };
       let action: import('./quest').CombatAction;
       if (cmd.type === 'fight') action = { kind: 'fight' };
       else if (cmd.type === 'fleeCombat') action = { kind: 'flee' };
-      else {
-        if (!CONSUMABLES[cmd.itemId]) return { ok: false, reason: 'not-edible', trades: [] };
-        if ((exp.pack[cmd.itemId] ?? 0) < 1) return { ok: false, reason: 'insufficient-items', trades: [] };
-        action = { kind: 'eat', itemId: cmd.itemId };
-      }
+      else action = { kind: 'eat', itemId: cmd.itemId };
       // A combat round costs a world tick too — otherwise loot scales with
       // command spam, not sprint time (same lever as 'advance', FINDINGS #45).
       tickWorld(state);

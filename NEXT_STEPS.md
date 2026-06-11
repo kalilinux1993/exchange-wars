@@ -51,7 +51,7 @@ Design (account-light, static-site-friendly — Supabase):
 - ~~7th region~~ DONE phase 8t: the Inferno Gate (pyrefiend/lava dragon, elite Zukrath, all-dragonfire — the antifire ticket is mandatory; Hellwalker deed).
 - ~~Region-flavored events~~ DONE phase 8u: portal (depth tourism), imp (no-stake blood gamble), merchant (3× shark resupply) — depth-gated pool, conservation-clean.
 - ~~Bestiary + stat deeds~~ DONE phase 8v; ~~Sell the spoils + Monster Scholar deed~~ DONE phase 8w: bidWalk floor-price dumps (instant fills, no residue), satchel valued as the bids see it.
-- **Camp meal** (was starting when the rooms steer arrived): eatFood outside combat — time passes, heal by the fire, drink antifire BEFORE the Maw instead of at the first dragon's face. Small engine change in the eatFood case + food chips in the venture controls.
+- ~~Camp meal~~ DONE phase 9a: eatFood between fights (tick passes, trained-max heal cap, antifire pre-coat); food chips in the venture controls.
 - Content ideas: gear durability as a market sink; an 8th region someday (the chain auto-extends); more event faces (~30 lines each); sub-tabs within rooms if any room re-clutters.
 - ~~Liquidation-value scoring~~ DONE phase 8o: bid-walk mark excluding own bids; UI playerWorth = engine netWorth (display and arbiter agree); all gates held.
 - Hitpoints level (maxHp growth from xp) — natural third stat once Attack/Defence prove out.

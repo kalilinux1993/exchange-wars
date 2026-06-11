@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 9a — The Camp Meal (2026-06-11)
+
+61. **Command-shape generalizations want validation-first, mutate-after discipline.** eatFood now works between fights (time passes, heal by the fire, antifire coats the dive BEFORE the Maw instead of at the first dragon's face) — and the entire change was re-sequencing the shared fight/flee/eat case so eatFood's validations (edible, held, not-in-event) run before any branch mutates. Rejected commands must stay no-ops in every branch (replays apply logs verbatim — a tick consumed by a rejected command would desync live from replay), so the validation ladder is the load-bearing structure of every case. Side win: the not-edible rejection now fires even out of combat, a small honesty improvement the old early not-in-combat check masked.
+
 ## Phase 8z — Three Rooms (2026-06-11, Jesse-directed)
 
 60. **Mounted-but-hidden is the cheap path to tabs in a tested app.** Jesse asked for pages ("tab for exchange, tab for adventuring, and other tabs as you see fit") — three rooms shipped: Exchange, Adventure (with a live ● pip while an expedition is out), Hall (clerk/fortune/board). The implementation choice that made it a one-firing brick: every room stays MOUNTED and inactive ones hide via a CSS class, so (a) panel state survives switching (region picker, ticket prefill), (b) the entire 176-test jsdom suite passed with ZERO edits (queries don't care about display), and (c) only Playwright — which enforces real visibility — needed updates (tab clicks where specs cross rooms, plus a reload-persistence spec). Two traps dodged by prior FINDINGS: the `hidden` attribute loses to author display rules (used a class), and room names were checked against existing exact-match locators before pushing (8w's collision lesson). The world stays one — the header clock/purse are global and the guide now says so.

@@ -1364,15 +1364,29 @@ function applyCommand(state, playerId, cmd) {
     case "fleeCombat":
     case "eatFood": {
       const exp = agent.expedition;
+      if (cmd.type === "eatFood") {
+        if (!exp) return { ok: false, reason: "not-out", trades: [] };
+        if (!CONSUMABLES[cmd.itemId]) return { ok: false, reason: "not-edible", trades: [] };
+        if ((exp.pack[cmd.itemId] ?? 0) < 1) return { ok: false, reason: "insufficient-items", trades: [] };
+        if (!exp.combat) {
+          if (exp.event) return { ok: false, reason: "in-event", trades: [] };
+          tickWorld(state);
+          exp.pack[cmd.itemId] = exp.pack[cmd.itemId] - 1;
+          state.ledger.itemsBurned[cmd.itemId] = (state.ledger.itemsBurned[cmd.itemId] ?? 0) + 1;
+          const c2 = CONSUMABLES[cmd.itemId];
+          exp.hp = Math.min(maxHpFor(levelsOf(agent.combatXp).hp), exp.hp + c2.heal);
+          if (c2.antifire) exp.antifire = true;
+          (exp.journal ??= []).push(
+            `you ${c2.antifire ? "down" : "eat"} the ${cmd.itemId.replace(/_/g, " ")} by the fire (+${c2.heal} hp)`
+          );
+          return { ok: true, trades: [] };
+        }
+      }
       if (!exp || !exp.combat) return { ok: false, reason: "not-in-combat", trades: [] };
       let action;
       if (cmd.type === "fight") action = { kind: "fight" };
       else if (cmd.type === "fleeCombat") action = { kind: "flee" };
-      else {
-        if (!CONSUMABLES[cmd.itemId]) return { ok: false, reason: "not-edible", trades: [] };
-        if ((exp.pack[cmd.itemId] ?? 0) < 1) return { ok: false, reason: "insufficient-items", trades: [] };
-        action = { kind: "eat", itemId: cmd.itemId };
-      }
+      else action = { kind: "eat", itemId: cmd.itemId };
       tickWorld(state);
       if (action.kind === "eat") {
         exp.pack[action.itemId] = exp.pack[action.itemId] - 1;

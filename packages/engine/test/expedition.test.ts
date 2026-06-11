@@ -378,6 +378,33 @@ describe('expeditions', () => {
     expect(met).toBe(true); // 10% per Maw monster across 100 seeds × 6 steps
   });
 
+  it('the camp meal: eat between fights — time passes, wounds close, antifire coats the dive', () => {
+    const { state, id } = fixture(31);
+    const agent = state.agents[id]!;
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: { shark: 2, super_antifire_potion_4: 1 } });
+    const exp = agent.expedition!;
+    exp.hp = 15; // fixture wound
+    const tickBefore = state.tick;
+    ok(state, id, { type: 'eatFood', itemId: 'shark' });
+    expect(state.tick).toBe(tickBefore + 1); // a meal takes time
+    expect(exp.hp).toBe(35); // 15 + shark 20, no monster answered
+    expect(exp.pack['shark']).toBe(1);
+    expect(state.ledger.itemsBurned['shark']).toBe(1);
+    // Drink the ticket BEFORE the fire country, not at the first dragon.
+    ok(state, id, { type: 'eatFood', itemId: 'super_antifire_potion_4' });
+    expect(exp.antifire).toBe(true);
+    expect((exp.journal ?? []).some((l) => l.includes('by the fire'))).toBe(true);
+    // The heal caps at the trained max.
+    ok(state, id, { type: 'eatFood', itemId: 'shark' });
+    expect(exp.hp).toBeLessThanOrEqual(PLAYER_BASE.maxHp);
+    // A pending event blocks the picnic (answer the dark first).
+    exp.event = { kind: 'gamble', prompt: 't' };
+    exp.pack['shark'] = 1; // restock the fixture (conserved via mint)
+    state.ledger.itemsMinted['shark'] = (state.ledger.itemsMinted['shark'] ?? 0) + 1;
+    expect(applyCommand(state, id, { type: 'eatFood', itemId: 'shark' }).reason).toBe('in-event');
+    checkInvariants(state);
+  });
+
   it('one potion coats the whole dive: antifire persists across fights, dies with extract', () => {
     const { state, id } = fixture(7);
     const agent = state.agents[id]!;

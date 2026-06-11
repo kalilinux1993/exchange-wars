@@ -282,6 +282,16 @@ export function ExpeditionPanel({
           <button className="chip" title="each step takes time — the market moves one tick" onClick={() => onCommand({ type: 'advance' })}>
             venture deeper (+1 tick)
           </button>
+          {foods.map(([id, qty]) => (
+            <button
+              key={id}
+              className="chip"
+              title="a camp meal — time passes while you eat; antifire coats the whole dive"
+              onClick={() => onCommand({ type: 'eatFood', itemId: id })}
+            >
+              eat {names.get(id) ?? id} ({qty})
+            </button>
+          ))}
           <button
             className="chip"
             onClick={() => {
