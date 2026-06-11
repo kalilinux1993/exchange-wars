@@ -91,6 +91,10 @@ export function AlmanacPanel({ game }: { game: Game }) {
           <span className="num">{fmt(st.deaths ?? 0)}†</span>
         </li>
         <li>
+          <span>bounties claimed</span>
+          <span className="num">{fmt(st.bountiesClaimed ?? 0)}</span>
+        </li>
+        <li>
           <span>deeds done</span>
           <span className="num">{fmt(game.milestones.length)}</span>
         </li>

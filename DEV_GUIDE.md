@@ -1,5 +1,28 @@
 # Dev Guide
 
+## Phases 8h–9f consolidated — the RPG layer as it stands (2026-06-11)
+
+Per-phase details live in `.phases/` and FINDINGS #42–#66; this is the map of the system AFTER 25 more bricks.
+
+### Engine (packages/engine/src)
+- **quest.ts is the RPG core**: 8-region ladder (`REGIONS`, plains → The Abyss; per-region `elite` field — NEVER pin anything to `length-1`, see FINDINGS #54), 12-monster bestiary + 3 named elites (Vorkanth/Zukrath/Vessith), `dragonfire` (armor-piercing +ceil(atk/2), negated ONLY by antifire — the flag lives on ExpeditionState for the whole dive) and `leech` (loot-gp drain per dragging round, burned) monster mechanics, 20-item gear ladder with `req` levels (weapons→Attack, armor→Defence; under-leveled gear is INERT in `deriveStats`), stats/xp (`levelFor` sqrt curve cap 99; atk=dmg dealt, def=dmg taken, hp=ceil(dealt/3); `maxHpFor` = 50+2/lvl), wounds (`REST_REGEN_TICKS` out-of-field regen; death → 1 hp), 7 choice-event kinds (shrine/gamble/imp/portal/merchant/spar/toll), supplies-only `CACHE_LOOT`.
+- **commands.ts player surface** (the ONLY mutation path): market commands + `startExpedition/advance/fight/fleeCombat/eatFood/choose/extract/claimBounty`. Advance and every combat round cost a WORLD TICK (`tickWorld` inside the case — FINDINGS #45); camp meals (eat out of combat) cost one too. Validation-first discipline: rejected commands must be tick-free no-ops in every branch (FINDINGS #61).
+- **sim.ts**: out-of-field hp regen to trained max; **bounty spawner** on a DERIVED rng stream (`expeditionSeed(seed, 0x42000000+tick)` — zero world-cursor draws, so new spawners never re-roll the universe, FINDINGS #66).
+- **report.ts netWorth is LIQUIDATION value**: walk resting bids excluding the agent's own (self-bid pump guard), remainder marks 0 (FINDINGS #49). The UI's `playerWorth` and the verify-score arbiter are this same function.
+- **replay.ts**: SPRINT_TICKS=2_000 (Edge CPU budget, FINDINGS #42); command-driven ticks replay correctly because recorded ticks fully determine application order.
+
+### UI (packages/ui)
+- **Three rooms** (FINDINGS #60): 🪙 Exchange / ⚔ Adventure (live ● pip while afield) / 🏰 Hall; all stay MOUNTED, inactive hidden via `.tabhidden` class; room persists in `ew-room`.
+- Adventure: ExpeditionPanel (regions/pack/combat with **fight it out** auto-resolve that hands back control below 25% hp without food / Bestiary codex), BountyBoard, Deeds. Exchange: market/ticket+ladder/Ledger with **sell @ bid** chips (`bidWalk` floor-price dumps — instant fills, no residue). Hall: Clerk's Counter, Fortune, Almanac, Sprint Board.
+- Death recaps via last-render snapshot + `deathRecap` (mirrors the engine keep-3 rule; FINDINGS #62).
+
+### Operational laws (earned the hard way)
+1. Any engine change that affects replays ⇒ `npm run build:fn` + redeploy verify-score in the SAME phase.
+2. Any countable a player-facing surface quotes (sprint ticks, region count) must be an IMPORT, never typed (FINDINGS #58/#66).
+3. Draw-accounting before changing any RNG consumer; derived streams for new spawners.
+4. Tune against the best policy you can write (`tools/audit-grind.ts`), and re-measure after every economy change — four audits in a row re-pointed at the next-weakest link.
+5. e2e role-name collisions: check new button names against exact-match locators BEFORE pushing (FINDINGS #59).
+
 ## Phase 8g — Richer Spoils (2026-06-11, Expeditions brick 7)
 
 - **Cache item drops** (quest.ts CACHE_LOOT + cachePool, CACHE_ITEM_CHANCE 25%): region-tiered pools (surface: darts/law/nature → mid: death/blood/karambwan → deep: rune helm/battleaxe/shark), minted into the pack in the advance cache branch; integrity gate covers the pools.
