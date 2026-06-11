@@ -117,8 +117,10 @@ describe('UI shell', () => {
     fireEvent.change(focus, { target: { value: DEFAULT_ITEMS[1]!.id } });
     expect(game.world.agents[game.playerId]!.botConfig?.focusItemId).toBe(DEFAULT_ITEMS[1]!.id);
     const risk = screen.getByLabelText(/risk/i) as HTMLSelectElement;
-    fireEvent.change(risk, { target: { value: '0.06' } });
-    expect(game.world.agents[game.playerId]!.botConfig?.maxVolatility).toBe(0.06);
+    fireEvent.change(risk, { target: { value: '0.09' } }); // "cheap goods only" on the ladder
+    expect(game.world.agents[game.playerId]!.botConfig?.maxVolatility).toBe(0.09);
+    fireEvent.change(risk, { target: { value: '0.1' } }); // "no big staples"
+    expect(game.world.agents[game.playerId]!.botConfig?.maxVolatility).toBe(0.1);
   });
 
   it('depth ladder shows the selected book with the player marked', () => {

@@ -60,9 +60,11 @@ export function UpgradeShop({
               value={String(view.botConfig.maxVolatility ?? 1)}
               onChange={(e) => onCommand({ type: 'configureBot', maxVolatility: Number(e.target.value) })}
             >
+              {/* Speaks the staple vol ladder: ≥5k staples sit at 0.12 (tier-2/3
+                  only), calm staples ≤0.10, cheap goods ≤0.09. */}
               <option value="1">tier max</option>
-              <option value="0.08">steady (≤8%)</option>
-              <option value="0.06">cautious (≤6%)</option>
+              <option value="0.1">no big staples (≤10%)</option>
+              <option value="0.09">cheap goods only (≤9%)</option>
             </select>
           </label>
           <label>

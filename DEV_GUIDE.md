@@ -1,5 +1,9 @@
 # Dev Guide
 
+## Phase 7c — Clerk Orders Speak the Ladder (2026-06-10)
+
+- **Risk select realigned** (UpgradeShop): tier max / "no big staples (≤10%)" / "cheap goods only (≤9%)" — the pre-ladder ≤8%/≤6% options were strategically meaningless after 7b. Selecting ≤10% on a tier-2/3 clerk now expresses a real choice: skip the ≥5k staple band.
+
 ## Phase 7b — Staple Volatility Ladder (2026-06-10)
 
 - **genCatalog `tierVolatility`**: staples now ladder 0.08 (<100gp) / 0.09 (<1k) / 0.10 (<5k) / **0.12 (≥5k)**; exotics stay pinned at 0.13. The ladder doubles as the clerk-tier ladder (FINDINGS #41): tier 1 can't reach the dangerous pricey staples, tiers 2/3 own them, humans own exotics.
