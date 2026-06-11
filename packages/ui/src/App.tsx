@@ -242,6 +242,38 @@ export function App({ initial }: { initial?: Game }) {
     return () => clearInterval(id);
   }, [speed, game]);
 
+  // Hidden tabs get throttled timers — slower than the 1 tps offline rate,
+  // yet they earned no accrual on return. Make hidden ≡ closed: stamp the
+  // save and pause on hide; offline-accrue on show (the chunked overlay
+  // handles long absences). Sub-minute blips resume the prior speed
+  // seamlessly (planOfflineProgress ignores them by design).
+  const speedRef = useRef(speed);
+  speedRef.current = speed;
+  const resumeSpeedRef = useRef(0);
+  useEffect(() => {
+    const onVis = (): void => {
+      const g = gameRef.current;
+      if (!g) return;
+      if (document.visibilityState === 'hidden') {
+        resumeSpeedRef.current = speedRef.current;
+        setSpeed(0);
+        saveGame(g);
+        return;
+      }
+      beginOffline(g);
+      const accrued = offlineRef.current !== null || planRef.current !== null;
+      if (accrued) {
+        setAwayDismissed(false);
+      } else {
+        setSpeed(resumeSpeedRef.current);
+      }
+      force();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const view = playerView(game.world, game.playerId);
   if (!view) return <p className="reject">save corrupted — clear site data and reload</p>;
 

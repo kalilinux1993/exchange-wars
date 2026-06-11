@@ -1,5 +1,9 @@
 # Dev Guide
 
+## Phase 6y — Hidden-Tab Parity (2026-06-10)
+
+- **Hidden ≡ closed** (App.tsx visibilitychange effect): browsers throttle background `setInterval`, so a hidden tab used to tick erratically — slower than the 1 tps offline rate — yet earned no accrual on return. Now: on hide, the run pauses and the save stamps `lastSeenMs`; on show, `beginOffline` accrues (banner, or the chunked overlay for long absences); sub-minute blips silently resume the prior speed (`planOfflineProgress`'s blip filter does the gating).
+
 ## Phase 6w — Race Readout & Guide Refresh (2026-06-10)
 
 - **"vs ghost ±N"** in the Fortune legend: `ghostWorthAt` (WorthChart.tsx, exported for tests) linearly interpolates the ghost's worth at the current tick (clamped at its endpoints) and renders a signed, colored delta — the race is readable mid-run. The "what's the grey line" explanation moved to the delta's tooltip.

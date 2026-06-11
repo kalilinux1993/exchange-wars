@@ -305,6 +305,22 @@ describe('UI shell', () => {
     expect(ghostWorthAt([], 10)).toBe(0);
   });
 
+  it('hiding the tab stamps + pauses; returning accrues like a reopen', () => {
+    const game = newGame(42);
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByText('1×')); // world running
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    fireEvent(document, new Event('visibilitychange'));
+    expect(game.lastSeenMs).toBeGreaterThan(Date.now() - 5_000); // stamped
+    expect(screen.getByText('❚❚').className).toContain('active'); // paused
+    game.lastSeenMs = Date.now() - 600_000; // pretend 10 minutes hidden
+    const before = game.world.tick;
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    fireEvent(document, new Event('visibilitychange'));
+    expect(game.world.tick - before).toBeGreaterThanOrEqual(600); // accrued at 1 tps
+    expect(screen.getByText(/while you were away/i)).toBeTruthy();
+  });
+
   it('big offline debts run chunked behind the catch-up overlay', async () => {
     // Tiny world again — this tests the chunk driver, not the economy.
     const world = createWorld({
