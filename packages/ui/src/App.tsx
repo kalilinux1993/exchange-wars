@@ -519,6 +519,13 @@ export function App({ initial }: { initial?: Game }) {
             trades={game.world.trades}
             selected={selected}
             onSelect={setSelected}
+            eventItems={
+              new Set(
+                (game.world.events ?? [])
+                  .filter((e) => e.startTick <= game.world.tick && e.endTick > game.world.tick)
+                  .map((e) => e.itemId),
+              )
+            }
           />
           <NewsLog log={game.newsLog} />
         </section>

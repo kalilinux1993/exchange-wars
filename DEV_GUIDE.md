@@ -1,5 +1,10 @@
 # Dev Guide
 
+## Phase 7a — Market Navigation at 120 Items (2026-06-10)
+
+- **Track chips** (MarketTable): all / staples / exotics beside the filter (exotic = vol ≥ 0.13, the generator's fixed exotic-track volatility); composes with the text filter and sorting; counter reflects the filtered set.
+- **⚡ row markers**: rows with an active world event show a gold ⚡ (tooltip points to the newsbar) — App passes the active-event item set. Ends the scroll-hunt for the event the newsbar named.
+
 ## Phase 6z — Catalog 120 (2026-06-10)
 
 - **Catalog 120** (80 staples + 40 exotics). The re-roll broke tiers 1-2 with −10k-class holes (FINDINGS #40 — deeper staple track = pricier items = bigger stale-dump losses). Full three-tier sweep in one ~5-min self-locking script: t1 → cad 6 / vol 0.10, t2 → cad 7 / vol 0.12, t3 unchanged. Vol 0.10 vs 0.12 is currently degenerate (no items in the band).

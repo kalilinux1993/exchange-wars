@@ -476,6 +476,21 @@ describe('UI shell', () => {
     expect(game.newsLog[3]!.move).toBeUndefined();
   });
 
+  it('market rows mark active-event items with ⚡ and track chips filter the table', () => {
+    const game = newGame(42);
+    game.world.events!.push({ id: 'ev1', itemId: FIRST.id, kind: 'demand_surge', startTick: 0, endTick: 500 });
+    render(<App initial={game} />);
+    const market = document.querySelector('.market') as HTMLElement;
+    expect(within(market).getAllByTitle(/active event/).length).toBe(1); // only the event row
+    const exotics = DEFAULT_ITEMS.filter((i) => i.volatility >= 0.13).length;
+    fireEvent.click(within(market).getByRole('button', { name: 'exotics' }));
+    expect(within(market).getByText(`${exotics}/${DEFAULT_ITEMS.length}`)).toBeTruthy();
+    fireEvent.click(within(market).getByRole('button', { name: 'staples' }));
+    expect(within(market).getByText(`${DEFAULT_ITEMS.length - exotics}/${DEFAULT_ITEMS.length}`)).toBeTruthy();
+    fireEvent.click(within(market).getByRole('button', { name: 'all' }));
+    expect(within(market).getByText(`${DEFAULT_ITEMS.length}/${DEFAULT_ITEMS.length}`)).toBeTruthy();
+  });
+
   it('active events show countdowns on the newsbar chip and the ticket', () => {
     const game = newGame(42);
     game.world.events!.push({ id: 'ev1', itemId: FIRST.id, kind: 'demand_surge', startTick: 0, endTick: 450 });

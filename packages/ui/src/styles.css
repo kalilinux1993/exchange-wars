@@ -896,3 +896,7 @@ th.num {
   color: var(--parchment-dim);
   opacity: 0.65;
 }
+
+.event-mark {
+  color: var(--gold-bright);
+}

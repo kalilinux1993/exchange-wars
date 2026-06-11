@@ -22,20 +22,27 @@ function Spark({ prices }: { prices: number[] }) {
   );
 }
 
+/** The wiki generator pins exotic-track items at vol 0.13; staples top out at 0.10. */
+const EXOTIC_VOL = 0.13;
+
 export function MarketTable({
   view,
   items,
   trades,
   selected,
   onSelect,
+  eventItems,
 }: {
   view: PlayerView;
   items: ItemDef[];
   trades: Trade[];
   selected: ItemId;
   onSelect: (id: ItemId) => void;
+  /** Items with an active world event — marked ⚡ in their row. */
+  eventItems: ReadonlySet<string>;
 }) {
   const [filter, setFilter] = useState('');
+  const [track, setTrack] = useState<'all' | 'staples' | 'exotics'>('all');
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
   const toggleSort = (key: SortKey): void =>
     setSort((s) => (s && s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 }));
@@ -47,10 +54,16 @@ export function MarketTable({
     sparks.set(t.itemId, arr);
   }
   const needle = filter.trim().toLowerCase();
-  const shown =
-    needle === ''
-      ? view.markets
-      : view.markets.filter((m) => (defs.get(m.itemId)?.name ?? m.itemId).toLowerCase().includes(needle));
+  const inTrack = (id: ItemId): boolean => {
+    if (track === 'all') return true;
+    const exotic = (defs.get(id)?.volatility ?? 0) >= EXOTIC_VOL;
+    return track === 'exotics' ? exotic : !exotic;
+  };
+  const shown = view.markets.filter(
+    (m) =>
+      inTrack(m.itemId) &&
+      (needle === '' || (defs.get(m.itemId)?.name ?? m.itemId).toLowerCase().includes(needle)),
+  );
   const numOf = (m: (typeof shown)[number]): number | null => {
     if (sort === null) return null;
     if (sort.key === 'bid') return m.bestBid;
@@ -85,6 +98,11 @@ export function MarketTable({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
+        {(['all', 'staples', 'exotics'] as const).map((t) => (
+          <button key={t} className={track === t ? 'chip active' : 'chip'} onClick={() => setTrack(t)}>
+            {t}
+          </button>
+        ))}{' '}
         <span className="dim small">
           {shown.length}/{view.markets.length}
         </span>
@@ -126,6 +144,12 @@ export function MarketTable({
                   />
                 )}
                 {defs.get(m.itemId)?.name ?? m.itemId}
+                {eventItems.has(m.itemId) && (
+                  <span className="event-mark" title="active event — see the newsbar">
+                    {' '}
+                    ⚡
+                  </span>
+                )}
                 {(m.bestBidIsMine || m.bestAskIsMine) && (
                   <span className="mine" title="your offer is best">
                     {' '}
