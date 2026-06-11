@@ -210,12 +210,19 @@ export function runCombatRound(
     state.ledger.itemsBurned[action.itemId] = (state.ledger.itemsBurned[action.itemId] ?? 0) + 1;
     // One potion coats you for the whole dive (every later combat seeds
     // from this flag); it dies with the expedition.
-    if (CONSUMABLES[action.itemId]?.antifire) exp.antifire = true;
+    const cd = CONSUMABLES[action.itemId];
+    if (cd?.antifire) exp.antifire = true;
+    if (cd?.boostAtk || cd?.boostDef) exp.boost = { atk: cd.boostAtk ?? 0, def: cd.boostDef ?? 0 };
   }
   const rng = createRng(exp.rngState);
   const lvBefore = levelsOf(agent.combatXp);
   const hpBefore = { monster: exp.combat.monsterHp, player: exp.combat.playerHp };
-  resolveRound(exp.combat, deriveStats(exp.pack, lvBefore), action, rng);
+  const stats = deriveStats(exp.pack, lvBefore);
+  if (exp.boost) {
+    stats.atk += exp.boost.atk;
+    stats.def += exp.boost.def;
+  }
+  resolveRound(exp.combat, stats, action, rng);
   exp.rngState = rng.state();
   const c = exp.combat;
   // The Abyss bleeds purses: leeches drain loot gp every round the fight
@@ -680,8 +687,9 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
           const c = CONSUMABLES[cmd.itemId]!;
           exp.hp = Math.min(maxHpFor(levelsOf(agent.combatXp).hp), exp.hp + c.heal);
           if (c.antifire) exp.antifire = true;
+          if (c.boostAtk || c.boostDef) exp.boost = { atk: c.boostAtk ?? 0, def: c.boostDef ?? 0 };
           (exp.journal ??= []).push(
-            `you ${c.antifire ? 'down' : 'eat'} the ${cmd.itemId.replace(/_/g, ' ')} by the fire (+${c.heal} hp)`,
+            `you ${c.antifire || c.boostAtk || c.boostDef ? 'down' : 'eat'} the ${cmd.itemId.replace(/_/g, ' ')} by the fire (+${c.heal} hp)`,
           );
           return { ok: true, trades: [] };
         }

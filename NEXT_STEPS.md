@@ -22,7 +22,9 @@ Deploy: push to main → CI (typecheck + vitest + e2e) auto-deploys Pages. Verif
 - **Idle raiding ("the Sellsword")**: the clerk flips while you're away; nothing raids while you're away. A hireable companion running a fixed shallow-region policy inside tickWorld would complete the idle game's second half. BIG brick: engine automation + balance audit + offline interaction — bring full attention, measure with tools/audit-grind.ts before/after.
 - **Encounter depletion** (structural kill-rate bound, FINDINGS #51): cleared regions run dry within an expedition. Only if a future audit shows the TAS tail needs bounding — it currently doesn't.
 - **9th region someday**: wants a NEW resource to extort (precedent: Maw=potion, Inferno=potion+nerve, Abyss=purse+DPS).
+- 9v DONE: combat brews (divine bastion → +10 def/dive) reusing the antifire dive-long-flag pattern.
 - More event faces (~30 lines each; each should bend a system no other face touches — FINDINGS #64).
+- More brews if catalog has fit items (an attack/strength buff would want a real attack-flavored potion — none clean in the current snapshot; goading_potion_4 is the only candidate and it's a stretch).
 - Sub-tabs within rooms if any room re-clutters.
 - Prestige/rebirth loop — **Jesse-gated** (design conversation first).
 - Art direction / game-feel steering pass — **Jesse-gated** (theme explicitly provisional).

@@ -560,7 +560,10 @@ var CONSUMABLES = {
   shark: { heal: 20 },
   cooked_karambwan: { heal: 18 },
   prayer_regeneration_potion_4: { heal: 30 },
-  super_antifire_potion_4: { heal: 5, antifire: true }
+  super_antifire_potion_4: { heal: 5, antifire: true },
+  // A defensive brew: +10 def for the whole dive — a per-dive ~16k investment
+  // like the antifire ticket, for pushing deep on defence (9v).
+  divine_bastion_potion_4: { heal: 0, boostDef: 10 }
 };
 var ELITE_CHANCE = 0.1;
 var MONSTERS = [
@@ -1164,12 +1167,19 @@ function runCombatRound(state, agent, exp, action) {
   if (action.kind === "eat") {
     exp.pack[action.itemId] = exp.pack[action.itemId] - 1;
     state.ledger.itemsBurned[action.itemId] = (state.ledger.itemsBurned[action.itemId] ?? 0) + 1;
-    if (CONSUMABLES[action.itemId]?.antifire) exp.antifire = true;
+    const cd = CONSUMABLES[action.itemId];
+    if (cd?.antifire) exp.antifire = true;
+    if (cd?.boostAtk || cd?.boostDef) exp.boost = { atk: cd.boostAtk ?? 0, def: cd.boostDef ?? 0 };
   }
   const rng = createRng(exp.rngState);
   const lvBefore = levelsOf(agent.combatXp);
   const hpBefore = { monster: exp.combat.monsterHp, player: exp.combat.playerHp };
-  resolveRound(exp.combat, deriveStats(exp.pack, lvBefore), action, rng);
+  const stats = deriveStats(exp.pack, lvBefore);
+  if (exp.boost) {
+    stats.atk += exp.boost.atk;
+    stats.def += exp.boost.def;
+  }
+  resolveRound(exp.combat, stats, action, rng);
   exp.rngState = rng.state();
   const c = exp.combat;
   const leech = monsterById(c.monsterId).leech ?? 0;
@@ -1565,8 +1575,9 @@ function applyCommand(state, playerId, cmd) {
           const c = CONSUMABLES[cmd.itemId];
           exp.hp = Math.min(maxHpFor(levelsOf(agent.combatXp).hp), exp.hp + c.heal);
           if (c.antifire) exp.antifire = true;
+          if (c.boostAtk || c.boostDef) exp.boost = { atk: c.boostAtk ?? 0, def: c.boostDef ?? 0 };
           (exp.journal ??= []).push(
-            `you ${c.antifire ? "down" : "eat"} the ${cmd.itemId.replace(/_/g, " ")} by the fire (+${c.heal} hp)`
+            `you ${c.antifire || c.boostAtk || c.boostDef ? "down" : "eat"} the ${cmd.itemId.replace(/_/g, " ")} by the fire (+${c.heal} hp)`
           );
           return { ok: true, trades: [] };
         }

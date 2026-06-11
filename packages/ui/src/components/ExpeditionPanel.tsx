@@ -223,7 +223,9 @@ export function ExpeditionPanel({
               <span className="dim small">
                 {g
                   ? `atk ${g.atk} def ${g.def} · req ${g.slot === 'weapon' ? '⚔' : '🛡'}${g.req}${inert ? ' 🔒' : ''}`
-                  : `heals ${CONSUMABLES[id]!.heal}`}
+                  : CONSUMABLES[id]!.boostAtk || CONSUMABLES[id]!.boostDef
+                    ? `⚗ brew ${CONSUMABLES[id]!.boostAtk ? `+${CONSUMABLES[id]!.boostAtk} atk ` : ''}${CONSUMABLES[id]!.boostDef ? `+${CONSUMABLES[id]!.boostDef} def` : ''} (whole dive)`
+                    : `heals ${CONSUMABLES[id]!.heal}`}
               </span>
               <span className="num">
                 <button className="chip" onClick={() => bump(id, -1, held)}>
@@ -267,6 +269,7 @@ export function ExpeditionPanel({
         {regionIndex(exp.regionId) === progress ? `/${REGION_CLEAR_KILLS} to unlock the next region` : ''} · loot{' '}
         {exp.packGp.toLocaleString('en-US')} gp
         {exp.antifire ? ' · 🛡🔥 antifire holds for this dive' : ''}
+        {exp.boost ? ` · ⚗ brew ${exp.boost.atk ? `+${exp.boost.atk} atk ` : ''}${exp.boost.def ? `+${exp.boost.def} def` : ''}` : ''}
       </p>
       {!exp.combat && (
         <div className="hpbar" title="your hp">

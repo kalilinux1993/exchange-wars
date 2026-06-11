@@ -43,8 +43,12 @@ export const GEAR: Record<string, GearDef> = {
 
 export interface ConsumableDef {
   heal: number;
-  /** Halves dragonfire damage for the rest of the fight when eaten. */
+  /** Negates dragonfire for the rest of the dive when eaten. */
   antifire?: boolean;
+  /** Combat brew (9v): a stat boost that lasts the whole dive (like antifire).
+   * Stored on ExpeditionState.boost; deepest drink wins (refresh, not stack). */
+  boostAtk?: number;
+  boostDef?: number;
 }
 
 export const CONSUMABLES: Record<string, ConsumableDef> = {
@@ -52,6 +56,9 @@ export const CONSUMABLES: Record<string, ConsumableDef> = {
   cooked_karambwan: { heal: 18 },
   prayer_regeneration_potion_4: { heal: 30 },
   super_antifire_potion_4: { heal: 5, antifire: true },
+  // A defensive brew: +10 def for the whole dive — a per-dive ~16k investment
+  // like the antifire ticket, for pushing deep on defence (9v).
+  divine_bastion_potion_4: { heal: 0, boostDef: 10 },
 };
 
 export interface MonsterDef {
@@ -237,6 +244,9 @@ export interface ExpeditionState {
    * expedition starts with it active. Dies with extract/death — next dive
    * needs a fresh potion. The dragon-farm entry ticket (8r). */
   antifire?: boolean;
+  /** Combat-brew buff for the whole dive (absent = none). Added to derived
+   * stats in combat resolution; dies with the expedition (9v). */
+  boost?: { atk: number; def: number };
 }
 
 export interface FighterStats {
