@@ -687,3 +687,25 @@ export function loadGame(): Game | null {
 export function clearSave(): void {
   localStorage.removeItem(SAVE_KEY);
 }
+
+/**
+ * The raw string of a save `loadGame` couldn't read, or null if there's no
+ * quarantine. Surfaced so the player can recover an unreadable run (download
+ * it, hand-fix, re-import) instead of it sitting invisibly in localStorage.
+ */
+export function loadCorruptSave(): string | null {
+  try {
+    return localStorage.getItem(CORRUPT_SAVE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Drop the quarantined save — the player chose to let the unreadable run go. */
+export function discardCorruptSave(): void {
+  try {
+    localStorage.removeItem(CORRUPT_SAVE_KEY);
+  } catch {
+    /* private mode / quota — nothing more we can do */
+  }
+}

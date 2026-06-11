@@ -16,9 +16,12 @@ import {
   applyOfflineProgress,
   bumpStreak,
   checkMilestones,
+  CORRUPT_SAVE_KEY,
   dailySeed,
   deathRecap,
+  discardCorruptSave,
   exportSaveString,
+  loadCorruptSave,
   fmtDuration,
   ghostForRestart,
   HUMAN_START_GP,
@@ -369,6 +372,28 @@ describe('UI shell', () => {
     localStorage.setItem('ew-daily-streak', JSON.stringify({ count: 4, lastDay: yesterday, best: 4 }));
     render(<App initial={newGame(dailySeed())} />);
     expect(screen.queryByText(/keep your streak/i)).toBeNull();
+  });
+
+  it('loadCorruptSave / discardCorruptSave round-trip the quarantine', () => {
+    expect(loadCorruptSave()).toBeNull();
+    localStorage.setItem(CORRUPT_SAVE_KEY, 'broken{{{');
+    expect(loadCorruptSave()).toBe('broken{{{');
+    discardCorruptSave();
+    expect(loadCorruptSave()).toBeNull();
+  });
+
+  it('surfaces a recovery banner for a quarantined save and discards it on demand', () => {
+    localStorage.setItem(CORRUPT_SAVE_KEY, '{"half":"baked"}');
+    render(<App initial={newGame(42)} />);
+    expect(screen.getByText(/preserved, not lost/i)).toBeTruthy();
+    fireEvent.click(screen.getByText('discard'));
+    expect(localStorage.getItem(CORRUPT_SAVE_KEY)).toBeNull(); // quarantine cleared
+    expect(screen.queryByText(/preserved, not lost/i)).toBeNull(); // banner dismissed
+  });
+
+  it('shows no recovery banner when there is no quarantine', () => {
+    render(<App initial={newGame(42)} />);
+    expect(screen.queryByText(/preserved, not lost/i)).toBeNull();
   });
 
   it('a #seed link starts fresh visitors on that seed directly', () => {

@@ -31,8 +31,10 @@ import {
   parseChallengeSeed,
   planOfflineProgress,
   clearSave,
+  discardCorruptSave,
   exportSaveString,
   importSaveString,
+  loadCorruptSave,
   loadGame,
   newGame,
   recordFills,
@@ -77,6 +79,9 @@ export function App({ initial }: { initial?: Game }) {
   const [toast, setToast] = useState<Milestone | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [seedDraft, setSeedDraft] = useState<string | null>(null);
+  // A previous save we couldn't read, quarantined at boot (loadGame). Surfaced
+  // once so the player can rescue it instead of losing the run silently.
+  const [corruptSave, setCorruptSave] = useState<string | null>(() => loadCorruptSave());
   const [lastSync, setLastSync] = useState<number | null>(null);
   const [prefill, setPrefill] = useState<TicketPrefill | null>(null);
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_SEEN_KEY) === null);
@@ -362,6 +367,16 @@ export function App({ initial }: { initial?: Game }) {
     a.click();
     URL.revokeObjectURL(url);
   };
+  const downloadCorrupt = (): void => {
+    if (corruptSave === null) return;
+    const blob = new Blob([corruptSave], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'exchange-wars-recovered-save.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   const importFile = (file: File): void => {
     void file.text().then((raw) => {
       const g = importSaveString(raw);
@@ -597,6 +612,28 @@ export function App({ initial }: { initial?: Game }) {
               <div className="bar-fill" style={{ width: `${Math.round((catchUp.done / catchUp.total) * 100)}%` }} />
             </div>
           </section>
+        </div>
+      )}
+      {corruptSave !== null && (
+        <div className="awaybar corruptbar" role="alert">
+          ⚠ Your previous save couldn't be read, so a fresh game was started — but the old data is{' '}
+          <b>preserved, not lost</b>. Download it to keep or re-import it.
+          <button className="chip" onClick={downloadCorrupt}>
+            download old save
+          </button>
+          <button
+            className="chip"
+            title="permanently delete the unreadable save"
+            onClick={() => {
+              discardCorruptSave();
+              setCorruptSave(null);
+            }}
+          >
+            discard
+          </button>
+          <button className="chip" title="keep it — remind me next time" onClick={() => setCorruptSave(null)}>
+            ×
+          </button>
         </div>
       )}
       {challenge !== null && (

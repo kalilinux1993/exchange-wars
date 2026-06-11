@@ -694,6 +694,12 @@ th.num {
   animation: rise 360ms ease-out backwards;
 }
 
+/* corrupt-save recovery: a warning, not the neutral gold of the away bars. */
+.corruptbar {
+  background: rgba(220, 80, 40, 0.1);
+  border-color: #d2502a;
+}
+
 .small {
   font-size: 0.75rem;
 }
