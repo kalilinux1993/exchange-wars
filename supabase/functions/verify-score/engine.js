@@ -191,6 +191,7 @@ var CONSUMABLES = {
   prayer_regeneration_potion_4: { heal: 30 },
   super_antifire_potion_4: { heal: 5, antifire: true }
 };
+var ELITE_CHANCE = 0.1;
 var MONSTERS = [
   { id: "giant_rat", name: "Giant rat", hp: 8, atk: 3, def: 0, gp: [2, 12], drops: [] },
   { id: "goblin", name: "Goblin", hp: 12, atk: 4, def: 1, gp: [5, 30], drops: [{ itemId: "adamant_dart", chance: 0.15 }] },
@@ -199,7 +200,9 @@ var MONSTERS = [
   { id: "moss_giant", name: "Moss giant", hp: 45, atk: 11, def: 6, gp: [60, 240], drops: [{ itemId: "blood_rune", chance: 0.18 }] },
   { id: "lesser_demon", name: "Lesser demon", hp: 70, atk: 16, def: 9, gp: [120, 450], drops: [{ itemId: "death_rune", chance: 0.3 }, { itemId: "rune_full_helm", chance: 0.03 }] },
   { id: "fire_giant", name: "Fire giant", hp: 85, atk: 19, def: 11, gp: [180, 600], drops: [{ itemId: "rune_battleaxe", chance: 0.04 }, { itemId: "blood_rune", chance: 0.35 }] },
-  { id: "green_dragon", name: "Green dragon", hp: 110, atk: 24, def: 12, gp: [300, 900], dragonfire: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "dragon_med_helm", chance: 0.01 }, { itemId: "rune_kiteshield", chance: 0.05 }] }
+  { id: "green_dragon", name: "Green dragon", hp: 110, atk: 24, def: 12, gp: [300, 900], dragonfire: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "dragon_med_helm", chance: 0.01 }, { itemId: "rune_kiteshield", chance: 0.05 }] },
+  // The named elite — never in a region pool; the Maw spawns him itself.
+  { id: "vorkanth", name: "Vorkanth, Elder of the Maw", hp: 180, atk: 30, def: 16, gp: [1500, 4e3], dragonfire: true, elite: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "dragon_med_helm", chance: 0.25 }, { itemId: "dragon_platelegs", chance: 0.15 }] }
 ];
 var PLAYER_BASE = { maxHp: 50, atk: 5, def: 2 };
 var REGIONS = [
@@ -564,7 +567,9 @@ function applyCommand(state, playerId, cmd) {
       const journal = exp.journal ??= [];
       if (roll < ENCOUNTERS.monster) {
         const rIdx = regionIndex(exp.regionId);
-        if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
+        if (rIdx === REGIONS.length - 1 && rng.chance(ELITE_CHANCE)) {
+          exp.combat = newCombat("vorkanth", exp.hp, "the ground shakes \u2014 VORKANTH, ELDER OF THE MAW, descends!");
+        } else if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
           const deeper = REGIONS[rIdx + 1];
           const beast = rng.pick(deeper.monsters);
           exp.combat = newCombat(beast, exp.hp, `AMBUSH \u2014 a ${monsterById(beast).name} from ${deeper.name} crosses your path!`);
@@ -666,6 +671,9 @@ function applyCommand(state, playerId, cmd) {
         exp.cleared += 1;
         exp.hp = c.playerHp;
         state.stats.monstersSlain = (state.stats.monstersSlain ?? 0) + 1;
+        if (monsterById(c.monsterId).elite) {
+          state.stats.eliteSlain = (state.stats.eliteSlain ?? 0) + 1;
+        }
         const idx = regionIndex(exp.regionId);
         if (exp.cleared >= REGION_CLEAR_KILLS && idx === (agent.questProgress ?? 0) && idx < REGIONS.length - 1) {
           agent.questProgress = idx + 1;

@@ -266,6 +266,37 @@ describe('expeditions', () => {
     expect(ambushed).toBe(true);
   });
 
+  it('Vorkanth stalks only the Maw and yields elite credit when felled', () => {
+    let met = false;
+    for (let seed = 1; seed <= 100 && !met; seed++) {
+      const { state, id } = fixture(seed);
+      const agent = state.agents[id]!;
+      agent.questProgress = REGIONS.length - 1; // fixture: the Maw is open
+      ok(state, id, { type: 'startExpedition', regionId: 'dragons_maw', pack: {} });
+      for (let i = 0; i < 6 && agent.expedition; i++) {
+        const exp = agent.expedition;
+        if (exp.combat) {
+          if (exp.combat.monsterId === 'vorkanth') {
+            met = true;
+            expect(exp.combat.log[0]).toContain('VORKANTH');
+            // Fixture execution: arm the pack (conserved via mint) and put
+            // the Elder at 1 hp so the first landed blow fells him.
+            exp.pack['rune_2h_sword'] = 1;
+            state.ledger.itemsMinted['rune_2h_sword'] = (state.ledger.itemsMinted['rune_2h_sword'] ?? 0) + 1;
+            exp.combat.monsterHp = 1;
+            for (let r = 0; r < 10 && agent.expedition?.combat; r++) ok(state, id, { type: 'fight' });
+            expect(state.stats.eliteSlain).toBe(1);
+            expect(state.ledger.itemsMinted['superior_dragon_bones'] ?? 0).toBeGreaterThan(0);
+            break;
+          }
+          ok(state, id, { type: 'fleeCombat' });
+        } else if (exp.event) ok(state, id, { type: 'choose', accept: false });
+        else ok(state, id, { type: 'advance' });
+      }
+    }
+    expect(met).toBe(true); // 10% per Maw monster across 100 seeds × 6 steps
+  });
+
   it('fleeing ends the encounter without kill credit; market RNG is untouched', () => {
     const { state, id } = fixture(11);
     const agent = state.agents[id]!;

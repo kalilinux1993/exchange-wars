@@ -52,7 +52,12 @@ export interface MonsterDef {
   drops: { itemId: string; chance: number }[];
   /** Dragonfire: damage halved by an active antifire. */
   dragonfire?: boolean;
+  /** Named elites: rare spawns outside the normal region pools. */
+  elite?: boolean;
 }
+
+/** Chance a Maw monster encounter is the Elder himself. */
+export const ELITE_CHANCE = 0.1;
 
 export const MONSTERS: MonsterDef[] = [
   { id: 'giant_rat', name: 'Giant rat', hp: 8, atk: 3, def: 0, gp: [2, 12], drops: [] },
@@ -63,6 +68,8 @@ export const MONSTERS: MonsterDef[] = [
   { id: 'lesser_demon', name: 'Lesser demon', hp: 70, atk: 16, def: 9, gp: [120, 450], drops: [{ itemId: 'death_rune', chance: 0.3 }, { itemId: 'rune_full_helm', chance: 0.03 }] },
   { id: 'fire_giant', name: 'Fire giant', hp: 85, atk: 19, def: 11, gp: [180, 600], drops: [{ itemId: 'rune_battleaxe', chance: 0.04 }, { itemId: 'blood_rune', chance: 0.35 }] },
   { id: 'green_dragon', name: 'Green dragon', hp: 110, atk: 24, def: 12, gp: [300, 900], dragonfire: true, drops: [{ itemId: 'superior_dragon_bones', chance: 1 }, { itemId: 'dragon_med_helm', chance: 0.01 }, { itemId: 'rune_kiteshield', chance: 0.05 }] },
+  // The named elite — never in a region pool; the Maw spawns him itself.
+  { id: 'vorkanth', name: 'Vorkanth, Elder of the Maw', hp: 180, atk: 30, def: 16, gp: [1_500, 4_000], dragonfire: true, elite: true, drops: [{ itemId: 'superior_dragon_bones', chance: 1 }, { itemId: 'dragon_med_helm', chance: 0.25 }, { itemId: 'dragon_platelegs', chance: 0.15 }] },
 ];
 
 export const PLAYER_BASE = { maxHp: 50, atk: 5, def: 2 };

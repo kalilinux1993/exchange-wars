@@ -6,6 +6,7 @@ import { itemDef } from './items';
 import {
   AMBUSH_CHANCE,
   CACHE_ITEM_CHANCE,
+  ELITE_CHANCE,
   cachePool,
   CONSUMABLES,
   deriveStats,
@@ -306,7 +307,9 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       const journal = (exp.journal ??= []);
       if (roll < ENCOUNTERS.monster) {
         const rIdx = regionIndex(exp.regionId);
-        if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
+        if (rIdx === REGIONS.length - 1 && rng.chance(ELITE_CHANCE)) {
+          exp.combat = newCombat('vorkanth', exp.hp, 'the ground shakes — VORKANTH, ELDER OF THE MAW, descends!');
+        } else if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
           const deeper = REGIONS[rIdx + 1]!;
           const beast = rng.pick(deeper.monsters);
           exp.combat = newCombat(beast, exp.hp, `AMBUSH — a ${monsterById(beast).name} from ${deeper.name} crosses your path!`);
@@ -409,6 +412,9 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
         exp.cleared += 1;
         exp.hp = c.playerHp;
         state.stats.monstersSlain = (state.stats.monstersSlain ?? 0) + 1;
+        if (monsterById(c.monsterId).elite) {
+          state.stats.eliteSlain = (state.stats.eliteSlain ?? 0) + 1;
+        }
         const idx = regionIndex(exp.regionId);
         if (exp.cleared >= REGION_CLEAR_KILLS && idx === (agent.questProgress ?? 0) && idx < REGIONS.length - 1) {
           agent.questProgress = idx + 1; // the frontier moves

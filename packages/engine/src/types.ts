@@ -112,6 +112,8 @@ export interface SimStats {
   cacheFinds?: number;
   /** Goblin dice games won. */
   diceWon?: number;
+  /** Named elites felled. */
+  eliteSlain?: number;
 }
 
 /** A standing NPC buy-order at a premium — the realm's quartermaster pays

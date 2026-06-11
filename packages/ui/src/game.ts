@@ -311,6 +311,12 @@ export const MILESTONES: Milestone[] = [
     achieved: (g) => (g.world.ledger.itemsMinted['superior_dragon_bones'] ?? 0) > 0,
   },
   {
+    id: 'elder-slayer',
+    name: 'Elder Slayer',
+    flavor: 'Vorkanth has fallen. The Maw remembers.',
+    achieved: (g) => (g.world.stats.eliteSlain ?? 0) >= 1,
+  },
+  {
     id: 'lucky-find',
     name: 'Lucky Find',
     flavor: 'The cache held more than coin.',
