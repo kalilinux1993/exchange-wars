@@ -1,4 +1,4 @@
-import { SPRINT_TICKS } from '@exchange-wars/engine';
+import { REGIONS, SPRINT_TICKS } from '@exchange-wars/engine';
 import { useEffect, useState } from 'react';
 import { fetchLeaderboard, sanitizeHandle, submitSprint, type BoardRow, type Session } from '../cloud';
 import type { Game } from '../game';
@@ -66,7 +66,15 @@ export function LeaderboardPanel({
         {rows.map((r, i) => (
           <li key={`${i}-${r.handle}`}>
             <span className="dim num">{i + 1}.</span>
-            <span>{r.handle}</span>
+            <span>
+              {r.handle}
+              {(r.deepest ?? 0) > 0 && (
+                <span className="dim small" title={`deepest region by tick 2,000: ${REGIONS[r.deepest ?? 0]?.name ?? '?'}`}>
+                  {' '}
+                  ⛏{(r.deepest ?? 0) + 1}
+                </span>
+              )}
+            </span>
             <span className="num">{r.worth.toLocaleString('en-US')}</span>
           </li>
         ))}

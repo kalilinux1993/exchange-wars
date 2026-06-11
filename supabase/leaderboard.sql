@@ -8,6 +8,8 @@ create table if not exists public.leaderboard (
   seed bigint not null,
   handle text not null check (char_length(handle) between 1 and 24),
   worth bigint not null,
+  -- deepest region index reached within the verified sprint (8f)
+  deepest int not null default 0,
   verified_hash text not null,
   created_at timestamptz not null default now(),
   primary key (user_id, seed)

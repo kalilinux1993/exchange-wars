@@ -55,6 +55,8 @@ export async function pushCloudSave(game: Game): Promise<boolean> {
 export interface BoardRow {
   handle: string;
   worth: number;
+  /** Deepest region index reached within the verified sprint (0 = surface). */
+  deepest?: number;
 }
 
 /** Top verified sprints for a seed. null = leaderboard backend not deployed
@@ -63,7 +65,7 @@ export async function fetchLeaderboard(seed: number): Promise<BoardRow[] | null>
   try {
     const { data, error } = await getSupabase()
       .from('leaderboard')
-      .select('handle,worth')
+      .select('handle,worth,deepest')
       .eq('seed', seed)
       .order('worth', { ascending: false })
       .limit(10);

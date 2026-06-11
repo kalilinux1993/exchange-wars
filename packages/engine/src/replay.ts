@@ -17,6 +17,9 @@ export interface ReplayResult {
   worth: number;
   finalTick: number;
   hash: string;
+  /** Deepest region index entered during the run (0 = never adventured —
+   * indistinguishable from plains-only, which is fine for bragging rights). */
+  deepest: number;
 }
 
 /** The leaderboard race format: best worth at EXACTLY this tick. A bounded
@@ -34,6 +37,8 @@ export interface SprintVerdict {
   reason?: string;
   worth: number;
   hash: string;
+  /** Deepest region index reached within the sprint (verified). */
+  deepest: number;
 }
 
 /**
@@ -43,7 +48,7 @@ export interface SprintVerdict {
  * runs server-side — and what the client runs locally before submitting.
  */
 export function verifySprint(seed: number, startGp: number, log: RunLogEntry[]): SprintVerdict {
-  const bad = (reason: string): SprintVerdict => ({ ok: false, reason, worth: 0, hash: '' });
+  const bad = (reason: string): SprintVerdict => ({ ok: false, reason, worth: 0, hash: '', deepest: 0 });
   if (!Number.isSafeInteger(seed) || seed < 0) return bad('bad-seed');
   if (!Number.isSafeInteger(startGp) || startGp < 1) return bad('bad-start');
   if (!Array.isArray(log) || log.length > SPRINT_MAX_COMMANDS) return bad('log-too-long');
@@ -55,7 +60,7 @@ export function verifySprint(seed: number, startGp: number, log: RunLogEntry[]):
   }
   try {
     const r = replayRun(seed, startGp, log, SPRINT_TICKS);
-    return { ok: true, worth: r.worth, hash: r.hash };
+    return { ok: true, worth: r.worth, hash: r.hash, deepest: r.deepest };
   } catch {
     return bad('replay-error');
   }
@@ -89,5 +94,10 @@ export function replayRun(
       i++;
     }
   }
-  return { worth: netWorth(world, human), finalTick: world.tick, hash: hashState(world) };
+  return {
+    worth: netWorth(world, human),
+    finalTick: world.tick,
+    hash: hashState(world),
+    deepest: world.stats.deepestRegion ?? 0,
+  };
 }

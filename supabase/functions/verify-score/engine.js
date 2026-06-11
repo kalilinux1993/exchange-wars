@@ -1360,7 +1360,7 @@ function tickWorld(state) {
 var SPRINT_TICKS = 2e3;
 var SPRINT_MAX_COMMANDS = 5e3;
 function verifySprint(seed, startGp, log) {
-  const bad = (reason) => ({ ok: false, reason, worth: 0, hash: "" });
+  const bad = (reason) => ({ ok: false, reason, worth: 0, hash: "", deepest: 0 });
   if (!Number.isSafeInteger(seed) || seed < 0) return bad("bad-seed");
   if (!Number.isSafeInteger(startGp) || startGp < 1) return bad("bad-start");
   if (!Array.isArray(log) || log.length > SPRINT_MAX_COMMANDS) return bad("log-too-long");
@@ -1372,7 +1372,7 @@ function verifySprint(seed, startGp, log) {
   }
   try {
     const r = replayRun(seed, startGp, log, SPRINT_TICKS);
-    return { ok: true, worth: r.worth, hash: r.hash };
+    return { ok: true, worth: r.worth, hash: r.hash, deepest: r.deepest };
   } catch {
     return bad("replay-error");
   }
@@ -1393,7 +1393,12 @@ function replayRun(seed, startGp, log, finalTick) {
       i++;
     }
   }
-  return { worth: netWorth(world, human), finalTick: world.tick, hash: hashState(world) };
+  return {
+    worth: netWorth(world, human),
+    finalTick: world.tick,
+    hash: hashState(world),
+    deepest: world.stats.deepestRegion ?? 0
+  };
 }
 export {
   SPRINT_MAX_COMMANDS,

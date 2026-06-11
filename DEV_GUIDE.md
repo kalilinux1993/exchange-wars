@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 8f — Dual-Metric Sprint Board (2026-06-11, Expeditions brick 6)
+
+- **One replay, two verified metrics**: expeditions execute between ticks, so the existing 2k-sprint replay already proves any dungeon runs inside it — `ReplayResult`/`SprintVerdict` now carry `deepest` (world stats.deepestRegion), verify-score stores it (table gained `deepest int default 0` via live management SQL; leaderboard.sql updated), and board rows show a ⛏N depth badge (region name in the tooltip). Worth stays the ranking; depth is displayed glory.
+- Replay-contract reminder surfaced by the test: replay worlds start with an EMPTY satchel — recorded runs that lean on pre-seeded fixture inventory don't reproduce. Production runs always satisfy this.
+- verify-score redeployed (66.8kb).
+
 ## Phase 8e — Choices in the Dark (2026-06-11, Expeditions brick 5)
 
 - **Encounter mix** (commands.ts advance, odds in quest.ts ENCOUNTERS): 60% monster, 15% cache (gp mints, scales with region depth), 10% snare (hp loss; lethal traps reuse `expeditionDeath` — the keep-3 rule now lives in one helper), 15% choice event.

@@ -78,6 +78,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     seed,
     handle,
     worth: verdict.worth,
+    deepest: verdict.deepest ?? 0,
     verified_hash: verdict.hash,
   });
   if (error) return json(500, { error: 'store-failed' });

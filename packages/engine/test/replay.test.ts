@@ -42,6 +42,44 @@ describe('replay verifier', () => {
     expect(tampered.hash).not.toBe(live.hash);
   });
 
+  it('the verdict carries how deep a recorded run went', () => {
+    // Replay worlds start with an EMPTY satchel (the production contract), so
+    // the recorded run must be fists-first too. Scan seeds for one where the
+    // bare-knuckle plains run survives to unlock + enter the sewers.
+    const drive = (seed: number): { log: RunLogEntry[]; entered: boolean } => {
+      const world = createWorld({ seed });
+      const human = addAgent(world, 'player', 200_000, {});
+      human.policy = 'idle';
+      const log: RunLogEntry[] = [];
+      const issue = (cmd: Parameters<typeof applyCommand>[2]): void => {
+        log.push({ tick: world.tick, cmd });
+        applyCommand(world, human.id, cmd);
+      };
+      issue({ type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+      let guard = 0;
+      while (human.expedition && (human.questProgress ?? 0) < 1 && guard++ < 200) {
+        if (human.expedition.combat) issue({ type: 'fight' });
+        else if (human.expedition.event) issue({ type: 'choose', accept: false });
+        else issue({ type: 'advance' });
+      }
+      if ((human.questProgress ?? 0) < 1 || !human.expedition) return { log, entered: false };
+      issue({ type: 'extract' });
+      issue({ type: 'startExpedition', regionId: 'varrock_sewers', pack: {} });
+      issue({ type: 'extract' });
+      return { log, entered: true };
+    };
+    let proven = false;
+    for (let seed = 1; seed <= 50 && !proven; seed++) {
+      const run = drive(seed);
+      if (!run.entered) continue;
+      const v = verifySprint(seed, 200_000, run.log);
+      expect(v.ok).toBe(true);
+      expect(v.deepest).toBe(1); // the replay PROVES the sewers were entered
+      proven = true;
+    }
+    expect(proven).toBe(true);
+  });
+
   it('verifySprint accepts a clean sprint and reports its worth', () => {
     const log: RunLogEntry[] = [
       { tick: 0, cmd: { type: 'buyUpgrade', upgradeId: 'autoFlip' } },

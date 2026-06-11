@@ -596,7 +596,7 @@ describe('UI shell', () => {
 
   it('the Sprint Board renders verified rows and submits a sprint', async () => {
     fetchRoutes = (url) => {
-      if (url.includes('/rest/v1/leaderboard')) return jsonResponse([{ handle: 'gertrude', worth: 77_777 }]);
+      if (url.includes('/rest/v1/leaderboard')) return jsonResponse([{ handle: 'gertrude', worth: 77_777, deepest: 2 }]);
       if (url.includes('/functions/v1/verify-score')) return jsonResponse({ worth: 123_456, improved: true });
       return null;
     };
@@ -607,6 +607,7 @@ describe('UI shell', () => {
     await waitFor(() => expect(screen.getByText('Sprint Board')).toBeTruthy());
     expect(screen.getByText('gertrude')).toBeTruthy();
     expect(screen.getByText('77,777')).toBeTruthy();
+    expect(screen.getByText('⛏3')).toBeTruthy(); // verified depth badge (index 2 = region 3)
     fireEvent.click(screen.getByText(`submit ${SPRINT_TICKS / 1_000}k sprint`));
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Sprint verified — new best!', expect.stringContaining('123,456')),
