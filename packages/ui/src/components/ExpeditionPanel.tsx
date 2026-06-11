@@ -286,7 +286,7 @@ export function ExpeditionPanel({
           <p className="small">⚖ {exp.event.prompt}</p>
           <div className="controls">
             <button className="chip" onClick={() => onCommand({ type: 'choose', accept: true })}>
-              {{ shrine: 'pay the tithe', gamble: 'roll the dice', portal: 'step through', imp: 'chase it', merchant: 'pay up' }[
+              {{ shrine: 'pay the tithe', gamble: 'roll the dice', portal: 'step through', imp: 'chase it', merchant: 'pay up', spar: 'take the lesson', toll: 'pay the toll' }[
                 exp.event.kind
               ] ?? 'accept'}
             </button>

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyCommand, type PlayerCommand } from '../src/commands';
 import { hashState } from '../src/hash';
 import { checkInvariants } from '../src/invariants';
-import { levelsOf, maxHpFor, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS, xpForLevel } from '../src/quest';
+import { levelsOf, maxHpFor, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS, SPAR_XP, TOLL_COST, xpForLevel } from '../src/quest';
 import { addAgent, createWorld, tickWorld } from '../src/sim';
 import type { WorldState } from '../src/types';
 
@@ -251,6 +251,37 @@ describe('expeditions', () => {
     }
     expect(caught).toBeGreaterThan(0);
     expect(snared).toBeGreaterThan(0);
+  });
+
+  it('the swordmaster teaches and the toll-keeper sells stash tips, conserved', () => {
+    // Spar: xp lands, bruises floor at 1 hp, never lethal.
+    const { state, id } = fixture(33);
+    const agent = state.agents[id]!;
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    const exp = agent.expedition!;
+    exp.hp = 3; // nearly dead — the lesson must not finish the job
+    exp.event = { kind: 'spar', prompt: 't' };
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.hp).toBe(1); // floored, alive
+    expect(agent.combatXp!.atk).toBe(SPAR_XP);
+    expect(agent.combatXp!.def).toBe(SPAR_XP);
+    expect(agent.combatXp!.hp).toBe(Math.ceil(SPAR_XP / 3));
+    // Toll: pays gp for a guaranteed stash; pauper gets waved off.
+    exp.packGp += 1_000;
+    state.ledger.gpMinted += 1_000;
+    exp.event = { kind: 'toll', prompt: 't' };
+    const before = exp.packGp;
+    const finds = state.stats.cacheFinds ?? 0;
+    ok(state, id, { type: 'choose', accept: true });
+    expect(state.stats.cacheFinds).toBe(finds + 1);
+    expect(exp.packGp).toBeGreaterThan(before - TOLL_COST); // the stash paid something back
+    const poor = fixture(34);
+    ok(poor.state, poor.id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    poor.state.agents[poor.id]!.expedition!.event = { kind: 'toll', prompt: 't' };
+    ok(poor.state, poor.id, { type: 'choose', accept: true });
+    expect(poor.state.stats.cacheFinds ?? 0).toBe(0); // waved off, nothing booked
+    checkInvariants(state);
+    checkInvariants(poor.state);
   });
 
   it('advance rolls non-combat encounters too (cache/trap/event seen across seeds)', () => {

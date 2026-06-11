@@ -153,7 +153,7 @@ export function expeditionSeed(worldSeed: number, expeditionId: number): number 
  * repertoire grows with depth (8u): portals tempt you one region past your
  * right, imps gamble your blood, merchants surface where the food runs out. */
 export interface EventState {
-  kind: 'shrine' | 'gamble' | 'portal' | 'imp' | 'merchant';
+  kind: 'shrine' | 'gamble' | 'portal' | 'imp' | 'merchant' | 'spar' | 'toll';
   prompt: string;
 }
 
@@ -171,6 +171,11 @@ export const GAMBLE_STAKE = 100;
 export const IMP_PRIZE: [number, number] = [150, 400];
 /** The soot-cloaked merchant sells sharks at this multiple of base cost. */
 export const MERCHANT_MARKUP = 3;
+/** The swordmaster's lesson: flat xp for bruises — never lethal (floor 1 hp). */
+export const SPAR_XP = 25;
+export const SPAR_BRUISES: [number, number] = [5, 12];
+/** The toll-keeper's price for word of a nearby stash. */
+export const TOLL_COST = 150;
 
 /** Chance a cache holds an item on top of its coin. */
 export const CACHE_ITEM_CHANCE = 0.25;

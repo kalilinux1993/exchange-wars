@@ -19,6 +19,9 @@ import {
   IMP_PRIZE,
   MERCHANT_MARKUP,
   newCombat,
+  SPAR_BRUISES,
+  SPAR_XP,
+  TOLL_COST,
   PLAYER_BASE,
   REGION_CLEAR_KILLS,
   REGIONS,
@@ -368,6 +371,8 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
         const rIdx = regionIndex(exp.regionId);
         const kinds: import('./quest').EventState['kind'][] = ['shrine', 'gamble', 'imp'];
         if (rIdx >= 1 && rIdx < REGIONS.length - 1) kinds.push('portal');
+        if (rIdx >= 1) kinds.push('spar');
+        if (rIdx >= 2) kinds.push('toll');
         if (rIdx >= 3) kinds.push('merchant');
         const kind = rng.pick(kinds);
         const prompt =
@@ -379,7 +384,11 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
                 ? 'an imp scampers past with a bulging coin pouch — give chase?'
                 : kind === 'portal'
                   ? `a humming portal opens — beyond it, ${REGIONS[rIdx + 1]!.name}. step through?`
-                  : 'a soot-cloaked merchant offers a shark at triple price — pay up?';
+                  : kind === 'spar'
+                    ? 'a grizzled swordmaster bars the path, blade flat — take a lesson in bruises?'
+                    : kind === 'toll'
+                      ? `a toll-keeper rattles his cup — ${TOLL_COST} gp for word of a nearby stash?`
+                      : 'a soot-cloaked merchant offers a shark at triple price — pay up?';
         exp.event = { kind, prompt };
       }
       exp.rngState = rng.state();
@@ -424,6 +433,40 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
           if (exp.hp <= 0) {
             journal.push("the imp's laughter is the last thing you hear");
             expeditionDeath(state, agent, exp);
+          }
+        }
+      } else if (ev.kind === 'spar') {
+        // A lesson, not a mugging: bruises floor at 1 hp, the wisdom is real.
+        const bruise = rng.int(SPAR_BRUISES[0], SPAR_BRUISES[1]);
+        exp.hp = Math.max(1, exp.hp - bruise);
+        const lvBefore = levelsOf(agent.combatXp);
+        const xp = (agent.combatXp ??= { atk: 0, def: 0 });
+        xp.atk += SPAR_XP;
+        xp.def += SPAR_XP;
+        xp.hp = (xp.hp ?? 0) + Math.ceil(SPAR_XP / 3);
+        const lv = levelsOf(xp);
+        journal.push(`the swordmaster's lesson leaves bruises (−${bruise} hp) — and understanding (+${SPAR_XP} ⚔, +${SPAR_XP} 🛡 xp)`);
+        if (lv.atk > lvBefore.atk) journal.push(`your arm grows stronger — Attack ${lv.atk}`);
+        if (lv.def > lvBefore.def) journal.push(`you learn to take a blow — Defence ${lv.def}`);
+        if (lv.hp > lvBefore.hp) journal.push(`your vitality surges — Hitpoints ${lv.hp} (max hp ${maxHpFor(lv.hp)})`);
+      } else if (ev.kind === 'toll') {
+        if (exp.packGp < TOLL_COST) {
+          journal.push('the toll-keeper sizes up your purse and waves you off');
+        } else {
+          exp.packGp -= TOLL_COST;
+          state.ledger.gpBurned += TOLL_COST; // his cut leaves the world
+          const rIdx = regionIndex(exp.regionId);
+          const found = rng.int(20, 60 + 40 * rIdx);
+          state.ledger.gpMinted += found;
+          exp.packGp += found;
+          state.stats.cacheFinds = (state.stats.cacheFinds ?? 0) + 1;
+          if (rng.chance(CACHE_ITEM_CHANCE)) {
+            const itemId = rng.pick(cachePool(rIdx));
+            state.ledger.itemsMinted[itemId] = (state.ledger.itemsMinted[itemId] ?? 0) + 1;
+            exp.pack[itemId] = (exp.pack[itemId] ?? 0) + 1;
+            journal.push(`the toll-keeper's tip is good: a stash with ${found} gp and a ${itemId.replace(/_/g, ' ')}`);
+          } else {
+            journal.push(`the toll-keeper's tip is good: a stash with ${found} gp`);
           }
         }
       } else if (ev.kind === 'merchant') {

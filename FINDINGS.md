@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 9d — The Swordmaster and the Toll-Keeper (2026-06-11)
+
+64. **Event design space: each new face should bend a different system.** Spar is the first NON-COMBAT xp source (flat +25 ⚔/🛡, +9 ♥ for bruises that floor at 1 hp — a lesson, not a mugging), giving hurt-but-rich players a way to train without risking the pack; Toll converts loot gp into cache rolls (150 gp burned for a guaranteed stash — EV roughly fair at depth, the VALUE is converting coin into a chance at items). Neither is "more loot" — one bends progression, one bends liquidity. The seven-face event pool now touches: healing (shrine), coin gambling (dice), blood gambling (imp), depth (portal), supplies (merchant), training (spar), and coin→item conversion (toll). The ~30-line event pattern held for both; conservation held by vocabulary (every effect is a mint/burn the ledger already speaks).
+
 ## Phase 9c — The Almanac (2026-06-11)
 
 63. **The conservation ledger makes a good player-facing curiosity, not just an invariant.** The Almanac (Hall panel: realm figures + your saga) is pure display of facts the engine already books — trades settled, offers rejected, NPC bailouts ("traders bailed out" with an honest tooltip), gp/items minted vs burned straight from the audited ledger, plus levels/kills/bestiary/deaths/deeds. Zero engine change, ~100 lines, and the most interesting line for players is the one built for the INVARIANT CHECKER: watching gpMinted/gpBurned tick apart in real time makes the economy feel like machinery instead of vibes. Second instance of the #56 pattern (book everything → display bricks are free), which makes it a law now, not an observation.
