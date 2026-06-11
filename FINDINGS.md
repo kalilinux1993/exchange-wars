@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 9y — Monster Silhouettes (2026-06-11)
+
+85. **Recolored blobs read as placeholder; structurally-different shapes read as a bestiary.** The combat scene drew every monster as one ellipse with a hue from its id — distinct data, identical form. Now an archetype switch (leech→ooze with drippy base + tendrils, dragonfire→winged drake with wings/snout/horn/tail, hp≥55→brute with torso/head/arms, else→small critter with feet) gives a goblin, a giant, and a dragon genuinely different outlines, still deterministic and asset-free. The categorization reuses existing fields (leech/dragonfire/hp) — no new data. Deliberately did NOT add brittle per-shape unit assertions (the lesson from #78's over-narrow test and the SVG-internals fragility): the existing test still guards the load-bearing thing (monster positioned right, splat per round); shape variety is a visual property a structural test would only ossify. Cheap archetype-based silhouettes are the 80/20 between "one blob" and "12 bespoke sprites."
+
 ## Phase 9x — Consolidation #2 (2026-06-11)
 
 84. **Second consolidation, same seam as the first (#67): per-phase rituals keep arc-level docs stale.** Brick 50 (round-number rule): DEV_GUIDE got a "9g–9w consolidated" map (engine additions: combatLevel, brews, bounties, sellsword refactor; the full OSRS HUD; robustness; art pipeline; the 4 localStorage prefs), NEXT_STEPS collapsed from per-brick DONE lists back to forward-looking buckets. Nothing new shipped — the value is that a returning reader (or future-me post-compaction) sees the system, not 17 changelog fragments. The cadence is holding: consolidate every ~16 bricks, delegate detail to .phases/+FINDINGS by reference, keep the live docs a MAP not a LOG. Observed meta-pattern across the whole run: the autonomous loop's failure mode is never the code (gated, tested, deployed each brick) — it's documents drifting from reality, which is exactly what scheduled consolidation cures.

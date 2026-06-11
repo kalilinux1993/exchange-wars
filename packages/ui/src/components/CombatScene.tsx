@@ -77,23 +77,64 @@ export function CombatScene({
           attribute transform and snap the monster to (0,0). */}
       <g transform={`translate(150 ${70 - (big - 1) * 6}) scale(${big})`}>
         <g className="monster">
-          <ellipse cx={0} cy={0} rx={20} ry={23} style={{ fill: `hsl(${hue} 45% 32%)`, stroke: `hsl(${hue} 55% 50%)`, strokeWidth: 2 }} />
-          <circle cx={-7} cy={-5} r={3.2} className="eye" />
-          <circle cx={7} cy={-5} r={3.2} className="eye" />
-          {m.dragonfire && (
-            <>
-              <polygon points="-15,-18 -9,-28 -5,-16" style={{ fill: '#e8643c' }} />
-              <polygon points="15,-18 9,-28 5,-16" style={{ fill: '#e8643c' }} />
-            </>
-          )}
-          {(m.leech ?? 0) > 0 && (
-            <>
-              <line x1={-18} y1={13} x2={-27} y2={23} className="tendril" />
-              <line x1={18} y1={13} x2={27} y2={23} className="tendril" />
-              <line x1={0} y1={20} x2={0} y2={32} className="tendril" />
-            </>
-          )}
-          {m.elite && <text x={0} y={-28} textAnchor="middle" className="crown">★</text>}
+          {(() => {
+            // Deterministic silhouette by archetype — leeches ooze, dragonfire
+            // breathers are winged drakes, big melee are brutes, the rest are
+            // critters. Bodies are stylised but structurally DIFFERENT so a
+            // goblin reads unlike a giant unlike a dragon (9y).
+            const form = (m.leech ?? 0) > 0 ? 'ooze' : m.dragonfire ? 'drake' : m.hp >= 55 ? 'brute' : 'critter';
+            const fill = `hsl(${hue} 45% 32%)`;
+            const stroke = `hsl(${hue} 55% 50%)`;
+            const sw = 2;
+            if (form === 'drake') {
+              return (
+                <>
+                  <polygon points="-4,-2 -26,-18 -20,6" style={{ fill, stroke, strokeWidth: sw }} />
+                  <polygon points="4,-2 26,-18 20,6" style={{ fill, stroke, strokeWidth: sw }} />
+                  <ellipse cx={0} cy={4} rx={17} ry={13} style={{ fill, stroke, strokeWidth: sw }} />
+                  <polygon points="6,-6 22,-20 16,-2" style={{ fill, stroke, strokeWidth: sw }} />
+                  <polygon points="14,-16 20,-28 22,-15" style={{ fill: '#e8643c' }} />
+                  <polygon points="22,8 34,16 20,14" style={{ fill, stroke, strokeWidth: sw }} />
+                  <circle cx={11} cy={-9} r={2.6} className="eye" />
+                </>
+              );
+            }
+            if (form === 'brute') {
+              return (
+                <>
+                  <rect x={-21} y={2} width={6} height={18} rx={3} style={{ fill, stroke, strokeWidth: sw }} />
+                  <rect x={15} y={2} width={6} height={18} rx={3} style={{ fill, stroke, strokeWidth: sw }} />
+                  <rect x={-16} y={-4} width={32} height={26} rx={8} style={{ fill, stroke, strokeWidth: sw }} />
+                  <ellipse cx={0} cy={-13} rx={9} ry={9} style={{ fill, stroke, strokeWidth: sw }} />
+                  <circle cx={-3.5} cy={-14} r={2.6} className="eye" />
+                  <circle cx={3.5} cy={-14} r={2.6} className="eye" />
+                </>
+              );
+            }
+            if (form === 'ooze') {
+              return (
+                <>
+                  <ellipse cx={0} cy={2} rx={20} ry={17} style={{ fill, stroke, strokeWidth: sw }} />
+                  <ellipse cx={0} cy={12} rx={22} ry={9} style={{ fill }} />
+                  <line x1={-18} y1={14} x2={-27} y2={24} className="tendril" />
+                  <line x1={18} y1={14} x2={27} y2={24} className="tendril" />
+                  <line x1={0} y1={20} x2={0} y2={32} className="tendril" />
+                  <circle cx={-7} cy={-3} r={3.2} className="eye" />
+                  <circle cx={7} cy={-3} r={3.2} className="eye" />
+                </>
+              );
+            }
+            return (
+              <>
+                <ellipse cx={0} cy={6} rx={13} ry={14} style={{ fill, stroke, strokeWidth: sw }} />
+                <rect x={-8} y={18} width={5} height={6} rx={1} style={{ fill }} />
+                <rect x={3} y={18} width={5} height={6} rx={1} style={{ fill }} />
+                <circle cx={-4.5} cy={1} r={2.8} className="eye" />
+                <circle cx={4.5} cy={1} r={2.8} className="eye" />
+              </>
+            );
+          })()}
+          {m.elite && <text x={0} y={-30} textAnchor="middle" className="crown">★</text>}
         </g>
       </g>
 
