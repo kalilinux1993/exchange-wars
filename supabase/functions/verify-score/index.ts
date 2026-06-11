@@ -15,9 +15,22 @@ import { SPRINT_MAX_COMMANDS, verifySprint } from './engine.js';
 
 const HUMAN_START_GP = 55_000; // must match packages/ui/src/game.ts
 
+// Browsers preflight cross-origin POSTs — without these headers the game's
+// fetch dies before the request is even sent ("Failed to send a request to
+// the Edge Function"). curl doesn't preflight, which is why API probes pass.
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 Deno.serve(async (req: Request): Promise<Response> => {
   const json = (status: number, body: unknown): Response =>
-    new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { 'Content-Type': 'application/json', ...CORS },
+    });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json(405, { error: 'method' });
 
   // Who is submitting? The game sends the user's JWT; no JWT, no entry.
