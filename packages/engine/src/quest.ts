@@ -153,11 +153,15 @@ export const CACHE_ITEM_CHANCE = 0.25;
 export const AMBUSH_CHANCE = 0.08;
 
 /** Region-tiered cache loot (indexed by min region; pools are cumulative-
- * exclusive — the deepest pool at or below your region applies). */
+ * exclusive — the deepest pool at or below your region applies).
+ * DESIGN RULE (FINDINGS #49): caches hold supplies — runes, food, coin —
+ * NEVER gear and never expensive exotics. Gear drops only from the monsters
+ * guarding it; when deep caches minted 15–19k gear at 25%/find, the optimal
+ * route was flee-everything cache farming. Risk pays; sneaking doesn't. */
 export const CACHE_LOOT: { minRegion: number; items: string[] }[] = [
-  { minRegion: 0, items: ['adamant_dart', 'law_rune', 'nature_rune'] },
-  { minRegion: 2, items: ['death_rune', 'blood_rune', 'cooked_karambwan'] },
-  { minRegion: 4, items: ['rune_full_helm', 'rune_battleaxe', 'shark'] },
+  { minRegion: 0, items: ['law_rune', 'nature_rune', 'cooked_karambwan'] },
+  { minRegion: 2, items: ['death_rune', 'blood_rune', 'shark'] },
+  { minRegion: 4, items: ['shark', 'cooked_karambwan', 'blood_rune'] },
 ];
 
 export function cachePool(regionIdx: number): string[] {

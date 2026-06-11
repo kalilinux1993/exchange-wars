@@ -244,9 +244,9 @@ var GAMBLE_STAKE = 100;
 var CACHE_ITEM_CHANCE = 0.25;
 var AMBUSH_CHANCE = 0.08;
 var CACHE_LOOT = [
-  { minRegion: 0, items: ["adamant_dart", "law_rune", "nature_rune"] },
-  { minRegion: 2, items: ["death_rune", "blood_rune", "cooked_karambwan"] },
-  { minRegion: 4, items: ["rune_full_helm", "rune_battleaxe", "shark"] }
+  { minRegion: 0, items: ["law_rune", "nature_rune", "cooked_karambwan"] },
+  { minRegion: 2, items: ["death_rune", "blood_rune", "shark"] },
+  { minRegion: 4, items: ["shark", "cooked_karambwan", "blood_rune"] }
 ];
 function cachePool(regionIdx) {
   let pool = CACHE_LOOT[0].items;

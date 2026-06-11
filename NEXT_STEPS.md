@@ -42,9 +42,9 @@ Design (account-light, static-site-friendly — Supabase):
 
 ## Phase 6k — DONE 2026-06-10 (tier-3 printer closed: vol ceiling 0.12 / cadence 4; gate magnitude ceiling 20×; FINDINGS #35)
 
-## RPG arc — queued (post phases 8k–8o, data in FINDINGS #45–#49)
-- **NEXT BRICK — cache loot redesign** (FINDINGS #49): deep caches mint 15–19k gear at 25%/cache, so flee-everything cache-farming out-earns fighting (5 rune full helms in a 14-kill run). Fix is design, not rates: cache pools hold consumables/runes/coin at every tier; gear drops ONLY from monsters. Re-measure with `npx tsx tools/audit-grind.ts` (honest marks now in place).
-- **Bestiary rebalance vs leveled fighters** (FINDINGS #48): monsters were tuned pre-levels; a mid-sprint fighter carries +14 atk from training alone. Candidates: deeper top-end regions, regional monster scaling. Measure AFTER the cache fix.
+## RPG arc — queued (post phases 8k–8p, data in FINDINGS #45–#50)
+- **NEXT BRICK — bestiary & loot vs the honest economy** (FINDINGS #50 has the mandate + input table): geared raiding is underwater — rune kit costs ~55k ask / liquidates ~35k bid (~20k spread toll) and 12–16 kills don't repay it. Goal: deep monster loot repays gear cost + spread + death risk with a premium; naked leveling stays viable but geared-deep should out-earn it. Levers: deep monster gp ranges, gear drop chances at depth, maybe a 7th region. Sweep with `npx tsx tools/audit-grind.ts`; also consider a smarter geared policy (the current one may under-fight at depth).
+- ~~Cache loot redesign~~ DONE phase 8p: supplies-only pools (gear comes from monsters); flee-route dead; naked leveling-fighter on top.
 - ~~Liquidation-value scoring~~ DONE phase 8o: bid-walk mark excluding own bids; UI playerWorth = engine netWorth (display and arbiter agree); all gates held.
 - Hitpoints level (maxHp growth from xp) — natural third stat once Attack/Defence prove out.
 - ~~Geared-grind measurement~~ DONE phase 8m: capital loop validated (median geared +16.6k vs naked +1–3.9k, depth 4–5); bones faucet nerfed 1→0.15.
