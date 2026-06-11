@@ -14,14 +14,23 @@ import { addAgent, createWorld, tickWorld } from '../packages/engine/src/sim';
 
 const START = 55_000;
 const DEBUG = process.argv.includes('--debug');
-const WISHLIST = ['rune_2h_sword', 'rune_platebody', 'rune_kiteshield', 'rune_full_helm', 'rune_platelegs'];
+// The full gear ladder, grouped by slot, strongest first. A sprint fighter
+// CLIMBS it — darts at level 1, staff at 7, rune mid-sprint — rather than
+// saving for rune kit he'll never qualify to wield (FINDINGS #51).
+const LADDER = new Map<string, { id: string; atk: number; def: number; req: number; weapon: boolean }[]>();
+for (const [id, g] of Object.entries(GEAR)) {
+  const list = LADDER.get(g.slot) ?? [];
+  list.push({ id, atk: g.atk, def: g.def, req: g.req, weapon: g.slot === 'weapon' });
+  LADDER.set(g.slot, list);
+}
+for (const list of LADDER.values()) list.sort((a, b) => b.atk + b.def - (a.atk + a.def));
 const FOOD_TARGET = 6;
 
 function grind(
   seed: number,
   restTo = 35,
   geared = false,
-): { worth: number; verified: number; deepest: number; kills: number; cmds: number; spent: number } {
+): { worth: number; verified: number; deepest: number; kills: number; cmds: number; spent: number; deaths: number } {
   const world = createWorld({ seed });
   const human = addAgent(world, 'player', START, {});
   human.policy = 'idle';
@@ -34,14 +43,19 @@ function grind(
     return true;
   };
   // Buy missing kit + food at the current ask (instant fill when crossing).
-  // One attempt per item per home visit — an audit policy, not a trading bot.
+  // QUALIFIED shopping: only buy gear you can already USE — paying the bid/ask
+  // spread at tick 0 for kit that stays inert until Attack 12-14 was suspect
+  // #1 for geared raiding measuring underwater (FINDINGS #50/#51).
   const shop = (): void => {
-    for (const id of WISHLIST) {
-      if ((human.inventory[id] ?? 0) > 0) continue;
-      const book = world.books[id];
+    const lv = levelsOf(human.combatXp);
+    for (const list of LADDER.values()) {
+      // Best USABLE rung this slot — buy it if it's an upgrade we don't own.
+      const target = list.find((e) => (e.weapon ? lv.atk : lv.def) >= e.req);
+      if (!target || (human.inventory[target.id] ?? 0) > 0) continue;
+      const book = world.books[target.id];
       const ask = book ? bestAsk(book) : null;
       if (!ask || ask.price > human.gp) continue;
-      issue({ type: 'place', itemId: id, side: 'buy', price: ask.price, qty: 1 });
+      issue({ type: 'place', itemId: target.id, side: 'buy', price: ask.price, qty: 1 });
     }
     const sharks = human.inventory['shark'] ?? 0;
     if (sharks < FOOD_TARGET) {
@@ -54,6 +68,7 @@ function grind(
   };
   let kills = 0;
   let spent = 0;
+  let deaths = 0;
   let guard = 0;
   while (log.length < SPRINT_MAX_COMMANDS - 5 && world.tick < SPRINT_TICKS && guard++ < 30_000) {
     const exp = human.expedition;
@@ -94,6 +109,7 @@ function grind(
         if (!issue({ type: 'fleeCombat' })) break;
       } else if (!issue({ type: 'fight' })) break;
       if ((world.stats.monstersSlain ?? 0) > beforeKills) kills++;
+      if (!human.expedition) deaths++; // the depths kept the body
       continue;
     }
     if (exp.event) {
@@ -128,6 +144,7 @@ function grind(
     kills,
     cmds: log.length,
     spent,
+    deaths,
   };
 }
 
@@ -147,7 +164,7 @@ for (const seed of [7, 42, 666, 1337, 2024]) {
   const g35 = grind(seed, 35, true);
   const t = trade(seed);
   const fmt = (r: ReturnType<typeof grind>): string =>
-    `${r.verified} (${r.kills}k d${r.deepest} ${r.cmds}c${r.spent ? ` spent ${r.spent}` : ''})`;
+    `${r.verified} (${r.kills}k d${r.deepest} ${r.deaths}† ${r.cmds}c${r.spent ? ` spent ${r.spent}` : ''})`;
   console.log(
     `seed ${seed}: naked15 ${fmt(naked)} · geared15 ${fmt(g15)} · geared35 ${fmt(g35)} | clerk ${t} | idle 55000`,
   );

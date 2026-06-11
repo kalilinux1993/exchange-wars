@@ -79,12 +79,20 @@ export const MONSTERS: MonsterDef[] = [
   { id: 'skeleton', name: 'Skeleton', hp: 22, atk: 7, def: 3, gp: [15, 60], drops: [{ itemId: 'law_rune', chance: 0.12 }] },
   { id: 'hill_giant', name: 'Hill giant', hp: 35, atk: 9, def: 4, gp: [40, 180], drops: [{ itemId: 'nature_rune', chance: 0.25 }, { itemId: 'death_rune', chance: 0.1 }] },
   { id: 'moss_giant', name: 'Moss giant', hp: 45, atk: 11, def: 6, gp: [60, 240], drops: [{ itemId: 'blood_rune', chance: 0.18 }] },
-  { id: 'lesser_demon', name: 'Lesser demon', hp: 70, atk: 16, def: 9, gp: [120, 450], drops: [{ itemId: 'death_rune', chance: 0.3 }, { itemId: 'rune_full_helm', chance: 0.03 }] },
-  { id: 'fire_giant', name: 'Fire giant', hp: 85, atk: 19, def: 11, gp: [180, 600], drops: [{ itemId: 'rune_battleaxe', chance: 0.04 }, { itemId: 'blood_rune', chance: 0.35 }] },
+  // Deep-tier reward design (FINDINGS #51): monster GP is an UNBOUNDED faucet
+  // — at real kill rates (~2 ticks/kill for a leveled fighter) any fat gp
+  // range prints. ITEM drops are market-bounded: the liquidation mark walks
+  // finite bid depth, so flooding the book caps itself. Deep monsters pay in
+  // goods, modest coin.
+  { id: 'lesser_demon', name: 'Lesser demon', hp: 70, atk: 16, def: 9, gp: [120, 360], drops: [{ itemId: 'death_rune', chance: 0.4 }, { itemId: 'rune_full_helm', chance: 0.1 }] },
+  { id: 'fire_giant', name: 'Fire giant', hp: 85, atk: 19, def: 11, gp: [150, 450], drops: [{ itemId: 'rune_battleaxe', chance: 0.12 }, { itemId: 'blood_rune', chance: 0.5 }] },
   // Bones at 0.15: a 16.7k-baseCost item at 100% made Maw farming a 29× sprint
   // printer (FINDINGS #47). EV ≈ 3.1k/kill keeps dragons the best farm without
   // printing; Vorkanth keeps his 100% — elites are the jackpot.
-  { id: 'green_dragon', name: 'Green dragon', hp: 110, atk: 24, def: 12, gp: [300, 900], dragonfire: true, drops: [{ itemId: 'superior_dragon_bones', chance: 0.15 }, { itemId: 'dragon_med_helm', chance: 0.01 }, { itemId: 'rune_kiteshield', chance: 0.05 }] },
+  // Bones at 0.25: measured CAP-BOUND — the TAS-route tail is set by bid
+  // depth (the market absorbs ~a dozen bones/sprint, the rest mark 0), so a
+  // lower rate only starves casual raiders without touching the tail.
+  { id: 'green_dragon', name: 'Green dragon', hp: 110, atk: 24, def: 12, gp: [200, 600], dragonfire: true, drops: [{ itemId: 'superior_dragon_bones', chance: 0.25 }, { itemId: 'dragon_med_helm', chance: 0.02 }, { itemId: 'rune_kiteshield', chance: 0.08 }] },
   // The named elite — never in a region pool; the Maw spawns him itself.
   { id: 'vorkanth', name: 'Vorkanth, Elder of the Maw', hp: 180, atk: 30, def: 16, gp: [1_500, 4_000], dragonfire: true, elite: true, drops: [{ itemId: 'superior_dragon_bones', chance: 1 }, { itemId: 'dragon_med_helm', chance: 0.25 }, { itemId: 'dragon_platelegs', chance: 0.15 }] },
 ];

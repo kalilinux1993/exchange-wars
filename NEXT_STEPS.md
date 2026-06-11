@@ -42,9 +42,11 @@ Design (account-light, static-site-friendly — Supabase):
 
 ## Phase 6k — DONE 2026-06-10 (tier-3 printer closed: vol ceiling 0.12 / cadence 4; gate magnitude ceiling 20×; FINDINGS #35)
 
-## RPG arc — queued (post phases 8k–8p, data in FINDINGS #45–#50)
-- **NEXT BRICK — bestiary & loot vs the honest economy** (FINDINGS #50 has the mandate + input table): geared raiding is underwater — rune kit costs ~55k ask / liquidates ~35k bid (~20k spread toll) and 12–16 kills don't repay it. Goal: deep monster loot repays gear cost + spread + death risk with a premium; naked leveling stays viable but geared-deep should out-earn it. Levers: deep monster gp ranges, gear drop chances at depth, maybe a 7th region. Sweep with `npx tsx tools/audit-grind.ts`; also consider a smarter geared policy (the current one may under-fight at depth).
-- ~~Cache loot redesign~~ DONE phase 8p: supplies-only pools (gear comes from monsters); flee-route dead; naked leveling-fighter on top.
+## RPG arc — queued (post phases 8k–8q, data in FINDINGS #45–#51)
+- **Encounter depletion** (structural kill-rate bound, FINDINGS #51): cleared regions run dry (monster encounter chance drops once cleared ≥ 3 in an expedition), bounding the TAS-route tail without rate nerfs. Pair with pricing startExpedition (a tick?) so the re-embark loop doesn't reset it for free.
+- ~~Bestiary & loot vs the honest economy~~ DONE phase 8q: ladder-climbing harness policy (the real fix), deep monsters pay goods-over-coin, market absorption caps the take. Table: naked +4–7k · geared −13k…+130k (deaths burn gear) · TAS tail 150–384k.
+- ~~Cache loot redesign~~ DONE phase 8p: supplies-only pools (gear comes from monsters); flee-route dead.
+- Content ideas: 7th region beyond the Maw (for 99-track fighters); region-flavored events; gear durability as a market sink; antifire as the dragon-farm key item (it's in CONSUMABLES already — make dragonfire bite harder?).
 - ~~Liquidation-value scoring~~ DONE phase 8o: bid-walk mark excluding own bids; UI playerWorth = engine netWorth (display and arbiter agree); all gates held.
 - Hitpoints level (maxHp growth from xp) — natural third stat once Attack/Defence prove out.
 - ~~Geared-grind measurement~~ DONE phase 8m: capital loop validated (median geared +16.6k vs naked +1–3.9k, depth 4–5); bones faucet nerfed 1→0.15.
