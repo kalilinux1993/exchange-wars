@@ -1,6 +1,7 @@
 import {
   CONSUMABLES,
   GEAR,
+  MONSTERS,
   REGION_CLEAR_KILLS,
   REGIONS,
   deriveStats,
@@ -91,6 +92,42 @@ export function ExpeditionPanel({
             tally: {st.monstersSlain ?? 0} slain · {st.cacheFinds ?? 0} caches · {st.diceWon ?? 0} dice won ·
             deepest {REGIONS[st.deepestRegion ?? 0]?.name ?? '—'}
           </p>
+        )}
+        {(st.monstersSlain ?? 0) > 0 && (
+          <details className="bestiary">
+            <summary className="dim small">
+              Bestiary ({Object.keys(st.killsByMonster ?? {}).length}/{MONSTERS.length} met)
+            </summary>
+            <ul className="rows small">
+              {MONSTERS.map((m) => {
+                const kills = st.killsByMonster?.[m.id] ?? 0;
+                if (kills === 0) {
+                  return (
+                    <li key={m.id} className="dim">
+                      <span>???</span>
+                      <span className="dim small">{m.elite ? 'a named terror, unmet' : 'unmet'}</span>
+                    </li>
+                  );
+                }
+                return (
+                  <li key={m.id}>
+                    <span>
+                      {m.elite ? '★ ' : ''}
+                      {m.name}
+                      {m.dragonfire ? ' 🔥' : ''}
+                    </span>
+                    <span className="dim small">
+                      {m.gp[0]}–{m.gp[1]} gp
+                      {m.drops.length > 0
+                        ? ` · drops ${m.drops.map((d) => `${(names.get(d.itemId) ?? d.itemId).toLowerCase()} ${Math.round(d.chance * 100)}%`).join(', ')}`
+                        : ''}
+                    </span>
+                    <span className="num">×{kills}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
         )}
         <ul className="rows small regions">
           {REGIONS.map((r, i) => (

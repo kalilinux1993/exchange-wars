@@ -122,6 +122,8 @@ export interface SimStats {
   diceWon?: number;
   /** Named elites felled. */
   eliteSlain?: number;
+  /** Kill tally per monster id (absent = none) — feeds the Bestiary codex. */
+  killsByMonster?: Record<string, number>;
 }
 
 /** A standing NPC buy-order at a premium — the realm's quartermaster pays

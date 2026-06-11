@@ -88,6 +88,9 @@ describe('expeditions', () => {
     expect(agent.expedition!.cleared).toBe(REGION_CLEAR_KILLS);
     expect(agent.questProgress).toBe(1); // sewers unlocked
     expect(state.stats.monstersSlain).toBe(REGION_CLEAR_KILLS);
+    // The bestiary tally agrees with the headline count, kill for kill.
+    const tallied = Object.values(state.stats.killsByMonster ?? {}).reduce((a, b) => a + b, 0);
+    expect(tallied).toBe(REGION_CLEAR_KILLS);
     expect(state.stats.deepestRegion).toBe(0); // never left the plains
     const gpBefore = agent.gp;
     const lootGp = agent.expedition!.packGp;

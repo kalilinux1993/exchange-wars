@@ -548,6 +548,24 @@ describe('UI shell', () => {
     expect(latched).not.toContain('dragon-slayer');
     game.world.ledger.itemsMinted['superior_dragon_bones'] = 1;
     expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('dragon-slayer');
+    // Stat deeds latch from trained levels (8v): xp for level 10 = 4 * 9².
+    game.world.agents[game.playerId]!.combatXp = { atk: 324, def: 324, hp: 323 };
+    const statDeeds = checkMilestones(game, view, 0).map((m) => m.id);
+    expect(statDeeds).toContain('swordhand');
+    expect(statDeeds).toContain('bulwark');
+    expect(statDeeds).not.toContain('iron-constitution'); // one xp short
+  });
+
+  it('the bestiary reveals monsters you have met and hides the rest', () => {
+    const game = newGame(42);
+    game.world.stats.monstersSlain = 5;
+    game.world.stats.killsByMonster = { goblin: 5 };
+    render(<App initial={game} />);
+    const panel = document.querySelector('.expedition') as HTMLElement;
+    expect(within(panel).getByText(/Bestiary \(1\//)).toBeTruthy();
+    expect(within(panel).getByText(/Goblin/)).toBeTruthy();
+    expect(within(panel).getByText('×5')).toBeTruthy();
+    expect(within(panel).getAllByText('???').length).toBeGreaterThan(0); // the unmet stay hidden
   });
 
   it('expeditions: regions render with locks; an empty-pack embark works fists-first', () => {

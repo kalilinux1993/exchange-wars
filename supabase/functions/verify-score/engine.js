@@ -1408,6 +1408,8 @@ function applyCommand(state, playerId, cmd) {
         exp.cleared += 1;
         exp.hp = c.playerHp;
         state.stats.monstersSlain = (state.stats.monstersSlain ?? 0) + 1;
+        const tally = state.stats.killsByMonster ??= {};
+        tally[c.monsterId] = (tally[c.monsterId] ?? 0) + 1;
         if (monsterById(c.monsterId).elite) {
           state.stats.eliteSlain = (state.stats.eliteSlain ?? 0) + 1;
         }

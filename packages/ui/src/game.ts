@@ -1,6 +1,6 @@
 // Game bootstrap + persistence. The human is an idle-policy player agent:
 // engine-inert unless automation is purchased, acting only via UI commands.
-import { addAgent, createWorld, EVENT_LABELS, netWorth, playerView, runTicks } from '@exchange-wars/engine';
+import { addAgent, createWorld, EVENT_LABELS, levelsOf, netWorth, playerView, runTicks } from '@exchange-wars/engine';
 import type { PlayerView, RunLogEntry, WorldEvent, WorldState } from '@exchange-wars/engine';
 
 export interface Game {
@@ -309,6 +309,27 @@ export const MILESTONES: Milestone[] = [
     flavor: 'You stepped through the Inferno Gate. The air noticed.',
     // Region index 6 = The Inferno Gate (entered, not just unlocked).
     achieved: (g) => (g.world.stats.deepestRegion ?? 0) >= 6,
+  },
+  {
+    id: 'swordhand',
+    name: 'Swordhand',
+    flavor: 'Attack 10. The blade no longer argues.',
+    achieved: (g) => levelsOf(g.world.agents[g.playerId]?.combatXp).atk >= 10,
+    progress: (g) => levelsOf(g.world.agents[g.playerId]?.combatXp).atk / 10,
+  },
+  {
+    id: 'bulwark',
+    name: 'Bulwark',
+    flavor: 'Defence 10. Things bounce off you now.',
+    achieved: (g) => levelsOf(g.world.agents[g.playerId]?.combatXp).def >= 10,
+    progress: (g) => levelsOf(g.world.agents[g.playerId]?.combatXp).def / 10,
+  },
+  {
+    id: 'iron-constitution',
+    name: 'Iron Constitution',
+    flavor: 'Hitpoints 10. You have opinions about pain now, and they are dismissive.',
+    achieved: (g) => levelsOf(g.world.agents[g.playerId]?.combatXp).hp >= 10,
+    progress: (g) => levelsOf(g.world.agents[g.playerId]?.combatXp).hp / 10,
   },
   {
     id: 'dragon-slayer',
