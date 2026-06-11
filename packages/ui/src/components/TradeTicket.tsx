@@ -72,6 +72,12 @@ export function TradeTicket({
           {market?.buyRemaining !== null && market?.buyRemaining !== undefined
             ? ` · buy limit left ${market.buyRemaining.toLocaleString('en-US')}`
             : ''}
+          {' · '}
+          {def.volatility >= 0.13
+            ? 'exotic — human-only'
+            : def.volatility >= 0.12
+              ? 'big staple — senior clerks'
+              : 'staple — all clerks'}
         </p>
       )}
       {eventNote && <p className="warn small">{eventNote}</p>}

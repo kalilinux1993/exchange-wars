@@ -502,6 +502,17 @@ describe('UI shell', () => {
     expect(screen.getByText(/craze active — ends in ~450 ticks/)).toBeTruthy(); // ticket (FIRST selected by default)
   });
 
+  it('the ticket names the selected item band; Big Leagues latches on a 0.12-band fill', () => {
+    const game = newGame(42);
+    render(<App initial={game} />);
+    expect(screen.getByText(/staple — all clerks/)).toBeTruthy(); // FIRST is cheap
+    const big = DEFAULT_ITEMS.find((i) => i.volatility >= 0.12 && i.volatility < 0.13);
+    expect(big).toBeTruthy(); // the ladder guarantees a big-staple band
+    game.fills.push({ tick: 5, itemId: big!.id, side: 'buy', qty: 1, price: 5_000 });
+    const view = playerView(game.world, game.playerId)!;
+    expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('big-leagues');
+  });
+
   it('new deeds latch: Gold Baron, Exotic Taste, Quartermaster General, Storm Trader', () => {
     const game = newGame(42);
     const view = () => playerView(game.world, game.playerId)!;

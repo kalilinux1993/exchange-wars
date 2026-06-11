@@ -255,6 +255,17 @@ export const MILESTONES: Milestone[] = [
     progress: (g) => (g.world.stats.contractsFilled ?? 0) / 10,
   },
   {
+    id: 'big-leagues',
+    name: 'Big Leagues',
+    flavor: 'A heavyweight flip — the senior clerks nod.',
+    // A fill in the big-staple band (the ladder's 0.12 tier — ≥5k-gp goods).
+    achieved: (g) =>
+      g.fills.some((f) => {
+        const v = g.world.items.find((i) => i.id === f.itemId)?.volatility ?? 0;
+        return v >= 0.12 && v < 0.13;
+      }),
+  },
+  {
     id: 'storm-rider',
     name: 'Storm Trader',
     flavor: 'You traded into the storm and lived.',

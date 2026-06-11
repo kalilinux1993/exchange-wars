@@ -1,5 +1,10 @@
 # Dev Guide
 
+## Phase 7d — Band Visibility & Big Leagues Deed (2026-06-10)
+
+- **Ticket band tag**: the wiki-snapshot line now names the selected item's band — "staple — all clerks" (≤0.10) / "big staple — senior clerks" (0.12) / "exotic — human-only" (0.13) — making the risk select's vocabulary visible per item.
+- **Big Leagues deed** (16th): latches on your first fill in the 0.12 band (fills × defs join, storm-rider pattern).
+
 ## Phase 7c — Clerk Orders Speak the Ladder (2026-06-10)
 
 - **Risk select realigned** (UpgradeShop): tier max / "no big staples (≤10%)" / "cheap goods only (≤9%)" — the pre-ladder ≤8%/≤6% options were strategically meaningless after 7b. Selecting ≤10% on a tier-2/3 clerk now expresses a real choice: skip the ≥5k staple band.
