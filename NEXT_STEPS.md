@@ -6,7 +6,7 @@ Deploy: push to main → CI (typecheck + vitest + e2e) auto-deploys Pages. Verif
 Through brick 59 (10g): RPG layer (8 regions, stats/xp, brews, bounties, sellsword, death ward, 8 event faces), OSRS HUD (map/paperdoll/combat-scene with monster silhouettes + gear-reactive fighter/combat-level/titles), trading cockpit (movers/watchlist/alerts/pulse/sparkline/almanac/abort-all), robustness (error boundary + corrupt-save quarantine), art pipeline. Details in `.phases/` + DEV_GUIDE consolidations (8h–9f, 9g–9w, 9y–10g) + FINDINGS #1–#93.
 
 ## Queued candidates (rough priority)
-- **POPULATE ART**: skill icons (9n) + item category icons (10o: potion/food/rune/bone via `itemIcon`) are original SVGs in place. Remaining: monster/region icons; or Jesse drops game-icons.net (CC BY)/CC0 SVGs (same filename overrides the originals — naming in folder README, credit in CREDITS.md). Auto-fetch impossible (WebFetch strips SVG paths).
+- **ART status**: skill icons (9n), item category icons (10o), monster portraits in the bestiary (10p — shared MonsterBody) all original SVG. Remaining: region icons on the map; or Jesse drops game-icons.net (CC BY)/CC0 SVGs (same filename overrides item-*/skill-* originals). Auto-fetch impossible (WebFetch strips SVG paths).
 - **HUD depth**: richer paperdoll (per-item silhouettes); inventory/equipment grid; OSRS-style icon sub-tabs if a room crowds.
 - **Trading**: ~~suggested-flip margin line~~ DONE 10j; ~~fair-value band~~ DONE 10m (cheap/fair/rich vs cost→value); sparkline in market-table rows.
 - **Robustness**: UI to restore/export a quarantined save on next boot; guard monsterById/itemDef at UI read sites; 100k-tick determinism gate in a CI-only suite.

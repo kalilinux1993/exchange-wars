@@ -17,6 +17,7 @@ import { usePref } from '../usePref';
 import { CharacterPanel } from './CharacterPanel';
 import { CombatScene } from './CombatScene';
 import { Icon, itemIcon } from './Icon';
+import { MonsterGlyph } from './MonsterBody';
 import { RegionMap } from './RegionMap';
 
 /**
@@ -143,7 +144,7 @@ export function ExpeditionPanel({
                 return (
                   <li key={m.id}>
                     <span>
-                      {m.elite ? '★ ' : ''}
+                      <MonsterGlyph monsterId={m.id} size={22} />{' '}
                       {m.name}
                       {m.dragonfire ? ' 🔥' : ''}
                     </span>

@@ -925,6 +925,7 @@ describe('UI shell', () => {
     expect(within(panel).getByText(/Bestiary \(1\//)).toBeTruthy();
     expect(within(panel).getByText(/Goblin/)).toBeTruthy();
     expect(within(panel).getByText('×5')).toBeTruthy();
+    expect(panel.querySelector('.monsterglyph')).toBeTruthy(); // met monsters show a portrait
     expect(within(panel).getAllByText('???').length).toBeGreaterThan(0); // the unmet stay hidden
   });
 

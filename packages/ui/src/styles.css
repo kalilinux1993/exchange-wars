@@ -1033,6 +1033,9 @@ th.num {
 .itemicon {
   vertical-align: -2px;
 }
+.monsterglyph {
+  vertical-align: -6px;
+}
 .pulse {
   display: inline-flex;
   align-items: center;
