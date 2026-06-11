@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 8x — The Field Manual (2026-06-11)
+
+58. **The guide was lying to players — docs drift in shipped UIs is a bug class, not a chore.** The help overlay still said "10k-tick sprint" (it's been 2,000 since the Edge-budget measurement in #42) and taught none of the last ten systems. Fix plus prevention: the overlay now IMPORTS SPRINT_TICKS instead of hand-writing the number — any constant a player-facing surface quotes should be the constant, not a copy. README got the same pass (7 regions, training, fire country, honest scoring, quest.ts/replay.ts in the tree). Rule for the loop: a content brick isn't done until the guide knows about it — adding "guide current?" to the mental end-phase checklist.
+
 ## Phase 8w — Sell the Spoils (2026-06-11)
 
 57. **The honest mark turned out to be a UX spec.** "What would the bids pay right now" (FINDINGS #49) became a button: bidWalk computes the walkable quantity against resting bids (excluding your own), and a sell placed at the WALK'S FLOOR price fills the entire walkable stack instantly — no resting residue, no slot consumed, gp in hand. One chip per satchel row plus a "sell the spoils" sweep, each sale a normal logged place command (replayable, leaderboard-legal). The satchel's value line switched from lastPrice fantasy to bids-pay reality, so the inventory panel, the purse, and the verifier now all speak the same number. Bonus: Monster Scholar deed (every bestiary page written). The general lesson pairs with #56: once scoring is honest, the honest computation IS the feature — valuation, the sell price, and the displayed number are one function viewed three ways.
