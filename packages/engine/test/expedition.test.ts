@@ -22,6 +22,7 @@ function fixture(seed = 1): { state: WorldState; id: number } {
       { id: 'death_rune', name: 'Death rune', baseCost: 138, consumeValue: 276, volatility: 0.09 },
       { id: 'blood_rune', name: 'Blood rune', baseCost: 227, consumeValue: 455, volatility: 0.09 },
       { id: 'superior_dragon_bones', name: 'Superior dragon bones', baseCost: 16737, consumeValue: 33474, volatility: 0.13 },
+      { id: 'super_antifire_potion_4', name: 'Super antifire potion(4)', baseCost: 17250, consumeValue: 34500, volatility: 0.13 },
       { id: 'dragon_med_helm', name: 'Dragon med helm', baseCost: 43949, consumeValue: 87898, volatility: 0.13 },
       { id: 'rune_full_helm', name: 'Rune full helm', baseCost: 15464, consumeValue: 30929, volatility: 0.13 },
       { id: 'rune_battleaxe', name: 'Rune battleaxe', baseCost: 18643, consumeValue: 37286, volatility: 0.13 },
@@ -38,6 +39,7 @@ function fixture(seed = 1): { state: WorldState; id: number } {
     rune_platebody: 1,
     rune_kiteshield: 1,
     shark: 8,
+    super_antifire_potion_4: 2,
   });
   a.policy = 'idle';
   return { state, id: a.id };
@@ -301,6 +303,40 @@ describe('expeditions', () => {
       }
     }
     expect(met).toBe(true); // 10% per Maw monster across 100 seeds × 6 steps
+  });
+
+  it('one potion coats the whole dive: antifire persists across fights, dies with extract', () => {
+    const { state, id } = fixture(7);
+    const agent = state.agents[id]!;
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: { super_antifire_potion_4: 1, shark: 2 } });
+    const toCombat = (): boolean => {
+      let guard = 0;
+      while (agent.expedition && !agent.expedition.combat && guard++ < 60) {
+        if (agent.expedition.event) ok(state, id, { type: 'choose', accept: false });
+        else ok(state, id, { type: 'advance' });
+      }
+      return !!agent.expedition?.combat;
+    };
+    expect(toCombat()).toBe(true);
+    expect(agent.expedition!.combat!.antifire).toBe(false); // no coating yet
+    ok(state, id, { type: 'eatFood', itemId: 'super_antifire_potion_4' });
+    expect(agent.expedition!.antifire).toBe(true); // the dive is coated
+    expect(state.ledger.itemsBurned['super_antifire_potion_4']).toBe(1);
+    // Settle this fight (win, lose the test's premise, or flee), then the NEXT
+    // combat must start pre-coated.
+    let guard = 0;
+    while (agent.expedition?.combat && guard++ < 60) ok(state, id, { type: 'fight' });
+    if (agent.expedition) {
+      if (toCombat()) expect(agent.expedition!.combat!.antifire).toBe(true); // seeded from the dive
+      // Coming home scrubs the coating: a fresh dive needs a fresh potion.
+      while (agent.expedition?.combat && guard++ < 120) ok(state, id, { type: 'fight' });
+      if (agent.expedition && !agent.expedition.combat) {
+        while (agent.expedition.event) ok(state, id, { type: 'choose', accept: false });
+        ok(state, id, { type: 'extract' });
+        ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+        expect(agent.expedition!.antifire ?? false).toBe(false);
+      }
+    }
   });
 
   it('combat trains you: damage dealt = Attack xp, damage taken = Defence xp', () => {

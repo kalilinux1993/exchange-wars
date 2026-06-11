@@ -159,6 +159,7 @@ export function ExpeditionPanel({
         atk {stats.atk} · def {stats.def} · cleared {exp.cleared}
         {regionIndex(exp.regionId) === progress ? `/${REGION_CLEAR_KILLS} to unlock the next region` : ''} · loot{' '}
         {exp.packGp.toLocaleString('en-US')} gp
+        {exp.antifire ? ' · 🛡🔥 antifire holds for this dive' : ''}
       </p>
       <div className="hpbar" title="your hp">
         <div className="hpfill" style={{ width: `${hpPct}%` }} />

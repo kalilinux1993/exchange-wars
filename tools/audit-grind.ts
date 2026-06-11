@@ -8,7 +8,7 @@ import { applyCommand } from '../packages/engine/src/commands';
 import type { PlayerCommand } from '../packages/engine/src/commands';
 import { bestAsk } from '../packages/engine/src/exchange';
 import { netWorth } from '../packages/engine/src/report';
-import { CONSUMABLES, deriveStats, GEAR, levelsOf, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS } from '../packages/engine/src/quest';
+import { CONSUMABLES, deriveStats, GEAR, levelsOf, monsterById, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS } from '../packages/engine/src/quest';
 import { SPRINT_MAX_COMMANDS, SPRINT_TICKS, verifySprint, type RunLogEntry } from '../packages/engine/src/replay';
 import { addAgent, createWorld, tickWorld } from '../packages/engine/src/sim';
 
@@ -65,6 +65,14 @@ function grind(
         issue({ type: 'place', itemId: 'shark', side: 'buy', price: ask.price, qty: FOOD_TARGET - sharks });
       }
     }
+    // Maw logistics: dragonfire pierces armor — one potion coats a dive (8r).
+    if ((human.questProgress ?? 0) >= REGIONS.length - 1 && (human.inventory['super_antifire_potion_4'] ?? 0) < 1) {
+      const book = world.books['super_antifire_potion_4'];
+      const ask = book ? bestAsk(book) : null;
+      if (ask && ask.price <= human.gp) {
+        issue({ type: 'place', itemId: 'super_antifire_potion_4', side: 'buy', price: ask.price, qty: 1 });
+      }
+    }
   };
   let kills = 0;
   let spent = 0;
@@ -89,8 +97,13 @@ function grind(
           if (q > 0) pack[id] = q;
         }
       }
-      const frontier = Math.min(human.questProgress ?? 0, REGIONS.length - 1);
-      if (!issue({ type: 'startExpedition', regionId: REGIONS[frontier]!.id, pack })) break;
+      // Region selection: the Maw (dragonfire + Vorkanth roulette) is for
+      // raiders holding antifire; everyone else farms the wilderness (8r).
+      let target = Math.min(human.questProgress ?? 0, REGIONS.length - 1);
+      if (target === REGIONS.length - 1 && (human.inventory['super_antifire_potion_4'] ?? 0) < 1) {
+        target = REGIONS.length - 2;
+      }
+      if (!issue({ type: 'startExpedition', regionId: REGIONS[target]!.id, pack })) break;
       continue;
     }
     if (exp.combat) {
@@ -100,10 +113,13 @@ function grind(
       const fleeList = armed
         ? ['vorkanth']
         : ['lesser_demon', 'fire_giant', 'green_dragon', 'vorkanth', 'moss_giant'];
-      const dangerous = fleeList.includes(exp.combat.monsterId);
+      const breath = monsterById(exp.combat.monsterId).dragonfire === true && !(exp.antifire ?? false);
+      const dangerous = fleeList.includes(exp.combat.monsterId) || breath;
       const canEat = (exp.pack['shark'] ?? 0) > 0;
       const eatAt = armed ? 25 : 18;
-      if (exp.combat.playerHp < eatAt && canEat) {
+      if (breath && (exp.pack['super_antifire_potion_4'] ?? 0) > 0) {
+        if (!issue({ type: 'eatFood', itemId: 'super_antifire_potion_4' })) break; // coat the dive
+      } else if (exp.combat.playerHp < eatAt && canEat) {
         if (!issue({ type: 'eatFood', itemId: 'shark' })) break;
       } else if (dangerous || (exp.combat.playerHp < 12 && !canEat)) {
         if (!issue({ type: 'fleeCombat' })) break;

@@ -197,6 +197,10 @@ export interface ExpeditionState {
   event?: EventState | null;
   /** Field journal — what happened between fights (UI narration). */
   journal?: string[];
+  /** Antifire coating lasts the whole dive (absent = none): every combat this
+   * expedition starts with it active. Dies with extract/death — next dive
+   * needs a fresh potion. The dragon-farm entry ticket (8r). */
+  antifire?: boolean;
 }
 
 export interface FighterStats {
@@ -272,13 +276,14 @@ export function monsterById(id: string): MonsterDef {
   return m;
 }
 
-export function newCombat(monsterId: string, playerHp: number, intro?: string): CombatState {
+export function newCombat(monsterId: string, playerHp: number, intro?: string, antifire = false): CombatState {
   const m = monsterById(monsterId);
   return {
     monsterId,
     monsterHp: m.hp,
     playerHp,
-    antifire: false,
+    // Seeded from the expedition: one potion covers the whole dive (8r).
+    antifire,
     outcome: 'fighting',
     lootGp: 0,
     lootItems: [],
@@ -351,12 +356,21 @@ export function resolveRound(
     }
   }
 
-  // The monster answers.
+  // The monster answers. Dragonfire is breath, not steel: armor doesn't stop
+  // it (+ceil(atk/2) on every landed hit) — only antifire does, completely.
+  // "Bring antifire or bring regrets" is now a rule, not a flavor line.
   if (rng.chance(hitChance(m.atk, stats.def))) {
     let dmg = damage(rng, m.atk, stats.def);
-    if (m.dragonfire && state.antifire) dmg = Math.max(1, Math.floor(dmg / 2));
+    let note = '';
+    if (m.dragonfire) {
+      if (state.antifire) note = ' (antifire holds)';
+      else {
+        dmg += Math.ceil(m.atk / 2);
+        note = ' — searing breath!';
+      }
+    }
     state.playerHp -= dmg;
-    state.log.push(`the ${m.name} hits you for ${dmg}${m.dragonfire && state.antifire ? ' (antifire holds)' : ''}`);
+    state.log.push(`the ${m.name} hits you for ${dmg}${note}`);
   } else {
     state.log.push(`you dodge the ${m.name}`);
   }

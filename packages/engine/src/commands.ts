@@ -317,14 +317,15 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       const journal = (exp.journal ??= []);
       if (roll < ENCOUNTERS.monster) {
         const rIdx = regionIndex(exp.regionId);
+        const af = exp.antifire ?? false;
         if (rIdx === REGIONS.length - 1 && rng.chance(ELITE_CHANCE)) {
-          exp.combat = newCombat('vorkanth', exp.hp, 'the ground shakes — VORKANTH, ELDER OF THE MAW, descends!');
+          exp.combat = newCombat('vorkanth', exp.hp, 'the ground shakes — VORKANTH, ELDER OF THE MAW, descends!', af);
         } else if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
           const deeper = REGIONS[rIdx + 1]!;
           const beast = rng.pick(deeper.monsters);
-          exp.combat = newCombat(beast, exp.hp, `AMBUSH — a ${monsterById(beast).name} from ${deeper.name} crosses your path!`);
+          exp.combat = newCombat(beast, exp.hp, `AMBUSH — a ${monsterById(beast).name} from ${deeper.name} crosses your path!`, af);
         } else {
-          exp.combat = newCombat(rng.pick(region.monsters), exp.hp);
+          exp.combat = newCombat(rng.pick(region.monsters), exp.hp, undefined, af);
         }
       } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache) {
         // A stash in the dark — coin, and sometimes goods (minted like drops).
@@ -412,6 +413,9 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       if (action.kind === 'eat') {
         exp.pack[action.itemId] = exp.pack[action.itemId]! - 1;
         state.ledger.itemsBurned[action.itemId] = (state.ledger.itemsBurned[action.itemId] ?? 0) + 1;
+        // One potion coats you for the whole dive (every later combat seeds
+        // from this flag); it dies with the expedition.
+        if (CONSUMABLES[action.itemId]?.antifire) exp.antifire = true;
       }
       const rng = createRng(exp.rngState);
       const lvBefore = levelsOf(agent.combatXp);

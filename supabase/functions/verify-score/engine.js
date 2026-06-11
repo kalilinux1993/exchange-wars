@@ -294,13 +294,14 @@ function monsterById(id) {
   if (!m) throw new Error(`unknown monster ${id}`);
   return m;
 }
-function newCombat(monsterId, playerHp, intro) {
+function newCombat(monsterId, playerHp, intro, antifire = false) {
   const m = monsterById(monsterId);
   return {
     monsterId,
     monsterHp: m.hp,
     playerHp,
-    antifire: false,
+    // Seeded from the expedition: one potion covers the whole dive (8r).
+    antifire,
     outcome: "fighting",
     lootGp: 0,
     lootItems: [],
@@ -354,9 +355,16 @@ function resolveRound(state, stats, action, rng) {
   }
   if (rng.chance(hitChance(m.atk, stats.def))) {
     let dmg = damage(rng, m.atk, stats.def);
-    if (m.dragonfire && state.antifire) dmg = Math.max(1, Math.floor(dmg / 2));
+    let note = "";
+    if (m.dragonfire) {
+      if (state.antifire) note = " (antifire holds)";
+      else {
+        dmg += Math.ceil(m.atk / 2);
+        note = " \u2014 searing breath!";
+      }
+    }
     state.playerHp -= dmg;
-    state.log.push(`the ${m.name} hits you for ${dmg}${m.dragonfire && state.antifire ? " (antifire holds)" : ""}`);
+    state.log.push(`the ${m.name} hits you for ${dmg}${note}`);
   } else {
     state.log.push(`you dodge the ${m.name}`);
   }
@@ -1215,14 +1223,15 @@ function applyCommand(state, playerId, cmd) {
       const journal = exp.journal ??= [];
       if (roll < ENCOUNTERS.monster) {
         const rIdx = regionIndex(exp.regionId);
+        const af = exp.antifire ?? false;
         if (rIdx === REGIONS.length - 1 && rng.chance(ELITE_CHANCE)) {
-          exp.combat = newCombat("vorkanth", exp.hp, "the ground shakes \u2014 VORKANTH, ELDER OF THE MAW, descends!");
+          exp.combat = newCombat("vorkanth", exp.hp, "the ground shakes \u2014 VORKANTH, ELDER OF THE MAW, descends!", af);
         } else if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
           const deeper = REGIONS[rIdx + 1];
           const beast = rng.pick(deeper.monsters);
-          exp.combat = newCombat(beast, exp.hp, `AMBUSH \u2014 a ${monsterById(beast).name} from ${deeper.name} crosses your path!`);
+          exp.combat = newCombat(beast, exp.hp, `AMBUSH \u2014 a ${monsterById(beast).name} from ${deeper.name} crosses your path!`, af);
         } else {
-          exp.combat = newCombat(rng.pick(region.monsters), exp.hp);
+          exp.combat = newCombat(rng.pick(region.monsters), exp.hp, void 0, af);
         }
       } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache) {
         const rIdx = regionIndex(exp.regionId);
@@ -1307,6 +1316,7 @@ function applyCommand(state, playerId, cmd) {
       if (action.kind === "eat") {
         exp.pack[action.itemId] = exp.pack[action.itemId] - 1;
         state.ledger.itemsBurned[action.itemId] = (state.ledger.itemsBurned[action.itemId] ?? 0) + 1;
+        if (CONSUMABLES[action.itemId]?.antifire) exp.antifire = true;
       }
       const rng = createRng(exp.rngState);
       const lvBefore = levelsOf(agent.combatXp);

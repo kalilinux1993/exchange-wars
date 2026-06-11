@@ -8,6 +8,7 @@ import {
   levelFor,
   levelsOf,
   MONSTERS,
+  monsterById,
   newCombat,
   PLAYER_BASE,
   resolveRound,
@@ -103,7 +104,35 @@ describe('expeditions combat core', () => {
     expect(d.playerHp).toBe(0);
   });
 
-  it('eating heals (capped) and antifire halves dragonfire', () => {
+  it('dragonfire is breath, not steel: armor cannot stop it — antifire negates it exactly', () => {
+    // Identical seed and actions on both sides; the only difference is the
+    // antifire flag, so the damage gap IS the fire component, to the point.
+    const dmgTaken = (antifire: boolean): number => {
+      const rng = createRng(11);
+      const c = newCombat('green_dragon', PLAYER_BASE.maxHp, undefined, antifire);
+      let guard = 0;
+      while (c.playerHp === PLAYER_BASE.maxHp && c.outcome === 'fighting' && guard++ < 30) {
+        resolveRound(c, deriveStats({}), { kind: 'fight' }, rng);
+      }
+      return PLAYER_BASE.maxHp - c.playerHp;
+    };
+    const burned = dmgTaken(false);
+    const coated = dmgTaken(true);
+    expect(burned - coated).toBe(Math.ceil(monsterById('green_dragon').atk / 2));
+    // Non-dragons are untouched by the flag (same construction, same rolls).
+    const plain = (antifire: boolean): number => {
+      const rng = createRng(3);
+      const c = newCombat('goblin', PLAYER_BASE.maxHp, undefined, antifire);
+      let guard = 0;
+      while (c.playerHp === PLAYER_BASE.maxHp && c.outcome === 'fighting' && guard++ < 30) {
+        resolveRound(c, deriveStats({}), { kind: 'fight' }, rng);
+      }
+      return PLAYER_BASE.maxHp - c.playerHp;
+    };
+    expect(plain(false)).toBe(plain(true));
+  });
+
+  it('eating heals (capped) and antifire flips the combat flag', () => {
     const rng = createRng(99);
     const stats = deriveStats({ rune_platebody: 1, rune_kiteshield: 1, dragon_platelegs: 1, rune_full_helm: 1 }, { atk: 1, def: 18 });
     const c = newCombat('green_dragon', 30);
