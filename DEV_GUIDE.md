@@ -1,5 +1,12 @@
 # Dev Guide
 
+## Phase 8a — Combat Core (2026-06-11, Expeditions arc brick 1)
+
+- **The RPG arc begins** (Jesse picked "Expeditions on the live market"; design decisions in the phase file: turn-per-command menu combat, death keeps 3 most valuable items, node-graph map, per-expedition RNG stream so the market never re-rolls).
+- **packages/engine/src/quest.ts**: `GEAR`/`CONSUMABLES` (curated REAL catalog ids — rune/dragon armory, sharks, antifire), `MONSTERS` (8-monster bestiary, giant rat → green dragon, loot tables of real item ids incl. 100% superior dragon bones), `deriveStats` (best-per-slot from the pack), `newCombat`/`resolveRound` (hit chance 0.55+0.02×(atk−def) clamped [0.15,0.95]; damage rng.int(⌈atk/3⌉,atk)−⌊def/4⌋ min 1; flee 0.6; dragonfire halved by antifire). Pure, RNG-injected, plain JSON.
+- **Gate** (quest.test.ts): every referenced id exists in the catalog; stat derivation; full-fight determinism; geared-beats-goblin / fists-die-to-dragon; heal caps + antifire latch; flee both branches; loot seed-stability.
+- Next bricks: 8b expedition state machine + map + applyCommand/ledger integration; 8c Expedition UI; 8d deeds/boards.
+
 ## Phase 7i — Leaderboards DEPLOYED (2026-06-11)
 
 - **The whole backend went live via Jesse's access token** (management API): leaderboard table created (201), Auth Site URL fixed `localhost:3000` → the live game URL (magic links now land correctly), `verify-score` deployed via CLI (API bundling; Docker not needed). Verified: board reads 200 `[]` publicly; the function 401s non-user JWTs.

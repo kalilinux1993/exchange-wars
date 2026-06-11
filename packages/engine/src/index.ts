@@ -10,5 +10,6 @@ export * from './sim';
 export * from './report';
 export * from './commands';
 export * from './harness';
+export * from './quest';
 export * from './replay';
 export { actAgent, TUNING } from './agents';
