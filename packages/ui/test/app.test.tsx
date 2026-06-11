@@ -14,6 +14,7 @@ import { ghostWorthAt } from '../src/components/WorthChart';
 import { chooseSave, sanitizeHandle, type Session } from '../src/cloud';
 import {
   applyOfflineProgress,
+  bumpStreak,
   checkMilestones,
   dailySeed,
   deathRecap,
@@ -290,6 +291,50 @@ describe('UI shell', () => {
     unmount();
     render(<App initial={newGame(42)} />); // a plain seed is never the 8-digit daily
     expect(screen.queryByText('🗓 today')).toBeNull();
+  });
+
+  describe('bumpStreak', () => {
+    it('starts a fresh streak at 1 (no prior record)', () => {
+      expect(bumpStreak(null, 20260611)).toEqual({ count: 1, lastDay: 20260611, best: 1 });
+    });
+    it('is idempotent within the same UTC day (returns the same reference)', () => {
+      const prev = { count: 3, lastDay: 20260611, best: 5 };
+      expect(bumpStreak(prev, 20260611)).toBe(prev); // same ref → caller skips the write
+    });
+    it('increments on consecutive days and tracks the best', () => {
+      expect(bumpStreak({ count: 3, lastDay: 20260611, best: 3 }, 20260612)).toEqual({
+        count: 4,
+        lastDay: 20260612,
+        best: 4,
+      });
+    });
+    it('counts month and year rollovers as a single day', () => {
+      expect(bumpStreak({ count: 2, lastDay: 20260531, best: 2 }, 20260601).count).toBe(3);
+      expect(bumpStreak({ count: 9, lastDay: 20251231, best: 9 }, 20260101).count).toBe(10);
+    });
+    it('resets to 1 after a skipped day but preserves the best', () => {
+      expect(bumpStreak({ count: 7, lastDay: 20260611, best: 7 }, 20260613)).toEqual({
+        count: 1,
+        lastDay: 20260613,
+        best: 7,
+      });
+    });
+    it('resets if the day somehow goes backwards', () => {
+      expect(bumpStreak({ count: 4, lastDay: 20260611, best: 4 }, 20260610).count).toBe(1);
+    });
+  });
+
+  it('lights the streak ember on the daily and persists it', () => {
+    render(<App initial={newGame(dailySeed())} />);
+    expect(screen.getByText('🔥 1')).toBeTruthy(); // effect bumped null → count 1
+    const saved = JSON.parse(localStorage.getItem('ew-daily-streak')!) as { count: number };
+    expect(saved.count).toBe(1);
+    expect(screen.queryByText(/🔥/)).toBeTruthy();
+  });
+
+  it('shows no streak ember off the daily', () => {
+    render(<App initial={newGame(42)} />);
+    expect(screen.queryByText(/🔥/)).toBeNull();
   });
 
   it('a #seed link starts fresh visitors on that seed directly', () => {

@@ -97,6 +97,21 @@ body {
   }
 }
 
+/* daily-streak ember — pairs with .dailytag, only shown while on the daily. */
+.streaktag {
+  align-self: center;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #ffd9a8;
+  background: linear-gradient(180deg, #c2410c, #7a2208 80%);
+  border: 1px solid #f97316;
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  cursor: default;
+}
+
 .label {
   color: var(--parchment-dim);
   font-size: 0.72rem;

@@ -22,6 +22,7 @@ import { TradeTicket } from './components/TradeTicket';
 import { UpgradeShop } from './components/UpgradeShop';
 import { WorthChart } from './components/WorthChart';
 import {
+  bumpStreak,
   checkMilestones,
   finishOfflineProgress,
   dailySeed,
@@ -39,6 +40,7 @@ import {
   recordWorth,
   saveGame,
   updateNews,
+  type DailyStreak,
   type Game,
   type Milestone,
   type OfflinePlan,
@@ -91,6 +93,7 @@ export function App({ initial }: { initial?: Game }) {
     setWatch(watch.includes(id) ? watch.filter((x) => x !== id) : [...watch, id]);
   };
   const [alerts, setAlerts] = usePref<Record<string, number>>('ew-alerts', {});
+  const [streak, setStreak] = usePref<DailyStreak | null>('ew-daily-streak', null);
   const alertFired = useRef<Set<string>>(new Set());
   const setAlert = (id: string, price: number | null): void => {
     const next = { ...alerts };
@@ -195,6 +198,16 @@ export function App({ initial }: { initial?: Game }) {
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catchUp]);
+
+  // Daily streak: whenever the active world IS today's daily, count it. bumpStreak
+  // is idempotent per UTC day (returns the same ref if already counted today), so
+  // this is safe on every seed change — it advances at most once per day.
+  useEffect(() => {
+    if (game.world.seed !== dailySeed()) return;
+    const next = bumpStreak(streak, dailySeed());
+    if (next !== streak) setStreak(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.world.seed]);
 
   useEffect(() => {
     void getSupabase()
@@ -416,6 +429,16 @@ export function App({ initial }: { initial?: Game }) {
               title="you're on today's daily — everyone racing the daily shares this exact world; your score lands on today's board"
             >
               🗓 today
+            </span>
+          )}
+          {game.world.seed === dailySeed() && streak && streak.count >= 1 && (
+            <span
+              className="streaktag"
+              title={`daily streak: ${streak.count} day${streak.count === 1 ? '' : 's'} in a row${
+                streak.best > streak.count ? ` (best ${streak.best})` : ''
+              } — play tomorrow's daily to keep it alive`}
+            >
+              🔥 {streak.count}
             </span>
           )}
         </div>

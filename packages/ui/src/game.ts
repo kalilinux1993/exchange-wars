@@ -67,6 +67,41 @@ export function dailySeed(now = new Date()): number {
   return now.getUTCFullYear() * 10_000 + (now.getUTCMonth() + 1) * 100 + now.getUTCDate();
 }
 
+/** A localStorage-only daily-streak record (UI nicety, never touches the engine). */
+export interface DailyStreak {
+  /** consecutive daily worlds played, ending on `lastDay` */
+  count: number;
+  /** the dailySeed() value (YYYYMMDD) of the most recent daily played */
+  lastDay: number;
+  /** best streak ever reached */
+  best: number;
+}
+
+/**
+ * Calendar-day span between two YYYYMMDD daily seeds. Goes through UTC so it's
+ * correct across month/year rollover (20260601 - 20260531 == 1 day, not 70).
+ */
+function streakDaySpan(a: number, b: number): number {
+  const toUTC = (s: number): number =>
+    Date.UTC(Math.floor(s / 10_000), (Math.floor(s / 100) % 100) - 1, s % 100);
+  return Math.round((toUTC(b) - toUTC(a)) / 86_400_000);
+}
+
+/**
+ * Advance the daily streak for `today` (a dailySeed() value). Pure: the caller
+ * passes today's seed so this never reads the clock. Same day → unchanged
+ * (idempotent — safe to call on every render while on the daily); exactly the
+ * next day → +1; any other gap (skipped a day, or first ever) → reset to 1.
+ * Returns the SAME reference when nothing changed so callers can skip the write.
+ */
+export function bumpStreak(prev: DailyStreak | null, today: number): DailyStreak {
+  if (prev && prev.lastDay === today) return prev;
+  const continues = prev !== null && streakDaySpan(prev.lastDay, today) === 1;
+  const count = continues ? prev!.count + 1 : 1;
+  const best = Math.max(prev?.best ?? 0, count);
+  return { count, lastDay: today, best };
+}
+
 /**
  * Restarting the SAME seed keeps your best previous run as a chart ghost
  * (best = highest final worth, comparing the run being abandoned against any
