@@ -42,8 +42,10 @@ Design (account-light, static-site-friendly — Supabase):
 
 ## Phase 6k — DONE 2026-06-10 (tier-3 printer closed: vol ceiling 0.12 / cadence 4; gate magnitude ceiling 20×; FINDINGS #35)
 
-## RPG arc — queued (post phases 8k/8l/8m audits, data in FINDINGS #45/#46/#47)
-- **NEXT BRICK — liquidation-value scoring**: netWorth marks holdings at lastPrice; a routed Maw line scores 636k of which ~590k is unsold loot in thin books (FINDINGS #47). Fix: mark at liquidation against resting bids EXCLUDING the agent's own orders (self-bid pump guard), walking depth; unmatched remainder 0. Blast radius: balance/market gates use netWorth (liquid staples bid≈last, should hold — re-run and verify, don't assume), UI worth display, Edge fn (redeploy). Re-measure with `npx tsx tools/audit-grind.ts`.
+## RPG arc — queued (post phases 8k–8n, data in FINDINGS #45–#48)
+- **NEXT BRICK — liquidation-value scoring**: netWorth marks holdings at lastPrice; a routed Maw line scores 636k of which ~590k is unsold loot in thin books (FINDINGS #47), and the 8n stats system amplified the paper magnitudes further (60k–263k). Fix: mark at liquidation against resting bids EXCLUDING the agent's own orders (self-bid pump guard), walking depth; unmatched remainder 0. Blast radius: balance/market gates use netWorth (liquid staples bid≈last, should hold — re-run and verify, don't assume), UI worth display, Edge fn (redeploy). Re-measure with `npx tsx tools/audit-grind.ts`.
+- **Bestiary rebalance vs leveled fighters — ONLY after honest marks land** (FINDINGS #48): monsters were tuned pre-levels; a mid-sprint fighter carries +14 atk from training alone. Candidates: deeper top-end regions, regional monster scaling. Never tune against the current paper-marked scoreboard.
+- Hitpoints level (maxHp growth from xp) — natural third stat once Attack/Defence prove out.
 - ~~Geared-grind measurement~~ DONE phase 8m: capital loop validated (median geared +16.6k vs naked +1–3.9k, depth 4–5); bones faucet nerfed 1→0.15.
 - ~~Grind-vs-trade loot parity tuning~~ RESOLVED phase 8l as a side effect of wounds: naked grind +0.3k–3.9k, inside trading's band (FINDINGS #46).
 - ~~Price the extract→re-embark heal loop~~ DONE phase 8l: persistent hp + out-of-field regen (REST_REGEN_TICKS=3), death leaves 1 hp.

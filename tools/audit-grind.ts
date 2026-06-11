@@ -8,7 +8,7 @@ import { applyCommand } from '../packages/engine/src/commands';
 import type { PlayerCommand } from '../packages/engine/src/commands';
 import { bestAsk } from '../packages/engine/src/exchange';
 import { netWorth } from '../packages/engine/src/report';
-import { CONSUMABLES, GEAR, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS } from '../packages/engine/src/quest';
+import { CONSUMABLES, deriveStats, GEAR, levelsOf, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS } from '../packages/engine/src/quest';
 import { SPRINT_MAX_COMMANDS, SPRINT_TICKS, verifySprint, type RunLogEntry } from '../packages/engine/src/replay';
 import { addAgent, createWorld, tickWorld } from '../packages/engine/src/sim';
 
@@ -80,8 +80,8 @@ function grind(
     }
     if (exp.combat) {
       const beforeKills = world.stats.monstersSlain ?? 0;
-      const armed = (exp.pack['rune_2h_sword'] ?? 0) > 0;
-      // Naked: flee anything that out-classes bare knuckles. Armed: only the Elder.
+      // Usable strength, not carried strength — under-leveled gear is inert (8n).
+      const armed = deriveStats(exp.pack, levelsOf(human.combatXp)).atk >= 30;
       const fleeList = armed
         ? ['vorkanth']
         : ['lesser_demon', 'fire_giant', 'green_dragon', 'vorkanth', 'moss_giant'];

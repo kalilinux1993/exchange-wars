@@ -10,21 +10,35 @@ export interface GearDef {
   slot: GearSlot;
   atk: number;
   def: number;
+  /** Required level in the governing stat (weapons→Attack, armor→Defence).
+   * Under-leveled gear in the pack is INERT — deriveStats skips it. */
+  req: number;
 }
 
-/** Curated catalog items that function as gear. Best-per-slot counts. */
+/** Curated catalog items that function as gear. Best-per-slot counts.
+ * The req ladder is paced to the sprint xp curve (levelFor): darts day one,
+ * rune mid-sprint for a dedicated fighter, dragon is long-game. */
 export const GEAR: Record<string, GearDef> = {
-  adamant_dart: { slot: 'weapon', atk: 10, def: 0 },
-  mystic_air_staff: { slot: 'weapon', atk: 30, def: 1 },
-  mystic_earth_staff: { slot: 'weapon', atk: 32, def: 1 },
-  rune_battleaxe: { slot: 'weapon', atk: 38, def: 0 },
-  rune_2h_sword: { slot: 'weapon', atk: 45, def: 0 },
-  dragon_med_helm: { slot: 'helm', atk: 0, def: 16 },
-  rune_full_helm: { slot: 'helm', atk: 0, def: 12 },
-  rune_platebody: { slot: 'body', atk: 0, def: 28 },
-  rune_platelegs: { slot: 'legs', atk: 0, def: 20 },
-  dragon_platelegs: { slot: 'legs', atk: 0, def: 30 },
-  rune_kiteshield: { slot: 'shield', atk: 0, def: 18 },
+  adamant_dart: { slot: 'weapon', atk: 10, def: 0, req: 1 },
+  rune_dart: { slot: 'weapon', atk: 16, def: 0, req: 4 },
+  battlestaff: { slot: 'weapon', atk: 22, def: 1, req: 7 },
+  dragon_dart: { slot: 'weapon', atk: 26, def: 0, req: 8 },
+  mystic_air_staff: { slot: 'weapon', atk: 30, def: 1, req: 10 },
+  mystic_earth_staff: { slot: 'weapon', atk: 32, def: 1, req: 10 },
+  rune_battleaxe: { slot: 'weapon', atk: 38, def: 0, req: 12 },
+  rune_2h_sword: { slot: 'weapon', atk: 45, def: 0, req: 14 },
+  dragon_mace: { slot: 'weapon', atk: 40, def: 0, req: 16 },
+  dragon_longsword: { slot: 'weapon', atk: 50, def: 0, req: 20 },
+  rune_full_helm: { slot: 'helm', atk: 0, def: 12, req: 8 },
+  dragon_med_helm: { slot: 'helm', atk: 0, def: 16, req: 16 },
+  rune_chainbody: { slot: 'body', atk: 0, def: 22, req: 8 },
+  rune_platebody: { slot: 'body', atk: 0, def: 28, req: 12 },
+  rune_plateskirt: { slot: 'legs', atk: 0, def: 20, req: 10 },
+  rune_platelegs: { slot: 'legs', atk: 0, def: 20, req: 10 },
+  dragon_platelegs: { slot: 'legs', atk: 0, def: 30, req: 18 },
+  dragon_plateskirt: { slot: 'legs', atk: 0, def: 30, req: 18 },
+  rune_sq_shield: { slot: 'shield', atk: 0, def: 14, req: 6 },
+  rune_kiteshield: { slot: 'shield', atk: 0, def: 18, req: 10 },
 };
 
 export interface ConsumableDef {
@@ -178,19 +192,46 @@ export interface FighterStats {
   def: number;
 }
 
-/** Best gear per slot in the pack decides your stats. Quantity is irrelevant
- * for gear (one body is one body); consumables are spent one at a time. */
-export function deriveStats(pack: Record<string, number>): FighterStats {
+/** Combat training (Jesse-directed, 8n). XP is plain integers on the agent:
+ * Attack xp = damage dealt, Defence xp = damage taken. Square-root curve —
+ * early levels come fast, the climb stretches forever. Cap 99, of course. */
+export const MAX_LEVEL = 99;
+export const XP_CURVE_K = 4;
+
+export function levelFor(xp: number): number {
+  return Math.min(MAX_LEVEL, 1 + Math.floor(Math.sqrt(Math.max(0, xp) / XP_CURVE_K)));
+}
+
+/** Total xp needed to reach a level (UI progress display). */
+export function xpForLevel(level: number): number {
+  return XP_CURVE_K * (level - 1) * (level - 1);
+}
+
+export interface CombatLevels {
+  atk: number;
+  def: number;
+}
+
+export function levelsOf(xp?: { atk: number; def: number }): CombatLevels {
+  return { atk: levelFor(xp?.atk ?? 0), def: levelFor(xp?.def ?? 0) };
+}
+
+/** Best USABLE gear per slot in the pack decides your stats — weapons demand
+ * Attack, armor demands Defence; under-leveled gear is inert. Levels add
+ * +1 atk/def each beyond 1. Quantity is irrelevant for gear (one body is one
+ * body); consumables are spent one at a time. */
+export function deriveStats(pack: Record<string, number>, lvls: CombatLevels = { atk: 1, def: 1 }): FighterStats {
   const best: Partial<Record<GearSlot, GearDef>> = {};
   for (const [itemId, qty] of Object.entries(pack)) {
     if (qty < 1) continue;
     const g = GEAR[itemId];
     if (!g) continue;
+    if ((g.slot === 'weapon' ? lvls.atk : lvls.def) < g.req) continue; // inert
     const cur = best[g.slot];
     if (!cur || g.atk + g.def > cur.atk + cur.def) best[g.slot] = g;
   }
-  let atk = PLAYER_BASE.atk;
-  let def = PLAYER_BASE.def;
+  let atk = PLAYER_BASE.atk + (lvls.atk - 1);
+  let def = PLAYER_BASE.def + (lvls.def - 1);
   for (const g of Object.values(best)) {
     atk += g.atk;
     def += g.def;

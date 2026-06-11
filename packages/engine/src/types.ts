@@ -71,6 +71,10 @@ export interface AgentState {
   /** Players only: persistent hit points (absent = full). Wounds carry between
    * expeditions; mends out-of-field via tick regen (quest.REST_REGEN_TICKS). */
   hp?: number;
+  /** Players only: lifetime combat xp (absent = none — level 1). Attack xp =
+   * damage dealt, Defence xp = damage taken; levels via quest.levelFor.
+   * Death never takes xp — wounds cost loot, never experience. */
+  combatXp?: { atk: number; def: number };
   /** Strategy scratch space — JSON-serializable numbers only. */
   memo: Record<string, number>;
 }

@@ -5,8 +5,10 @@ import {
   REGION_CLEAR_KILLS,
   REGIONS,
   deriveStats,
+  levelsOf,
   monsterById,
   regionIndex,
+  xpForLevel,
 } from '@exchange-wars/engine';
 import type { PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
@@ -31,6 +33,13 @@ export function ExpeditionPanel({
   const agent = game.world.agents[game.playerId];
   const exp = agent?.expedition;
   const progress = agent?.questProgress ?? 0;
+  const lvls = levelsOf(agent?.combatXp);
+  const xpLine = (stat: 'atk' | 'def'): string => {
+    const lvl = lvls[stat];
+    if (lvl >= 99) return `${lvl}`;
+    const cur = agent?.combatXp?.[stat] ?? 0;
+    return `${lvl} (${cur - xpForLevel(lvl)}/${xpForLevel(lvl + 1) - xpForLevel(lvl)} xp)`;
+  };
   const [regionId, setRegionId] = useState(REGIONS[0]!.id);
   const [draft, setDraft] = useState<Record<string, number>>({});
 
@@ -68,6 +77,9 @@ export function ExpeditionPanel({
     return (
       <section className="panel expedition">
         <h2>Expeditions</h2>
+        <p className="dim small" title="Attack trains as you deal damage and unlocks weapons; Defence trains as you take it and unlocks armor">
+          ⚔ Attack {xpLine('atk')} · 🛡 Defence {xpLine('def')}
+        </p>
         {resting && (
           <p className="warn small" title="wounds persist between expeditions — rest (or embark hurt, your gamble)">
             ♥ recovering: {agent!.hp}/{PLAYER_BASE.maxHp} hp — mending as the market ticks
@@ -95,10 +107,17 @@ export function ExpeditionPanel({
         <h3>Pack (from your satchel)</h3>
         {relevant.length === 0 && <p className="dim small">buy gear and food on the exchange first — or go in swinging fists</p>}
         <ul className="rows small">
-          {relevant.map(([id, held]) => (
-            <li key={id}>
+          {relevant.map(([id, held]) => {
+            const g = GEAR[id];
+            const inert = g !== undefined && (g.slot === 'weapon' ? lvls.atk : lvls.def) < g.req;
+            return (
+            <li key={id} className={inert ? 'dim' : ''} title={inert ? `requires ${g!.slot === 'weapon' ? 'Attack' : 'Defence'} ${g!.req} — carried gear below your level is inert` : undefined}>
               <span>{names.get(id) ?? id}</span>
-              <span className="dim small">{GEAR[id] ? `atk ${GEAR[id]!.atk} def ${GEAR[id]!.def}` : `heals ${CONSUMABLES[id]!.heal}`}</span>
+              <span className="dim small">
+                {g
+                  ? `atk ${g.atk} def ${g.def} · req ${g.slot === 'weapon' ? '⚔' : '🛡'}${g.req}${inert ? ' 🔒' : ''}`
+                  : `heals ${CONSUMABLES[id]!.heal}`}
+              </span>
               <span className="num">
                 <button className="chip" onClick={() => bump(id, -1, held)}>
                   −
@@ -109,7 +128,8 @@ export function ExpeditionPanel({
                 </button>
               </span>
             </li>
-          ))}
+            );
+          })}
         </ul>
         <button
           className="submit buy"
@@ -128,7 +148,7 @@ export function ExpeditionPanel({
   }
 
   const region = REGIONS[regionIndex(exp.regionId)]!;
-  const stats = deriveStats(exp.pack);
+  const stats = deriveStats(exp.pack, lvls);
   const hpPct = Math.round(((exp.combat ? exp.combat.playerHp : exp.hp) / PLAYER_BASE.maxHp) * 100);
   const foods = Object.entries(exp.pack).filter(([id, qty]) => qty > 0 && CONSUMABLES[id] !== undefined);
 

@@ -5,10 +5,14 @@ import {
   CONSUMABLES,
   deriveStats,
   GEAR,
+  levelFor,
+  levelsOf,
   MONSTERS,
   newCombat,
   PLAYER_BASE,
   resolveRound,
+  XP_CURVE_K,
+  xpForLevel,
   type CombatState,
 } from '../src/quest';
 import { createRng } from '../src/rng';
@@ -28,25 +32,50 @@ describe('expeditions combat core', () => {
     }
   });
 
-  it('deriveStats takes the best item per slot and ignores consumables', () => {
+  it('deriveStats takes the best USABLE item per slot and ignores consumables', () => {
     expect(deriveStats({})).toEqual({ atk: PLAYER_BASE.atk, def: PLAYER_BASE.def });
-    const s = deriveStats({
-      rune_battleaxe: 1,
-      rune_2h_sword: 1, // better weapon — wins the slot
-      rune_platelegs: 1,
-      dragon_platelegs: 1, // better legs — wins the slot
-      rune_platebody: 1,
-      shark: 5, // food is not gear
-    });
-    expect(s.atk).toBe(PLAYER_BASE.atk + GEAR['rune_2h_sword']!.atk);
-    expect(s.def).toBe(PLAYER_BASE.def + GEAR['dragon_platelegs']!.def + GEAR['rune_platebody']!.def);
+    const LV = { atk: 20, def: 20 };
+    const s = deriveStats(
+      {
+        rune_battleaxe: 1,
+        rune_2h_sword: 1, // better weapon — wins the slot
+        rune_platelegs: 1,
+        dragon_platelegs: 1, // better legs — wins the slot
+        rune_platebody: 1,
+        shark: 5, // food is not gear
+      },
+      LV,
+    );
+    expect(s.atk).toBe(PLAYER_BASE.atk + (LV.atk - 1) + GEAR['rune_2h_sword']!.atk);
+    expect(s.def).toBe(PLAYER_BASE.def + (LV.def - 1) + GEAR['dragon_platelegs']!.def + GEAR['rune_platebody']!.def);
     expect(deriveStats({ rune_platebody: 0 })).toEqual(deriveStats({})); // qty 0 = not carried
+  });
+
+  it('training gates the arsenal: xp curve checkpoints and req enforcement', () => {
+    expect(levelFor(0)).toBe(1);
+    expect(levelFor(XP_CURVE_K)).toBe(2);
+    expect(levelFor(XP_CURVE_K * 4)).toBe(3);
+    expect(levelFor(xpForLevel(14) - 1)).toBe(13);
+    expect(levelFor(xpForLevel(14))).toBe(14);
+    expect(levelFor(10_000_000)).toBe(99); // capped
+    expect(levelsOf(undefined)).toEqual({ atk: 1, def: 1 }); // pre-xp saves = level 1
+    // Under-leveled gear is inert; the moment you qualify, it counts.
+    const req = GEAR['rune_2h_sword']!.req;
+    const below = deriveStats({ rune_2h_sword: 1 }, { atk: req - 1, def: 1 });
+    expect(below.atk).toBe(PLAYER_BASE.atk + (req - 2)); // level bonus only, blade inert
+    const at = deriveStats({ rune_2h_sword: 1 }, { atk: req, def: 1 });
+    expect(at.atk).toBe(PLAYER_BASE.atk + (req - 1) + GEAR['rune_2h_sword']!.atk);
+    // Weapons gate on Attack, armor gates on Defence — not the other way.
+    const wrongStat = deriveStats({ rune_platebody: 1 }, { atk: 99, def: 1 });
+    expect(wrongStat.def).toBe(PLAYER_BASE.def); // maxed Attack unlocks no armor
+    const rightStat = deriveStats({ rune_platebody: 1 }, { atk: 1, def: GEAR['rune_platebody']!.req });
+    expect(rightStat.def).toBe(PLAYER_BASE.def + (GEAR['rune_platebody']!.req - 1) + GEAR['rune_platebody']!.def);
   });
 
   it('combat is deterministic: same seed + same actions = identical fight', () => {
     const run = (): CombatState => {
       const rng = createRng(1234);
-      const stats = deriveStats({ rune_2h_sword: 1, rune_platebody: 1 });
+      const stats = deriveStats({ rune_2h_sword: 1, rune_platebody: 1 }, { atk: 14, def: 12 });
       const c = newCombat('hill_giant', PLAYER_BASE.maxHp);
       for (let i = 0; i < 30 && c.outcome === 'fighting'; i++) resolveRound(c, stats, { kind: 'fight' }, rng);
       return c;
@@ -59,7 +88,7 @@ describe('expeditions combat core', () => {
 
   it('a geared fighter beats a goblin; an unarmed one dies to a dragon', () => {
     const rng = createRng(7);
-    const geared = deriveStats({ rune_2h_sword: 1, rune_platebody: 1, rune_kiteshield: 1 });
+    const geared = deriveStats({ rune_2h_sword: 1, rune_platebody: 1, rune_kiteshield: 1 }, { atk: 14, def: 12 });
     const c = newCombat('goblin', PLAYER_BASE.maxHp);
     for (let i = 0; i < 20 && c.outcome === 'fighting'; i++) resolveRound(c, geared, { kind: 'fight' }, rng);
     expect(c.outcome).toBe('won');
@@ -76,7 +105,7 @@ describe('expeditions combat core', () => {
 
   it('eating heals (capped) and antifire halves dragonfire', () => {
     const rng = createRng(99);
-    const stats = deriveStats({ rune_platebody: 1, rune_kiteshield: 1, dragon_platelegs: 1, rune_full_helm: 1 });
+    const stats = deriveStats({ rune_platebody: 1, rune_kiteshield: 1, dragon_platelegs: 1, rune_full_helm: 1 }, { atk: 1, def: 18 });
     const c = newCombat('green_dragon', 30);
     resolveRound(c, stats, { kind: 'eat', itemId: 'shark' }, rng);
     expect(c.playerHp).toBeLessThanOrEqual(PLAYER_BASE.maxHp); // heal applied, then the dragon answered

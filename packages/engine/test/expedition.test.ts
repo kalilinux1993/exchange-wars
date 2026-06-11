@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyCommand, type PlayerCommand } from '../src/commands';
 import { hashState } from '../src/hash';
 import { checkInvariants } from '../src/invariants';
-import { PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS } from '../src/quest';
+import { levelsOf, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS, xpForLevel } from '../src/quest';
 import { addAgent, createWorld, tickWorld } from '../src/sim';
 import type { WorldState } from '../src/types';
 
@@ -69,6 +69,8 @@ describe('expeditions', () => {
   it('a geared run clears the plains, mints loot, and unlocks the sewers', () => {
     const { state, id } = fixture(3);
     const agent = state.agents[id]!;
+    // Fixture: a veteran (rune-qualified) — gating itself is tested separately.
+    agent.combatXp = { atk: xpForLevel(14), def: xpForLevel(12) };
     ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: { rune_2h_sword: 1, rune_platebody: 1, rune_kiteshield: 1, shark: 4 } });
     let guard = 0;
     while (agent.expedition && agent.expedition.cleared < REGION_CLEAR_KILLS && guard++ < 200) {
@@ -124,6 +126,7 @@ describe('expeditions', () => {
     expect(agent.inventory['rune_2h_sword']).toBe(1); // top-value gear kept
     expect(agent.inventory['rune_platebody']).toBe(1);
     expect(agent.hp).toBe(1); // you barely crawled home
+    expect(agent.combatXp!.def).toBeGreaterThan(0); // the beating taught you something
     checkInvariants(state);
   });
 
@@ -280,8 +283,10 @@ describe('expeditions', () => {
           if (exp.combat.monsterId === 'vorkanth') {
             met = true;
             expect(exp.combat.log[0]).toContain('VORKANTH');
-            // Fixture execution: arm the pack (conserved via mint) and put
-            // the Elder at 1 hp so the first landed blow fells him.
+            // Fixture execution: arm the pack (conserved via mint), qualify
+            // for the blade, and put the Elder at 1 hp so the first landed
+            // blow fells him.
+            agent.combatXp = { atk: xpForLevel(14), def: 0 };
             exp.pack['rune_2h_sword'] = 1;
             state.ledger.itemsMinted['rune_2h_sword'] = (state.ledger.itemsMinted['rune_2h_sword'] ?? 0) + 1;
             exp.combat.monsterHp = 1;
@@ -296,6 +301,27 @@ describe('expeditions', () => {
       }
     }
     expect(met).toBe(true); // 10% per Maw monster across 100 seeds × 6 steps
+  });
+
+  it('combat trains you: damage dealt = Attack xp, damage taken = Defence xp', () => {
+    const { state, id } = fixture(3);
+    const agent = state.agents[id]!;
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: { shark: 4 } });
+    let guard = 0;
+    // Fists-first: fight until something lands in either direction.
+    while (guard++ < 120 && !(agent.combatXp && agent.combatXp.atk > 0 && agent.combatXp.def > 0)) {
+      const exp = agent.expedition;
+      if (!exp) break; // died — xp must still be there (asserted below)
+      if (exp.combat) {
+        if (exp.combat.playerHp < 18 && (exp.pack['shark'] ?? 0) > 0) ok(state, id, { type: 'eatFood', itemId: 'shark' });
+        else ok(state, id, { type: 'fight' });
+      } else if (exp.event) ok(state, id, { type: 'choose', accept: false });
+      else ok(state, id, { type: 'advance' });
+    }
+    expect(agent.combatXp).toBeTruthy();
+    expect(agent.combatXp!.atk).toBeGreaterThan(0); // landed at least one blow
+    expect(agent.combatXp!.def).toBeGreaterThan(0); // took at least one
+    expect(levelsOf(agent.combatXp).atk).toBeGreaterThanOrEqual(1);
   });
 
   it('wounds persist: extract carries hp home, re-embark carries it back in, rest mends it', () => {

@@ -11,6 +11,7 @@ import {
   CONSUMABLES,
   deriveStats,
   ENCOUNTERS,
+  levelsOf,
   monsterById,
   expeditionSeed,
   GAMBLE_STAKE,
@@ -413,9 +414,25 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
         state.ledger.itemsBurned[action.itemId] = (state.ledger.itemsBurned[action.itemId] ?? 0) + 1;
       }
       const rng = createRng(exp.rngState);
-      resolveRound(exp.combat, deriveStats(exp.pack), action, rng);
+      const lvBefore = levelsOf(agent.combatXp);
+      const hpBefore = { monster: exp.combat.monsterHp, player: exp.combat.playerHp };
+      resolveRound(exp.combat, deriveStats(exp.pack, lvBefore), action, rng);
       exp.rngState = rng.state();
       const c = exp.combat;
+      // Training: Attack xp = damage dealt, Defence xp = damage taken (eating
+      // heals, so a net-positive round trains nothing defensively). Death
+      // never takes xp — wounds cost loot, never experience.
+      const dealt = Math.max(0, hpBefore.monster - c.monsterHp);
+      const taken = Math.max(0, hpBefore.player - c.playerHp);
+      if (dealt + taken > 0) {
+        const xp = (agent.combatXp ??= { atk: 0, def: 0 });
+        xp.atk += dealt;
+        xp.def += taken;
+        const lv = levelsOf(xp);
+        const journal = (exp.journal ??= []);
+        if (lv.atk > lvBefore.atk) journal.push(`your arm grows stronger — Attack ${lv.atk}`);
+        if (lv.def > lvBefore.def) journal.push(`you learn to take a blow — Defence ${lv.def}`);
+      }
       if (c.outcome === 'won') {
         state.ledger.gpMinted += c.lootGp; // monster coin is freshly struck
         exp.packGp += c.lootGp;

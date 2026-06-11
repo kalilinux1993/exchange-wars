@@ -173,17 +173,26 @@ function itemDef(state, itemId) {
 
 // packages/engine/src/quest.ts
 var GEAR = {
-  adamant_dart: { slot: "weapon", atk: 10, def: 0 },
-  mystic_air_staff: { slot: "weapon", atk: 30, def: 1 },
-  mystic_earth_staff: { slot: "weapon", atk: 32, def: 1 },
-  rune_battleaxe: { slot: "weapon", atk: 38, def: 0 },
-  rune_2h_sword: { slot: "weapon", atk: 45, def: 0 },
-  dragon_med_helm: { slot: "helm", atk: 0, def: 16 },
-  rune_full_helm: { slot: "helm", atk: 0, def: 12 },
-  rune_platebody: { slot: "body", atk: 0, def: 28 },
-  rune_platelegs: { slot: "legs", atk: 0, def: 20 },
-  dragon_platelegs: { slot: "legs", atk: 0, def: 30 },
-  rune_kiteshield: { slot: "shield", atk: 0, def: 18 }
+  adamant_dart: { slot: "weapon", atk: 10, def: 0, req: 1 },
+  rune_dart: { slot: "weapon", atk: 16, def: 0, req: 4 },
+  battlestaff: { slot: "weapon", atk: 22, def: 1, req: 7 },
+  dragon_dart: { slot: "weapon", atk: 26, def: 0, req: 8 },
+  mystic_air_staff: { slot: "weapon", atk: 30, def: 1, req: 10 },
+  mystic_earth_staff: { slot: "weapon", atk: 32, def: 1, req: 10 },
+  rune_battleaxe: { slot: "weapon", atk: 38, def: 0, req: 12 },
+  rune_2h_sword: { slot: "weapon", atk: 45, def: 0, req: 14 },
+  dragon_mace: { slot: "weapon", atk: 40, def: 0, req: 16 },
+  dragon_longsword: { slot: "weapon", atk: 50, def: 0, req: 20 },
+  rune_full_helm: { slot: "helm", atk: 0, def: 12, req: 8 },
+  dragon_med_helm: { slot: "helm", atk: 0, def: 16, req: 16 },
+  rune_chainbody: { slot: "body", atk: 0, def: 22, req: 8 },
+  rune_platebody: { slot: "body", atk: 0, def: 28, req: 12 },
+  rune_plateskirt: { slot: "legs", atk: 0, def: 20, req: 10 },
+  rune_platelegs: { slot: "legs", atk: 0, def: 20, req: 10 },
+  dragon_platelegs: { slot: "legs", atk: 0, def: 30, req: 18 },
+  dragon_plateskirt: { slot: "legs", atk: 0, def: 30, req: 18 },
+  rune_sq_shield: { slot: "shield", atk: 0, def: 14, req: 6 },
+  rune_kiteshield: { slot: "shield", atk: 0, def: 18, req: 10 }
 };
 var CONSUMABLES = {
   shark: { heal: 20 },
@@ -246,17 +255,26 @@ function cachePool(regionIdx) {
   }
   return pool;
 }
-function deriveStats(pack) {
+var MAX_LEVEL = 99;
+var XP_CURVE_K = 4;
+function levelFor(xp) {
+  return Math.min(MAX_LEVEL, 1 + Math.floor(Math.sqrt(Math.max(0, xp) / XP_CURVE_K)));
+}
+function levelsOf(xp) {
+  return { atk: levelFor(xp?.atk ?? 0), def: levelFor(xp?.def ?? 0) };
+}
+function deriveStats(pack, lvls = { atk: 1, def: 1 }) {
   const best = {};
   for (const [itemId, qty] of Object.entries(pack)) {
     if (qty < 1) continue;
     const g = GEAR[itemId];
     if (!g) continue;
+    if ((g.slot === "weapon" ? lvls.atk : lvls.def) < g.req) continue;
     const cur = best[g.slot];
     if (!cur || g.atk + g.def > cur.atk + cur.def) best[g.slot] = g;
   }
-  let atk = PLAYER_BASE.atk;
-  let def = PLAYER_BASE.def;
+  let atk = PLAYER_BASE.atk + (lvls.atk - 1);
+  let def = PLAYER_BASE.def + (lvls.def - 1);
   for (const g of Object.values(best)) {
     atk += g.atk;
     def += g.def;
@@ -1283,9 +1301,22 @@ function applyCommand(state, playerId, cmd) {
         state.ledger.itemsBurned[action.itemId] = (state.ledger.itemsBurned[action.itemId] ?? 0) + 1;
       }
       const rng = createRng(exp.rngState);
-      resolveRound(exp.combat, deriveStats(exp.pack), action, rng);
+      const lvBefore = levelsOf(agent.combatXp);
+      const hpBefore = { monster: exp.combat.monsterHp, player: exp.combat.playerHp };
+      resolveRound(exp.combat, deriveStats(exp.pack, lvBefore), action, rng);
       exp.rngState = rng.state();
       const c = exp.combat;
+      const dealt = Math.max(0, hpBefore.monster - c.monsterHp);
+      const taken = Math.max(0, hpBefore.player - c.playerHp);
+      if (dealt + taken > 0) {
+        const xp = agent.combatXp ??= { atk: 0, def: 0 };
+        xp.atk += dealt;
+        xp.def += taken;
+        const lv = levelsOf(xp);
+        const journal = exp.journal ??= [];
+        if (lv.atk > lvBefore.atk) journal.push(`your arm grows stronger \u2014 Attack ${lv.atk}`);
+        if (lv.def > lvBefore.def) journal.push(`you learn to take a blow \u2014 Defence ${lv.def}`);
+      }
       if (c.outcome === "won") {
         state.ledger.gpMinted += c.lootGp;
         exp.packGp += c.lootGp;
