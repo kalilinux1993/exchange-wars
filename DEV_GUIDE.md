@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 7i — Leaderboards DEPLOYED (2026-06-11)
+
+- **The whole backend went live via Jesse's access token** (management API): leaderboard table created (201), Auth Site URL fixed `localhost:3000` → the live game URL (magic links now land correctly), `verify-score` deployed via CLI (API bundling; Docker not needed). Verified: board reads 200 `[]` publicly; the function 401s non-user JWTs.
+- The Sprint Board panel in the already-live bundle lights up automatically (its probe now returns `[]` instead of null) — no redeploy needed.
+- **Redeploys** (only when engine changes affect replay): `npm run build:fn` + `npx supabase functions deploy verify-score --project-ref chynnshtcjclphlazkmv` with `SUPABASE_ACCESS_TOKEN` set. Jesse can revoke the token at supabase.com/dashboard/account/tokens between deploys.
+
 ## Phase 7h — Sprint Board UI (2026-06-11, brick 3)
 
 - **LeaderboardPanel** (third column): probes `fetchLeaderboard(seed)` once per seed and renders NOTHING on null — shipped ahead of the backend, lights up by itself when Jesse deploys. Rows = top-10 verified worth; submit posts the log (truncated to tick < SPRINT_TICKS) via `submitSprint` (functions.invoke, JWT automatic); handle persisted in localStorage `ew-handle`.
