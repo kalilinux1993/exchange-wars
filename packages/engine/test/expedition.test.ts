@@ -272,6 +272,31 @@ describe('expeditions', () => {
     expect(ambushed).toBe(true);
   });
 
+  it('the Inferno Gate sits past the Maw and Zukrath stalks it', () => {
+    expect(REGIONS[6]!.id).toBe('inferno_gate');
+    expect(REGIONS[5]!.elite).toBe('vorkanth'); // the Maw keeps its Elder
+    let met = false;
+    for (let seed = 1; seed <= 120 && !met; seed++) {
+      const { state, id } = fixture(seed);
+      const agent = state.agents[id]!;
+      agent.questProgress = 6; // fixture: the Gate is open
+      ok(state, id, { type: 'startExpedition', regionId: 'inferno_gate', pack: {} });
+      for (let i = 0; i < 6 && agent.expedition; i++) {
+        const exp = agent.expedition;
+        if (exp.combat) {
+          if (exp.combat.monsterId === 'zukrath') {
+            met = true;
+            expect(exp.combat.log[0]).toContain('ZUKRATH');
+            break;
+          }
+          ok(state, id, { type: 'fleeCombat' });
+        } else if (exp.event) ok(state, id, { type: 'choose', accept: false });
+        else ok(state, id, { type: 'advance' });
+      }
+    }
+    expect(met).toBe(true); // 10% per Gate monster across 120 seeds × 6 steps
+  });
+
   it('Vorkanth stalks only the Maw and yields elite credit when felled', () => {
     let met = false;
     for (let seed = 1; seed <= 100 && !met; seed++) {

@@ -304,6 +304,13 @@ export const MILESTONES: Milestone[] = [
     achieved: (g) => (g.world.stats.deepestRegion ?? 0) >= 4,
   },
   {
+    id: 'hellwalker',
+    name: 'Hellwalker',
+    flavor: 'You stepped through the Inferno Gate. The air noticed.',
+    // Region index 6 = The Inferno Gate (entered, not just unlocked).
+    achieved: (g) => (g.world.stats.deepestRegion ?? 0) >= 6,
+  },
+  {
     id: 'dragon-slayer',
     name: 'Dragon Slayer',
     flavor: 'The Maw is quieter now.',

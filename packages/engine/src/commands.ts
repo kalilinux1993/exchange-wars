@@ -320,8 +320,14 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
         const rIdx = regionIndex(exp.regionId);
         const af = exp.antifire ?? false;
         const mhp = maxHpFor(levelsOf(agent.combatXp).hp);
-        if (rIdx === REGIONS.length - 1 && rng.chance(ELITE_CHANCE)) {
-          exp.combat = newCombat('vorkanth', exp.hp, 'the ground shakes — VORKANTH, ELDER OF THE MAW, descends!', af, mhp);
+        if (region.elite && rng.chance(ELITE_CHANCE)) {
+          exp.combat = newCombat(
+            region.elite,
+            exp.hp,
+            `the ground shakes — ${monsterById(region.elite).name.toUpperCase()} descends!`,
+            af,
+            mhp,
+          );
         } else if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
           const deeper = REGIONS[rIdx + 1]!;
           const beast = rng.pick(deeper.monsters);

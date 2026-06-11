@@ -93,8 +93,15 @@ export const MONSTERS: MonsterDef[] = [
   // depth (the market absorbs ~a dozen bones/sprint, the rest mark 0), so a
   // lower rate only starves casual raiders without touching the tail.
   { id: 'green_dragon', name: 'Green dragon', hp: 110, atk: 24, def: 12, gp: [200, 600], dragonfire: true, drops: [{ itemId: 'superior_dragon_bones', chance: 0.25 }, { itemId: 'dragon_med_helm', chance: 0.02 }, { itemId: 'rune_kiteshield', chance: 0.08 }] },
-  // The named elite — never in a region pool; the Maw spawns him itself.
+  // The Inferno Gate (8t): every dweller breathes fire; fights are long.
+  // Goods-over-coin throughout (FINDINGS #51) — bones are bid-capped, the
+  // dragon weapons are rare. dragon_plateskirt (121k) is deliberately on NO
+  // regular table.
+  { id: 'pyrefiend', name: 'Pyrefiend', hp: 95, atk: 22, def: 12, gp: [150, 400], dragonfire: true, drops: [{ itemId: 'death_rune', chance: 0.5 }, { itemId: 'blood_rune', chance: 0.4 }, { itemId: 'dragon_dart', chance: 0.12 }] },
+  { id: 'lava_dragon', name: 'Lava dragon', hp: 160, atk: 27, def: 14, gp: [250, 700], dragonfire: true, drops: [{ itemId: 'superior_dragon_bones', chance: 0.35 }, { itemId: 'dragon_mace', chance: 0.04 }, { itemId: 'dragon_longsword', chance: 0.02 }] },
+  // The named elites — never in a region pool; their region spawns them.
   { id: 'vorkanth', name: 'Vorkanth, Elder of the Maw', hp: 180, atk: 30, def: 16, gp: [1_500, 4_000], dragonfire: true, elite: true, drops: [{ itemId: 'superior_dragon_bones', chance: 1 }, { itemId: 'dragon_med_helm', chance: 0.25 }, { itemId: 'dragon_platelegs', chance: 0.15 }] },
+  { id: 'zukrath', name: 'Zukrath, the Inferno Sovereign', hp: 260, atk: 36, def: 20, gp: [3_000, 8_000], dragonfire: true, elite: true, drops: [{ itemId: 'superior_dragon_bones', chance: 1 }, { itemId: 'prayer_regeneration_potion_4', chance: 0.3 }, { itemId: 'dragon_longsword', chance: 0.2 }] },
 ];
 
 export const PLAYER_BASE = { maxHp: 50, atk: 5, def: 2 };
@@ -110,6 +117,8 @@ export interface RegionDef {
   flavor: string;
   /** Encounter pool — picked uniformly per advance. */
   monsters: string[];
+  /** Named elite stalking this region (ELITE_CHANCE per monster encounter). */
+  elite?: string;
 }
 
 /** The node graph, easiest to deadliest. Clearing REGION_CLEAR_KILLS
@@ -121,7 +130,11 @@ export const REGIONS: RegionDef[] = [
   { id: 'edgeville_dungeon', name: 'Edgeville Dungeon', flavor: 'the giants pay well', monsters: ['skeleton', 'hill_giant'] },
   { id: 'brimhaven_caverns', name: 'Brimhaven Caverns', flavor: 'moss, mould, and money', monsters: ['moss_giant', 'hill_giant'] },
   { id: 'wilderness_ruins', name: 'Wilderness Ruins', flavor: 'demons hoard runes', monsters: ['lesser_demon', 'fire_giant'] },
-  { id: 'dragons_maw', name: "The Dragon's Maw", flavor: 'bring antifire or bring regrets', monsters: ['green_dragon', 'fire_giant'] },
+  { id: 'dragons_maw', name: "The Dragon's Maw", flavor: 'bring antifire or bring regrets', monsters: ['green_dragon', 'fire_giant'], elite: 'vorkanth' },
+  // 8t: the 99-track. EVERYTHING here breathes fire — the antifire ticket is
+  // not optional, and the fights are long enough that the trained stats from
+  // 8n/8s are the real entry requirement.
+  { id: 'inferno_gate', name: 'The Inferno Gate', flavor: 'the air itself burns — no potion, no entry', monsters: ['pyrefiend', 'lava_dragon'], elite: 'zukrath' },
 ];
 
 export const REGION_CLEAR_KILLS = 3;

@@ -65,8 +65,8 @@ function grind(
         issue({ type: 'place', itemId: 'shark', side: 'buy', price: ask.price, qty: FOOD_TARGET - sharks });
       }
     }
-    // Maw logistics: dragonfire pierces armor — one potion coats a dive (8r).
-    if ((human.questProgress ?? 0) >= REGIONS.length - 1 && (human.inventory['super_antifire_potion_4'] ?? 0) < 1) {
+    // Fire-country logistics: dragonfire pierces armor — one potion per dive (8r).
+    if ((human.questProgress ?? 0) >= REGIONS.length - 2 && (human.inventory['super_antifire_potion_4'] ?? 0) < 1) {
       const book = world.books['super_antifire_potion_4'];
       const ask = book ? bestAsk(book) : null;
       if (ask && ask.price <= human.gp) {
@@ -97,11 +97,11 @@ function grind(
           if (q > 0) pack[id] = q;
         }
       }
-      // Region selection: the Maw (dragonfire + Vorkanth roulette) is for
-      // raiders holding antifire; everyone else farms the wilderness (8r).
+      // Region selection: everything past the wilderness breathes fire —
+      // without the antifire ticket, index 4 is the deepest sane farm (8r/8t).
       let target = Math.min(human.questProgress ?? 0, REGIONS.length - 1);
-      if (target === REGIONS.length - 1 && (human.inventory['super_antifire_potion_4'] ?? 0) < 1) {
-        target = REGIONS.length - 2;
+      if ((human.inventory['super_antifire_potion_4'] ?? 0) < 1) {
+        target = Math.min(target, 4);
       }
       if (!issue({ type: 'startExpedition', regionId: REGIONS[target]!.id, pack })) break;
       continue;
@@ -111,8 +111,8 @@ function grind(
       // Usable strength, not carried strength — under-leveled gear is inert (8n).
       const armed = deriveStats(exp.pack, levelsOf(human.combatXp)).atk >= 30;
       const fleeList = armed
-        ? ['vorkanth']
-        : ['lesser_demon', 'fire_giant', 'green_dragon', 'vorkanth', 'moss_giant'];
+        ? ['vorkanth', 'zukrath']
+        : ['lesser_demon', 'fire_giant', 'green_dragon', 'vorkanth', 'moss_giant', 'pyrefiend', 'lava_dragon', 'zukrath'];
       const breath = monsterById(exp.combat.monsterId).dragonfire === true && !(exp.antifire ?? false);
       const dangerous = fleeList.includes(exp.combat.monsterId) || breath;
       const canEat = (exp.pack['shark'] ?? 0) > 0;
