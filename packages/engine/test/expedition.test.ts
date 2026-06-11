@@ -352,6 +352,39 @@ describe('expeditions', () => {
     expect(ambushed).toBe(true);
   });
 
+  it('the sellsword raids while ticks pass: autonomous, conservative, conserved, deterministic', () => {
+    const { state, id } = fixture(21);
+    const agent = state.agents[id]!;
+    expect(applyCommand(state, id, { type: 'configureSellsword', active: true }).reason).toBe('no-sellsword');
+    // Hire (fixture has 100k): the upgrade burns gp through the ledger.
+    ok(state, id, { type: 'buyUpgrade', upgradeId: 'sellsword' });
+    ok(state, id, { type: 'configureSellsword', active: true });
+    agent.questProgress = 7; // even with the Abyss open...
+    const twin = fixture(21);
+    twin.state.agents[twin.id]!.questProgress = 7;
+    ok(twin.state, twin.id, { type: 'buyUpgrade', upgradeId: 'sellsword' });
+    ok(twin.state, twin.id, { type: 'configureSellsword', active: true });
+    let deepest = 0;
+    for (let i = 0; i < 1_500; i++) {
+      tickWorld(state);
+      tickWorld(twin.state);
+      const exp = agent.expedition;
+      if (exp) deepest = Math.max(deepest, REGIONS.findIndex((r) => r.id === exp.regionId));
+    }
+    checkInvariants(state);
+    expect(state.stats.monstersSlain ?? 0).toBeGreaterThan(0); // it hunts
+    expect(agent.combatXp?.atk ?? 0).toBeGreaterThan(0); // it trains YOUR stats
+    expect(deepest).toBeLessThanOrEqual(4); // ...it never enters fire country
+    expect(hashState(state)).toBe(hashState(twin.state)); // bit-for-bit autonomous
+    // Call it back: it finishes nothing new.
+    ok(state, id, { type: 'configureSellsword', active: false });
+    const slain = state.stats.monstersSlain;
+    const wasOut = agent.expedition !== undefined;
+    for (let i = 0; i < 50; i++) tickWorld(state);
+    expect(state.stats.monstersSlain).toBe(slain);
+    if (wasOut) expect(agent.expedition !== undefined).toBe(true); // frozen afield until YOU act
+  });
+
   it('the bounty board: derived-stream postings, baseline honesty, claims mint', () => {
     const { state, id } = fixture(11);
     // Postings are a pure function of (seed, tick): two worlds, same bounties.

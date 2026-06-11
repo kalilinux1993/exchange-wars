@@ -49,6 +49,29 @@ export function UpgradeShop({
           {nextTierCost === undefined ? 'maxed' : `${nextTierCost.toLocaleString('en-US')} gp`}
         </button>
       </div>
+      <div className="upgrade">
+        <div>
+          <b>Sellsword</b>
+          <span className="dim">
+            {' '}
+            {(view.upgrades['sellsword'] ?? 0) > 0
+              ? 'hired — toggle the hunt in the Adventure room'
+              : 'runs your expeditions while you trade'}
+          </span>
+        </div>
+        <button
+          className="chip"
+          disabled={
+            PROGRESSION.upgrades.sellsword.costs[view.upgrades['sellsword'] ?? 0] === undefined ||
+            view.gp < (PROGRESSION.upgrades.sellsword.costs[view.upgrades['sellsword'] ?? 0] ?? Infinity)
+          }
+          onClick={() => onCommand({ type: 'buyUpgrade', upgradeId: 'sellsword' })}
+        >
+          {PROGRESSION.upgrades.sellsword.costs[view.upgrades['sellsword'] ?? 0] === undefined
+            ? 'hired'
+            : `${PROGRESSION.upgrades.sellsword.costs[view.upgrades['sellsword'] ?? 0]!.toLocaleString('en-US')} gp`}
+        </button>
+      </div>
       <h3>Clerk Orders</h3>
       {tier === 0 ? (
         <p className="dim small">hire the clerk to give orders</p>

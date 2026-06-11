@@ -1,6 +1,7 @@
 // The player surface. Bots, the future UI, and the future server all drive a
 // player EXCLUSIVELY through applyCommand + playerView — never the internals.
 // Everything in and out is plain JSON (null, never undefined in views).
+import { TUNING } from './agents';
 import { bestAsk, bestBid, cancelAgentOrders, placeOrder } from './exchange';
 import { itemDef } from './items';
 import {
@@ -54,6 +55,9 @@ export const PROGRESSION = {
   /** Automation tiers; cost of tier N is costs[N-1]. All burned. */
   upgrades: {
     autoFlip: { costs: [50_000, 150_000, 400_000] },
+    /** The Sellsword (9h): a hireling who runs your expeditions while you
+     * trade — shallow regions only, conservative, levels YOUR stats. */
+    sellsword: { costs: [30_000] },
   },
 } as const;
 
@@ -73,7 +77,8 @@ export type PlayerCommand =
   | { type: 'eatFood'; itemId: ItemId }
   | { type: 'choose'; accept: boolean }
   | { type: 'extract' }
-  | { type: 'claimBounty'; bountyId: number };
+  | { type: 'claimBounty'; bountyId: number }
+  | { type: 'configureSellsword'; active: boolean };
 
 export interface CommandResult {
   ok: boolean;
@@ -144,6 +149,254 @@ function expeditionDeath(
   state.stats.deaths = (state.stats.deaths ?? 0) + 1;
   agent.hp = 1; // you barely crawled home — rest before diving again
   delete agent.expedition;
+}
+
+/** Escrow a (pre-validated) pack and set out. Shared by startExpedition and
+ * the Sellsword autopilot (9h). */
+export function beginExpedition(
+  state: WorldState,
+  agent: AgentState,
+  regionId: string,
+  packIn: Record<ItemId, number>,
+): void {
+  const idx = regionIndex(regionId);
+  const pack: Record<ItemId, number> = {};
+  for (const [itemId, qty] of Object.entries(packIn)) {
+    agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) - qty;
+    pack[itemId] = qty;
+  }
+  const expId = state.nextExpeditionId ?? 1;
+  state.nextExpeditionId = expId + 1;
+  state.stats.deepestRegion = Math.max(state.stats.deepestRegion ?? 0, idx);
+  agent.expedition = {
+    regionId,
+    rngState: expeditionSeed(state.seed, expId),
+    // Wounds persist: you set out with the hp you came home with (absent =
+    // full — full meaning your TRAINED max, 8s). Embarking hurt is allowed.
+    hp: Math.min(maxHpFor(levelsOf(agent.combatXp).hp), Math.max(1, agent.hp ?? maxHpFor(levelsOf(agent.combatXp).hp))),
+    pack,
+    packGp: 0,
+    cleared: 0,
+    combat: null,
+  };
+}
+
+/** Bank the pack and the loot gp; wounds come home too. Shared by extract
+ * and the Sellsword autopilot (9h). */
+export function finishExtract(agent: AgentState, exp: NonNullable<AgentState['expedition']>): void {
+  for (const [itemId, qty] of Object.entries(exp.pack)) {
+    if (qty > 0) agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) + qty;
+  }
+  agent.gp += exp.packGp; // already minted at each kill
+  // Wounds come home with you; full health (= TRAINED max, 8s) drops the
+  // field (canonical absent-=-full form keeps never-hurt saves identical).
+  if (exp.hp < maxHpFor(levelsOf(agent.combatXp).hp)) agent.hp = Math.max(1, exp.hp);
+  else delete agent.hp;
+  delete agent.expedition;
+}
+
+/** One combat round: the post-tick body of fight/flee/eat — burn, resolve,
+ * leech, train, settle. Shared by the combat commands and the Sellsword
+ * autopilot (9h); identical draw order either way. */
+export function runCombatRound(
+  state: WorldState,
+  agent: AgentState,
+  exp: NonNullable<AgentState['expedition']>,
+  action: import('./quest').CombatAction,
+): void {
+  if (!exp.combat) return;
+  if (action.kind === 'eat') {
+    exp.pack[action.itemId] = exp.pack[action.itemId]! - 1;
+    state.ledger.itemsBurned[action.itemId] = (state.ledger.itemsBurned[action.itemId] ?? 0) + 1;
+    // One potion coats you for the whole dive (every later combat seeds
+    // from this flag); it dies with the expedition.
+    if (CONSUMABLES[action.itemId]?.antifire) exp.antifire = true;
+  }
+  const rng = createRng(exp.rngState);
+  const lvBefore = levelsOf(agent.combatXp);
+  const hpBefore = { monster: exp.combat.monsterHp, player: exp.combat.playerHp };
+  resolveRound(exp.combat, deriveStats(exp.pack, lvBefore), action, rng);
+  exp.rngState = rng.state();
+  const c = exp.combat;
+  // The Abyss bleeds purses: leeches drain loot gp every round the fight
+  // drags on (burned — the dark banks nowhere). Kill fast or pay.
+  const leech = monsterById(c.monsterId).leech ?? 0;
+  if (leech > 0 && c.outcome === 'fighting' && exp.packGp > 0) {
+    const drained = Math.min(exp.packGp, leech);
+    exp.packGp -= drained;
+    state.ledger.gpBurned += drained;
+    c.log.push(`it siphons ${drained} gp from your pack`);
+  }
+  // Training: Attack xp = damage dealt, Defence xp = damage taken (eating
+  // heals, so a net-positive round trains nothing defensively). Death
+  // never takes xp — wounds cost loot, never experience.
+  const dealt = Math.max(0, hpBefore.monster - c.monsterHp);
+  const taken = Math.max(0, hpBefore.player - c.playerHp);
+  if (dealt + taken > 0) {
+    const xp = (agent.combatXp ??= { atk: 0, def: 0 });
+    xp.atk += dealt;
+    xp.def += taken;
+    // Fighting hardens you: a third of damage dealt trains Hitpoints (8s).
+    if (dealt > 0) xp.hp = (xp.hp ?? 0) + Math.ceil(dealt / 3);
+    const lv = levelsOf(xp);
+    const journal = (exp.journal ??= []);
+    if (lv.atk > lvBefore.atk) journal.push(`your arm grows stronger — Attack ${lv.atk}`);
+    if (lv.def > lvBefore.def) journal.push(`you learn to take a blow — Defence ${lv.def}`);
+    if (lv.hp > lvBefore.hp) journal.push(`your vitality surges — Hitpoints ${lv.hp} (max hp ${maxHpFor(lv.hp)})`);
+  }
+  if (c.outcome === 'won') {
+    state.ledger.gpMinted += c.lootGp; // monster coin is freshly struck
+    exp.packGp += c.lootGp;
+    for (const itemId of c.lootItems) {
+      state.ledger.itemsMinted[itemId] = (state.ledger.itemsMinted[itemId] ?? 0) + 1;
+      exp.pack[itemId] = (exp.pack[itemId] ?? 0) + 1;
+    }
+    exp.cleared += 1;
+    exp.hp = c.playerHp;
+    state.stats.monstersSlain = (state.stats.monstersSlain ?? 0) + 1;
+    const tally = (state.stats.killsByMonster ??= {});
+    tally[c.monsterId] = (tally[c.monsterId] ?? 0) + 1;
+    if (monsterById(c.monsterId).elite) {
+      state.stats.eliteSlain = (state.stats.eliteSlain ?? 0) + 1;
+    }
+    const idx = regionIndex(exp.regionId);
+    if (exp.cleared >= REGION_CLEAR_KILLS && idx === (agent.questProgress ?? 0) && idx < REGIONS.length - 1) {
+      agent.questProgress = idx + 1; // the frontier moves
+    }
+    exp.combat = null;
+  } else if (c.outcome === 'dead') {
+    expeditionDeath(state, agent, exp);
+  } else if (c.outcome === 'fled') {
+    exp.hp = c.playerHp;
+    exp.combat = null; // escaped this encounter — no kill credit
+  }
+}
+
+/** One expedition step: the post-tick body of `advance`, drawing ONLY from
+ * the expedition's private stream. Shared by the advance command and the
+ * Sellsword autopilot (9h) — one source of truth, identical draw order. */
+export function rollEncounter(
+  state: WorldState,
+  agent: AgentState,
+  exp: NonNullable<AgentState['expedition']>,
+): void {
+  const region = REGIONS[regionIndex(exp.regionId)]!;
+  const rng = createRng(exp.rngState);
+  const roll = rng.next();
+  const journal = (exp.journal ??= []);
+  if (roll < ENCOUNTERS.monster) {
+    const rIdx = regionIndex(exp.regionId);
+    const af = exp.antifire ?? false;
+    const mhp = maxHpFor(levelsOf(agent.combatXp).hp);
+    if (region.elite && rng.chance(ELITE_CHANCE)) {
+      exp.combat = newCombat(
+        region.elite,
+        exp.hp,
+        `the ground shakes — ${monsterById(region.elite).name.toUpperCase()} descends!`,
+        af,
+        mhp,
+      );
+    } else if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
+      const deeper = REGIONS[rIdx + 1]!;
+      const beast = rng.pick(deeper.monsters);
+      exp.combat = newCombat(beast, exp.hp, `AMBUSH — a ${monsterById(beast).name} from ${deeper.name} crosses your path!`, af, mhp);
+    } else {
+      exp.combat = newCombat(rng.pick(region.monsters), exp.hp, undefined, af, mhp);
+    }
+  } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache) {
+    // A stash in the dark — coin, and sometimes goods (minted like drops).
+    const rIdx = regionIndex(exp.regionId);
+    const found = rng.int(20, 60 + 40 * rIdx);
+    state.ledger.gpMinted += found;
+    exp.packGp += found;
+    state.stats.cacheFinds = (state.stats.cacheFinds ?? 0) + 1;
+    if (rng.chance(CACHE_ITEM_CHANCE)) {
+      const itemId = rng.pick(cachePool(rIdx));
+      state.ledger.itemsMinted[itemId] = (state.ledger.itemsMinted[itemId] ?? 0) + 1;
+      exp.pack[itemId] = (exp.pack[itemId] ?? 0) + 1;
+      journal.push(`you pry open a forgotten cache: +${found} gp and a ${itemId.replace(/_/g, ' ')}`);
+    } else {
+      journal.push(`you pry open a forgotten cache: +${found} gp`);
+    }
+  } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache + ENCOUNTERS.trap) {
+    const dmg = rng.int(3, 6 + 3 * regionIndex(exp.regionId));
+    exp.hp -= dmg;
+    journal.push(`a snare bites — ${dmg} hp`);
+    if (exp.hp <= 0) {
+      journal.push('the trap was the last thing you never saw');
+      expeditionDeath(state, agent, exp);
+    }
+  } else {
+    // Region-flavored repertoire (8u): one draw picks from the pool the
+    // depth deserves. Portals never spawn in the last region (nothing
+    // deeper) or the plains (nothing to escalate FROM).
+    const rIdx = regionIndex(exp.regionId);
+    const kinds: import('./quest').EventState['kind'][] = ['shrine', 'gamble', 'imp'];
+    if (rIdx >= 1 && rIdx < REGIONS.length - 1) kinds.push('portal');
+    if (rIdx >= 1) kinds.push('spar');
+    if (rIdx >= 2) kinds.push('toll');
+    if (rIdx >= 3) kinds.push('merchant');
+    const kind = rng.pick(kinds);
+    const prompt =
+      kind === 'shrine'
+        ? 'a shrine hums in the dark — tithe a quarter of your loot gp for full healing?'
+        : kind === 'gamble'
+          ? `a goblin rattles a cup of dice — stake ${GAMBLE_STAKE} loot gp, double or nothing?`
+          : kind === 'imp'
+            ? 'an imp scampers past with a bulging coin pouch — give chase?'
+            : kind === 'portal'
+              ? `a humming portal opens — beyond it, ${REGIONS[rIdx + 1]!.name}. step through?`
+              : kind === 'spar'
+                ? 'a grizzled swordmaster bars the path, blade flat — take a lesson in bruises?'
+                : kind === 'toll'
+                  ? `a toll-keeper rattles his cup — ${TOLL_COST} gp for word of a nearby stash?`
+                  : 'a soot-cloaked merchant offers a shark at triple price — pay up?';
+    exp.event = { kind, prompt };
+  }
+  exp.rngState = rng.state();
+}
+
+/** The Sellsword autopilot (9h): one conservative expedition action per
+ * TUNING.sellsword.cadence ticks, run INSIDE tickWorld (no recursive ticks —
+ * the ambient tick IS the time cost, same pricing as a human command).
+ * Draws only from the expedition stream; sims without the upgrade are
+ * byte-identical, so no gate re-rolls. */
+export function actSellsword(state: WorldState, agent: AgentState): void {
+  if (agent.kind !== 'player' || !agent.sellsword || (agent.upgrades?.['sellsword'] ?? 0) < 1) return;
+  const T = TUNING.sellsword;
+  if (state.tick % T.cadence !== 0) return;
+  const exp = agent.expedition;
+  if (!exp) {
+    // Rest until fit (regen does the work), then set out empty-handed —
+    // a hireling never gambles YOUR kit.
+    const max = maxHpFor(levelsOf(agent.combatXp).hp);
+    if ((agent.hp ?? max) < Math.min(T.embarkHp, max)) return;
+    // Hunt the deepest region it will actually FIGHT in — a cap alone would
+    // send it somewhere it flees everything and earns nothing.
+    let target = Math.min(agent.questProgress ?? 0, T.maxRegion);
+    while (target > 0 && !REGIONS[target]!.monsters.some((id) => monsterById(id).atk < T.fleeAtk)) target--;
+    beginExpedition(state, agent, REGIONS[target]!.id, {});
+    return;
+  }
+  if (exp.combat) {
+    const m = monsterById(exp.combat.monsterId);
+    const danger = m.elite === true || m.dragonfire === true || (m.leech ?? 0) > 0 || m.atk >= T.fleeAtk;
+    const action: import('./quest').CombatAction =
+      danger || exp.combat.playerHp < T.retreatHp ? { kind: 'flee' } : { kind: 'fight' };
+    runCombatRound(state, agent, exp, action);
+    return;
+  }
+  if (exp.event) {
+    // A hireling makes no bargains with the dark on your behalf.
+    (exp.journal ??= []).push('the sellsword walks on');
+    exp.event = null;
+    return;
+  }
+  if (exp.cleared >= REGION_CLEAR_KILLS || exp.hp < T.retreatHp) {
+    finishExtract(agent, exp);
+    return;
+  }
+  rollEncounter(state, agent, exp);
 }
 
 function playerOf(state: WorldState, playerId: number): AgentState | null {
@@ -288,25 +541,7 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
         if (!Number.isSafeInteger(qty) || qty < 1) return { ok: false, reason: 'bad-pack', trades: [] };
         if ((agent.inventory[itemId] ?? 0) < qty) return { ok: false, reason: 'insufficient-items', trades: [] };
       }
-      const pack: Record<ItemId, number> = {};
-      for (const [itemId, qty] of Object.entries(cmd.pack)) {
-        agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) - qty;
-        pack[itemId] = qty;
-      }
-      const expId = state.nextExpeditionId ?? 1;
-      state.nextExpeditionId = expId + 1;
-      state.stats.deepestRegion = Math.max(state.stats.deepestRegion ?? 0, idx);
-      agent.expedition = {
-        regionId: cmd.regionId,
-        rngState: expeditionSeed(state.seed, expId),
-        // Wounds persist: you set out with the hp you came home with (absent =
-        // full — full meaning your TRAINED max, 8s). Embarking hurt is allowed.
-        hp: Math.min(maxHpFor(levelsOf(agent.combatXp).hp), Math.max(1, agent.hp ?? maxHpFor(levelsOf(agent.combatXp).hp))),
-        pack,
-        packGp: 0,
-        cleared: 0,
-        combat: null,
-      };
+      beginExpedition(state, agent, cmd.regionId, cmd.pack);
       return { ok: true, trades: [] };
     }
     case 'advance': {
@@ -319,80 +554,7 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       // (without this, score scales with raw command spam — FINDINGS #45).
       // Safe in replay: recorded ticks fully determine application order.
       tickWorld(state);
-      const region = REGIONS[regionIndex(exp.regionId)]!;
-      const rng = createRng(exp.rngState);
-      const roll = rng.next();
-      const journal = (exp.journal ??= []);
-      if (roll < ENCOUNTERS.monster) {
-        const rIdx = regionIndex(exp.regionId);
-        const af = exp.antifire ?? false;
-        const mhp = maxHpFor(levelsOf(agent.combatXp).hp);
-        if (region.elite && rng.chance(ELITE_CHANCE)) {
-          exp.combat = newCombat(
-            region.elite,
-            exp.hp,
-            `the ground shakes — ${monsterById(region.elite).name.toUpperCase()} descends!`,
-            af,
-            mhp,
-          );
-        } else if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
-          const deeper = REGIONS[rIdx + 1]!;
-          const beast = rng.pick(deeper.monsters);
-          exp.combat = newCombat(beast, exp.hp, `AMBUSH — a ${monsterById(beast).name} from ${deeper.name} crosses your path!`, af, mhp);
-        } else {
-          exp.combat = newCombat(rng.pick(region.monsters), exp.hp, undefined, af, mhp);
-        }
-      } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache) {
-        // A stash in the dark — coin, and sometimes goods (minted like drops).
-        const rIdx = regionIndex(exp.regionId);
-        const found = rng.int(20, 60 + 40 * rIdx);
-        state.ledger.gpMinted += found;
-        exp.packGp += found;
-        state.stats.cacheFinds = (state.stats.cacheFinds ?? 0) + 1;
-        if (rng.chance(CACHE_ITEM_CHANCE)) {
-          const itemId = rng.pick(cachePool(rIdx));
-          state.ledger.itemsMinted[itemId] = (state.ledger.itemsMinted[itemId] ?? 0) + 1;
-          exp.pack[itemId] = (exp.pack[itemId] ?? 0) + 1;
-          journal.push(`you pry open a forgotten cache: +${found} gp and a ${itemId.replace(/_/g, ' ')}`);
-        } else {
-          journal.push(`you pry open a forgotten cache: +${found} gp`);
-        }
-      } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache + ENCOUNTERS.trap) {
-        const dmg = rng.int(3, 6 + 3 * regionIndex(exp.regionId));
-        exp.hp -= dmg;
-        journal.push(`a snare bites — ${dmg} hp`);
-        if (exp.hp <= 0) {
-          journal.push('the trap was the last thing you never saw');
-          expeditionDeath(state, agent, exp);
-        }
-      } else {
-        // Region-flavored repertoire (8u): one draw picks from the pool the
-        // depth deserves. Portals never spawn in the last region (nothing
-        // deeper) or the plains (nothing to escalate FROM).
-        const rIdx = regionIndex(exp.regionId);
-        const kinds: import('./quest').EventState['kind'][] = ['shrine', 'gamble', 'imp'];
-        if (rIdx >= 1 && rIdx < REGIONS.length - 1) kinds.push('portal');
-        if (rIdx >= 1) kinds.push('spar');
-        if (rIdx >= 2) kinds.push('toll');
-        if (rIdx >= 3) kinds.push('merchant');
-        const kind = rng.pick(kinds);
-        const prompt =
-          kind === 'shrine'
-            ? 'a shrine hums in the dark — tithe a quarter of your loot gp for full healing?'
-            : kind === 'gamble'
-              ? `a goblin rattles a cup of dice — stake ${GAMBLE_STAKE} loot gp, double or nothing?`
-              : kind === 'imp'
-                ? 'an imp scampers past with a bulging coin pouch — give chase?'
-                : kind === 'portal'
-                  ? `a humming portal opens — beyond it, ${REGIONS[rIdx + 1]!.name}. step through?`
-                  : kind === 'spar'
-                    ? 'a grizzled swordmaster bars the path, blade flat — take a lesson in bruises?'
-                    : kind === 'toll'
-                      ? `a toll-keeper rattles his cup — ${TOLL_COST} gp for word of a nearby stash?`
-                      : 'a soot-cloaked merchant offers a shark at triple price — pay up?';
-        exp.event = { kind, prompt };
-      }
-      exp.rngState = rng.state();
+      rollEncounter(state, agent, exp);
       return { ok: true, trades: [] };
     }
     case 'choose': {
@@ -532,86 +694,20 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       // A combat round costs a world tick too — otherwise loot scales with
       // command spam, not sprint time (same lever as 'advance', FINDINGS #45).
       tickWorld(state);
-      if (action.kind === 'eat') {
-        exp.pack[action.itemId] = exp.pack[action.itemId]! - 1;
-        state.ledger.itemsBurned[action.itemId] = (state.ledger.itemsBurned[action.itemId] ?? 0) + 1;
-        // One potion coats you for the whole dive (every later combat seeds
-        // from this flag); it dies with the expedition.
-        if (CONSUMABLES[action.itemId]?.antifire) exp.antifire = true;
-      }
-      const rng = createRng(exp.rngState);
-      const lvBefore = levelsOf(agent.combatXp);
-      const hpBefore = { monster: exp.combat.monsterHp, player: exp.combat.playerHp };
-      resolveRound(exp.combat, deriveStats(exp.pack, lvBefore), action, rng);
-      exp.rngState = rng.state();
-      const c = exp.combat;
-      // The Abyss bleeds purses: leeches drain loot gp every round the fight
-      // drags on (burned — the dark banks nowhere). Kill fast or pay.
-      const leech = monsterById(c.monsterId).leech ?? 0;
-      if (leech > 0 && c.outcome === 'fighting' && exp.packGp > 0) {
-        const drained = Math.min(exp.packGp, leech);
-        exp.packGp -= drained;
-        state.ledger.gpBurned += drained;
-        c.log.push(`it siphons ${drained} gp from your pack`);
-      }
-      // Training: Attack xp = damage dealt, Defence xp = damage taken (eating
-      // heals, so a net-positive round trains nothing defensively). Death
-      // never takes xp — wounds cost loot, never experience.
-      const dealt = Math.max(0, hpBefore.monster - c.monsterHp);
-      const taken = Math.max(0, hpBefore.player - c.playerHp);
-      if (dealt + taken > 0) {
-        const xp = (agent.combatXp ??= { atk: 0, def: 0 });
-        xp.atk += dealt;
-        xp.def += taken;
-        // Fighting hardens you: a third of damage dealt trains Hitpoints (8s).
-        if (dealt > 0) xp.hp = (xp.hp ?? 0) + Math.ceil(dealt / 3);
-        const lv = levelsOf(xp);
-        const journal = (exp.journal ??= []);
-        if (lv.atk > lvBefore.atk) journal.push(`your arm grows stronger — Attack ${lv.atk}`);
-        if (lv.def > lvBefore.def) journal.push(`you learn to take a blow — Defence ${lv.def}`);
-        if (lv.hp > lvBefore.hp) journal.push(`your vitality surges — Hitpoints ${lv.hp} (max hp ${maxHpFor(lv.hp)})`);
-      }
-      if (c.outcome === 'won') {
-        state.ledger.gpMinted += c.lootGp; // monster coin is freshly struck
-        exp.packGp += c.lootGp;
-        for (const itemId of c.lootItems) {
-          state.ledger.itemsMinted[itemId] = (state.ledger.itemsMinted[itemId] ?? 0) + 1;
-          exp.pack[itemId] = (exp.pack[itemId] ?? 0) + 1;
-        }
-        exp.cleared += 1;
-        exp.hp = c.playerHp;
-        state.stats.monstersSlain = (state.stats.monstersSlain ?? 0) + 1;
-        const tally = (state.stats.killsByMonster ??= {});
-        tally[c.monsterId] = (tally[c.monsterId] ?? 0) + 1;
-        if (monsterById(c.monsterId).elite) {
-          state.stats.eliteSlain = (state.stats.eliteSlain ?? 0) + 1;
-        }
-        const idx = regionIndex(exp.regionId);
-        if (exp.cleared >= REGION_CLEAR_KILLS && idx === (agent.questProgress ?? 0) && idx < REGIONS.length - 1) {
-          agent.questProgress = idx + 1; // the frontier moves
-        }
-        exp.combat = null;
-      } else if (c.outcome === 'dead') {
-        expeditionDeath(state, agent, exp);
-      } else if (c.outcome === 'fled') {
-        exp.hp = c.playerHp;
-        exp.combat = null; // escaped this encounter — no kill credit
-      }
+      runCombatRound(state, agent, exp, action);
       return { ok: true, trades: [] };
     }
     case 'extract': {
       const exp = agent.expedition;
       if (!exp) return { ok: false, reason: 'not-out', trades: [] };
       if (exp.combat) return { ok: false, reason: 'in-combat', trades: [] };
-      for (const [itemId, qty] of Object.entries(exp.pack)) {
-        if (qty > 0) agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) + qty;
-      }
-      agent.gp += exp.packGp; // already minted at each kill
-      // Wounds come home with you; full health (= TRAINED max, 8s) drops the
-      // field (canonical absent-=-full form keeps never-hurt saves identical).
-      if (exp.hp < maxHpFor(levelsOf(agent.combatXp).hp)) agent.hp = Math.max(1, exp.hp);
-      else delete agent.hp;
-      delete agent.expedition;
+      finishExtract(agent, exp);
+      return { ok: true, trades: [] };
+    }
+    case 'configureSellsword': {
+      if ((agent.upgrades?.['sellsword'] ?? 0) < 1) return { ok: false, reason: 'no-sellsword', trades: [] };
+      if (cmd.active) agent.sellsword = true;
+      else delete agent.sellsword; // canonical absent-=-off
       return { ok: true, trades: [] };
     }
     case 'claimBounty': {

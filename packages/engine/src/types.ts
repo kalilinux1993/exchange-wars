@@ -71,6 +71,9 @@ export interface AgentState {
   /** Players only: persistent hit points (absent = full). Wounds carry between
    * expeditions; mends out-of-field via tick regen (quest.REST_REGEN_TICKS). */
   hp?: number;
+  /** Players only: the Sellsword autopilot is switched on (absent = off).
+   * Requires the sellsword upgrade; engine acts inside tickWorld (9h). */
+  sellsword?: boolean;
   /** Players only: lifetime combat xp (absent = none — level 1). Attack xp =
    * damage dealt, Defence xp = damage taken, Hitpoints xp = ceil(dealt/3)
    * (hp absent in pre-8s saves = level 1); levels via quest.levelFor.

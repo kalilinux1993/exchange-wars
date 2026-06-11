@@ -171,278 +171,6 @@ function itemDef(state, itemId) {
   return index.get(itemId);
 }
 
-// packages/engine/src/quest.ts
-var GEAR = {
-  adamant_dart: { slot: "weapon", atk: 10, def: 0, req: 1 },
-  rune_dart: { slot: "weapon", atk: 16, def: 0, req: 4 },
-  battlestaff: { slot: "weapon", atk: 22, def: 1, req: 7 },
-  dragon_dart: { slot: "weapon", atk: 26, def: 0, req: 8 },
-  mystic_air_staff: { slot: "weapon", atk: 30, def: 1, req: 10 },
-  mystic_earth_staff: { slot: "weapon", atk: 32, def: 1, req: 10 },
-  rune_battleaxe: { slot: "weapon", atk: 38, def: 0, req: 12 },
-  rune_2h_sword: { slot: "weapon", atk: 45, def: 0, req: 14 },
-  dragon_mace: { slot: "weapon", atk: 40, def: 0, req: 16 },
-  dragon_longsword: { slot: "weapon", atk: 50, def: 0, req: 20 },
-  rune_full_helm: { slot: "helm", atk: 0, def: 12, req: 8 },
-  dragon_med_helm: { slot: "helm", atk: 0, def: 16, req: 16 },
-  rune_chainbody: { slot: "body", atk: 0, def: 22, req: 8 },
-  rune_platebody: { slot: "body", atk: 0, def: 28, req: 12 },
-  rune_plateskirt: { slot: "legs", atk: 0, def: 20, req: 10 },
-  rune_platelegs: { slot: "legs", atk: 0, def: 20, req: 10 },
-  dragon_platelegs: { slot: "legs", atk: 0, def: 30, req: 18 },
-  dragon_plateskirt: { slot: "legs", atk: 0, def: 30, req: 18 },
-  rune_sq_shield: { slot: "shield", atk: 0, def: 14, req: 6 },
-  rune_kiteshield: { slot: "shield", atk: 0, def: 18, req: 10 }
-};
-var CONSUMABLES = {
-  shark: { heal: 20 },
-  cooked_karambwan: { heal: 18 },
-  prayer_regeneration_potion_4: { heal: 30 },
-  super_antifire_potion_4: { heal: 5, antifire: true }
-};
-var ELITE_CHANCE = 0.1;
-var MONSTERS = [
-  { id: "giant_rat", name: "Giant rat", hp: 8, atk: 3, def: 0, gp: [2, 12], drops: [] },
-  { id: "goblin", name: "Goblin", hp: 12, atk: 4, def: 1, gp: [5, 30], drops: [{ itemId: "adamant_dart", chance: 0.15 }] },
-  { id: "skeleton", name: "Skeleton", hp: 22, atk: 7, def: 3, gp: [15, 60], drops: [{ itemId: "law_rune", chance: 0.12 }] },
-  { id: "hill_giant", name: "Hill giant", hp: 35, atk: 9, def: 4, gp: [40, 180], drops: [{ itemId: "nature_rune", chance: 0.25 }, { itemId: "death_rune", chance: 0.1 }] },
-  { id: "moss_giant", name: "Moss giant", hp: 45, atk: 11, def: 6, gp: [60, 240], drops: [{ itemId: "blood_rune", chance: 0.18 }] },
-  // Deep-tier reward design (FINDINGS #51): monster GP is an UNBOUNDED faucet
-  // — at real kill rates (~2 ticks/kill for a leveled fighter) any fat gp
-  // range prints. ITEM drops are market-bounded: the liquidation mark walks
-  // finite bid depth, so flooding the book caps itself. Deep monsters pay in
-  // goods, modest coin.
-  { id: "lesser_demon", name: "Lesser demon", hp: 70, atk: 16, def: 9, gp: [120, 360], drops: [{ itemId: "death_rune", chance: 0.4 }, { itemId: "rune_full_helm", chance: 0.1 }] },
-  { id: "fire_giant", name: "Fire giant", hp: 85, atk: 19, def: 11, gp: [150, 450], drops: [{ itemId: "rune_battleaxe", chance: 0.12 }, { itemId: "blood_rune", chance: 0.5 }] },
-  // Bones at 0.15: a 16.7k-baseCost item at 100% made Maw farming a 29× sprint
-  // printer (FINDINGS #47). EV ≈ 3.1k/kill keeps dragons the best farm without
-  // printing; Vorkanth keeps his 100% — elites are the jackpot.
-  // Bones at 0.25: measured CAP-BOUND — the TAS-route tail is set by bid
-  // depth (the market absorbs ~a dozen bones/sprint, the rest mark 0), so a
-  // lower rate only starves casual raiders without touching the tail.
-  { id: "green_dragon", name: "Green dragon", hp: 110, atk: 24, def: 12, gp: [200, 600], dragonfire: true, drops: [{ itemId: "superior_dragon_bones", chance: 0.25 }, { itemId: "dragon_med_helm", chance: 0.02 }, { itemId: "rune_kiteshield", chance: 0.08 }] },
-  // The Inferno Gate (8t): every dweller breathes fire; fights are long.
-  // Goods-over-coin throughout (FINDINGS #51) — bones are bid-capped, the
-  // dragon weapons are rare. dragon_plateskirt (121k) is deliberately on NO
-  // regular table.
-  { id: "pyrefiend", name: "Pyrefiend", hp: 95, atk: 22, def: 12, gp: [150, 400], dragonfire: true, drops: [{ itemId: "death_rune", chance: 0.5 }, { itemId: "blood_rune", chance: 0.4 }, { itemId: "dragon_dart", chance: 0.12 }] },
-  { id: "lava_dragon", name: "Lava dragon", hp: 160, atk: 27, def: 14, gp: [250, 700], dragonfire: true, drops: [{ itemId: "superior_dragon_bones", chance: 0.35 }, { itemId: "dragon_mace", chance: 0.04 }, { itemId: "dragon_longsword", chance: 0.02 }] },
-  // The Abyss (9e): no fire down here — the toll is your PURSE. Leeches
-  // drain loot gp every round the fight drags; kill fast or bleed coin.
-  { id: "abyssal_leech", name: "Abyssal leech", hp: 60, atk: 18, def: 10, gp: [100, 300], leech: 40, drops: [{ itemId: "blood_rune", chance: 0.35 }] },
-  { id: "abyssal_demon", name: "Abyssal demon", hp: 130, atk: 30, def: 18, gp: [400, 1e3], leech: 80, drops: [{ itemId: "death_rune", chance: 0.6 }, { itemId: "dragon_dart", chance: 0.2 }] },
-  // The named elites — never in a region pool; their region spawns them.
-  { id: "vorkanth", name: "Vorkanth, Elder of the Maw", hp: 180, atk: 30, def: 16, gp: [1500, 4e3], dragonfire: true, elite: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "dragon_med_helm", chance: 0.25 }, { itemId: "dragon_platelegs", chance: 0.15 }] },
-  { id: "zukrath", name: "Zukrath, the Inferno Sovereign", hp: 260, atk: 36, def: 20, gp: [3e3, 8e3], dragonfire: true, elite: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "prayer_regeneration_potion_4", chance: 0.3 }, { itemId: "dragon_longsword", chance: 0.2 }] },
-  // dragon_plateskirt (121k baseCost) lives ONLY here — the Abyss jackpot.
-  { id: "vessith", name: "Vessith, the Unraveler", hp: 300, atk: 40, def: 22, gp: [5e3, 12e3], leech: 200, elite: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "dragon_plateskirt", chance: 0.25 }, { itemId: "prayer_regeneration_potion_4", chance: 0.2 }] }
-];
-var PLAYER_BASE = { maxHp: 50, atk: 5, def: 2 };
-var REST_REGEN_TICKS = 3;
-var REGIONS = [
-  { id: "lumbridge_plains", name: "Lumbridge Plains", flavor: "soft hills, soft monsters", monsters: ["giant_rat", "goblin"] },
-  { id: "varrock_sewers", name: "Varrock Sewers", flavor: "it smells like XP down here", monsters: ["goblin", "skeleton"] },
-  { id: "edgeville_dungeon", name: "Edgeville Dungeon", flavor: "the giants pay well", monsters: ["skeleton", "hill_giant"] },
-  { id: "brimhaven_caverns", name: "Brimhaven Caverns", flavor: "moss, mould, and money", monsters: ["moss_giant", "hill_giant"] },
-  { id: "wilderness_ruins", name: "Wilderness Ruins", flavor: "demons hoard runes", monsters: ["lesser_demon", "fire_giant"] },
-  { id: "dragons_maw", name: "The Dragon's Maw", flavor: "bring antifire or bring regrets", monsters: ["green_dragon", "fire_giant"], elite: "vorkanth" },
-  // 8t: the 99-track. EVERYTHING here breathes fire — the antifire ticket is
-  // not optional, and the fights are long enough that the trained stats from
-  // 8n/8s are the real entry requirement.
-  { id: "inferno_gate", name: "The Inferno Gate", flavor: "the air itself burns \u2014 no potion, no entry", monsters: ["pyrefiend", "lava_dragon"], elite: "zukrath" },
-  // 9e: past the fire, the dark that EATS. No dragonfire — the toll here is
-  // your loot purse, drained every round a fight drags on.
-  { id: "the_abyss", name: "The Abyss", flavor: "it eats light, gold, and the unprepared", monsters: ["abyssal_leech", "abyssal_demon"], elite: "vessith" }
-];
-var REGION_CLEAR_KILLS = 3;
-function regionIndex(id) {
-  return REGIONS.findIndex((r) => r.id === id);
-}
-function expeditionSeed(worldSeed, expeditionId) {
-  return (worldSeed ^ 2654435769) + Math.imul(expeditionId, 2246822507) >>> 0;
-}
-var ENCOUNTERS = {
-  monster: 0.6,
-  cache: 0.15,
-  trap: 0.1
-  // remainder: a choice event (shrine/gamble, 50/50)
-};
-var SHRINE_MIN_COST = 50;
-var GAMBLE_STAKE = 100;
-var IMP_PRIZE = [150, 400];
-var MERCHANT_MARKUP = 3;
-var SPAR_XP = 25;
-var SPAR_BRUISES = [5, 12];
-var TOLL_COST = 150;
-var CACHE_ITEM_CHANCE = 0.25;
-var AMBUSH_CHANCE = 0.08;
-var CACHE_LOOT = [
-  { minRegion: 0, items: ["law_rune", "nature_rune", "cooked_karambwan"] },
-  { minRegion: 2, items: ["death_rune", "blood_rune", "shark"] },
-  { minRegion: 4, items: ["shark", "cooked_karambwan", "blood_rune"] }
-];
-function cachePool(regionIdx) {
-  let pool = CACHE_LOOT[0].items;
-  for (const tier of CACHE_LOOT) {
-    if (regionIdx >= tier.minRegion) pool = tier.items;
-  }
-  return pool;
-}
-var MAX_LEVEL = 99;
-var XP_CURVE_K = 4;
-function levelFor(xp) {
-  return Math.min(MAX_LEVEL, 1 + Math.floor(Math.sqrt(Math.max(0, xp) / XP_CURVE_K)));
-}
-function levelsOf(xp) {
-  return { atk: levelFor(xp?.atk ?? 0), def: levelFor(xp?.def ?? 0), hp: levelFor(xp?.hp ?? 0) };
-}
-var HP_PER_LEVEL = 2;
-function maxHpFor(hpLevel) {
-  return PLAYER_BASE.maxHp + HP_PER_LEVEL * (hpLevel - 1);
-}
-function deriveStats(pack, lvls = { atk: 1, def: 1 }) {
-  const best = {};
-  for (const [itemId, qty] of Object.entries(pack)) {
-    if (qty < 1) continue;
-    const g = GEAR[itemId];
-    if (!g) continue;
-    if ((g.slot === "weapon" ? lvls.atk : lvls.def) < g.req) continue;
-    const cur = best[g.slot];
-    if (!cur || g.atk + g.def > cur.atk + cur.def) best[g.slot] = g;
-  }
-  let atk = PLAYER_BASE.atk + (lvls.atk - 1);
-  let def = PLAYER_BASE.def + (lvls.def - 1);
-  for (const g of Object.values(best)) {
-    atk += g.atk;
-    def += g.def;
-  }
-  return { atk, def };
-}
-function monsterById(id) {
-  const m = MONSTERS.find((x) => x.id === id);
-  if (!m) throw new Error(`unknown monster ${id}`);
-  return m;
-}
-function newCombat(monsterId, playerHp, intro, antifire = false, maxHp = PLAYER_BASE.maxHp) {
-  const m = monsterById(monsterId);
-  return {
-    monsterId,
-    monsterHp: m.hp,
-    playerHp,
-    // Seeded from the expedition: one potion covers the whole dive (8r).
-    antifire,
-    // Trained Hitpoints raise the heal cap (8s). Absent in old saves' combats.
-    maxHp,
-    outcome: "fighting",
-    lootGp: 0,
-    lootItems: [],
-    log: [intro ?? `a ${m.name} blocks the path`]
-  };
-}
-var FLEE_CHANCE = 0.6;
-function hitChance(atk, def) {
-  return Math.min(0.95, Math.max(0.15, 0.55 + (atk - def) * 0.02));
-}
-function damage(rng, atk, def) {
-  const raw = rng.int(Math.max(1, Math.ceil(atk / 3)), Math.max(2, atk));
-  return Math.max(1, raw - Math.floor(def / 4));
-}
-function resolveRound(state, stats, action, rng) {
-  if (state.outcome !== "fighting") return;
-  const m = monsterById(state.monsterId);
-  if (action.kind === "flee") {
-    if (rng.chance(FLEE_CHANCE)) {
-      state.outcome = "fled";
-      state.log.push("you slip away into the shadows");
-      return;
-    }
-    state.log.push("no escape \u2014 it cuts you off");
-  } else if (action.kind === "eat") {
-    const c = CONSUMABLES[action.itemId];
-    if (c) {
-      state.playerHp = Math.min(state.maxHp ?? PLAYER_BASE.maxHp, state.playerHp + c.heal);
-      if (c.antifire) state.antifire = true;
-      state.log.push(`you down the ${action.itemId.replace(/_/g, " ")} (+${c.heal} hp)`);
-    } else {
-      state.log.push("nothing edible there");
-    }
-  } else {
-    if (rng.chance(hitChance(stats.atk, m.def))) {
-      const dmg = damage(rng, stats.atk, m.def);
-      state.monsterHp -= dmg;
-      state.log.push(`you strike the ${m.name} for ${dmg}`);
-    } else {
-      state.log.push(`the ${m.name} turns your blow`);
-    }
-    if (state.monsterHp <= 0) {
-      state.outcome = "won";
-      state.lootGp = rng.int(m.gp[0], m.gp[1]);
-      for (const d of m.drops) {
-        if (rng.chance(d.chance)) state.lootItems.push(d.itemId);
-      }
-      state.log.push(`the ${m.name} falls \u2014 ${state.lootGp} gp${state.lootItems.length > 0 ? " and loot" : ""}`);
-      return;
-    }
-  }
-  if (rng.chance(hitChance(m.atk, stats.def))) {
-    let dmg = damage(rng, m.atk, stats.def);
-    let note = "";
-    if (m.dragonfire) {
-      if (state.antifire) note = " (antifire holds)";
-      else {
-        dmg += Math.ceil(m.atk / 2);
-        note = " \u2014 searing breath!";
-      }
-    }
-    state.playerHp -= dmg;
-    state.log.push(`the ${m.name} hits you for ${dmg}${note}`);
-  } else {
-    state.log.push(`you dodge the ${m.name}`);
-  }
-  if (state.playerHp <= 0) {
-    state.playerHp = 0;
-    state.outcome = "dead";
-    state.log.push("darkness takes you");
-  }
-}
-
-// packages/engine/src/rng.ts
-function createRng(seed) {
-  let s = seed >>> 0;
-  const next = () => {
-    s = s + 1831565813 >>> 0;
-    let t = s;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  };
-  return {
-    next,
-    int(min, max) {
-      if (max < min) throw new Error(`rng.int: max < min (${min}, ${max})`);
-      return min + Math.floor(next() * (max - min + 1));
-    },
-    pick(arr) {
-      if (arr.length === 0) throw new Error("rng.pick: empty array");
-      return arr[Math.floor(next() * arr.length)];
-    },
-    chance(p) {
-      return next() < p;
-    },
-    state() {
-      return s;
-    }
-  };
-}
-function fnv1a(str) {
-  let h = 2166136261;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
 // packages/engine/src/agents.ts
 function saneClamp(def, price) {
   const floor = Math.max(1, Math.round(def.baseCost * 0.55));
@@ -513,7 +241,14 @@ var TUNING = {
       // min collapsed to +2,000 — too fast for the pricier 0.12 books).
       { cadence: 5, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 0.12 }
     ]
-  }
+  },
+  /** The Sellsword (9h): engine-side expedition autopilot. One action every
+   * `cadence` ticks; never past `maxRegion` (no fire country — it carries no
+   * potion); embarks empty-handed when rested past `embarkHp`, retreats and
+   * extracts below `retreatHp`; flees elites/dragonfire/leeches and anything
+   * with atk ≥ `fleeAtk`. Conservative BY DESIGN — it levels and trickles
+   * loot; the deep runs stay yours. */
+  sellsword: { cadence: 4, maxRegion: 4, embarkHp: 35, retreatHp: 12, fleeAtk: 11 }
 };
 var CADENCE = {
   producer: TUNING.producer.cadence,
@@ -798,6 +533,278 @@ function runFlipper(state, agent, opts) {
   }
 }
 
+// packages/engine/src/quest.ts
+var GEAR = {
+  adamant_dart: { slot: "weapon", atk: 10, def: 0, req: 1 },
+  rune_dart: { slot: "weapon", atk: 16, def: 0, req: 4 },
+  battlestaff: { slot: "weapon", atk: 22, def: 1, req: 7 },
+  dragon_dart: { slot: "weapon", atk: 26, def: 0, req: 8 },
+  mystic_air_staff: { slot: "weapon", atk: 30, def: 1, req: 10 },
+  mystic_earth_staff: { slot: "weapon", atk: 32, def: 1, req: 10 },
+  rune_battleaxe: { slot: "weapon", atk: 38, def: 0, req: 12 },
+  rune_2h_sword: { slot: "weapon", atk: 45, def: 0, req: 14 },
+  dragon_mace: { slot: "weapon", atk: 40, def: 0, req: 16 },
+  dragon_longsword: { slot: "weapon", atk: 50, def: 0, req: 20 },
+  rune_full_helm: { slot: "helm", atk: 0, def: 12, req: 8 },
+  dragon_med_helm: { slot: "helm", atk: 0, def: 16, req: 16 },
+  rune_chainbody: { slot: "body", atk: 0, def: 22, req: 8 },
+  rune_platebody: { slot: "body", atk: 0, def: 28, req: 12 },
+  rune_plateskirt: { slot: "legs", atk: 0, def: 20, req: 10 },
+  rune_platelegs: { slot: "legs", atk: 0, def: 20, req: 10 },
+  dragon_platelegs: { slot: "legs", atk: 0, def: 30, req: 18 },
+  dragon_plateskirt: { slot: "legs", atk: 0, def: 30, req: 18 },
+  rune_sq_shield: { slot: "shield", atk: 0, def: 14, req: 6 },
+  rune_kiteshield: { slot: "shield", atk: 0, def: 18, req: 10 }
+};
+var CONSUMABLES = {
+  shark: { heal: 20 },
+  cooked_karambwan: { heal: 18 },
+  prayer_regeneration_potion_4: { heal: 30 },
+  super_antifire_potion_4: { heal: 5, antifire: true }
+};
+var ELITE_CHANCE = 0.1;
+var MONSTERS = [
+  { id: "giant_rat", name: "Giant rat", hp: 8, atk: 3, def: 0, gp: [2, 12], drops: [] },
+  { id: "goblin", name: "Goblin", hp: 12, atk: 4, def: 1, gp: [5, 30], drops: [{ itemId: "adamant_dart", chance: 0.15 }] },
+  { id: "skeleton", name: "Skeleton", hp: 22, atk: 7, def: 3, gp: [15, 60], drops: [{ itemId: "law_rune", chance: 0.12 }] },
+  { id: "hill_giant", name: "Hill giant", hp: 35, atk: 9, def: 4, gp: [40, 180], drops: [{ itemId: "nature_rune", chance: 0.25 }, { itemId: "death_rune", chance: 0.1 }] },
+  { id: "moss_giant", name: "Moss giant", hp: 45, atk: 11, def: 6, gp: [60, 240], drops: [{ itemId: "blood_rune", chance: 0.18 }] },
+  // Deep-tier reward design (FINDINGS #51): monster GP is an UNBOUNDED faucet
+  // — at real kill rates (~2 ticks/kill for a leveled fighter) any fat gp
+  // range prints. ITEM drops are market-bounded: the liquidation mark walks
+  // finite bid depth, so flooding the book caps itself. Deep monsters pay in
+  // goods, modest coin.
+  { id: "lesser_demon", name: "Lesser demon", hp: 70, atk: 16, def: 9, gp: [120, 360], drops: [{ itemId: "death_rune", chance: 0.4 }, { itemId: "rune_full_helm", chance: 0.1 }] },
+  { id: "fire_giant", name: "Fire giant", hp: 85, atk: 19, def: 11, gp: [150, 450], drops: [{ itemId: "rune_battleaxe", chance: 0.12 }, { itemId: "blood_rune", chance: 0.5 }] },
+  // Bones at 0.15: a 16.7k-baseCost item at 100% made Maw farming a 29× sprint
+  // printer (FINDINGS #47). EV ≈ 3.1k/kill keeps dragons the best farm without
+  // printing; Vorkanth keeps his 100% — elites are the jackpot.
+  // Bones at 0.25: measured CAP-BOUND — the TAS-route tail is set by bid
+  // depth (the market absorbs ~a dozen bones/sprint, the rest mark 0), so a
+  // lower rate only starves casual raiders without touching the tail.
+  { id: "green_dragon", name: "Green dragon", hp: 110, atk: 24, def: 12, gp: [200, 600], dragonfire: true, drops: [{ itemId: "superior_dragon_bones", chance: 0.25 }, { itemId: "dragon_med_helm", chance: 0.02 }, { itemId: "rune_kiteshield", chance: 0.08 }] },
+  // The Inferno Gate (8t): every dweller breathes fire; fights are long.
+  // Goods-over-coin throughout (FINDINGS #51) — bones are bid-capped, the
+  // dragon weapons are rare. dragon_plateskirt (121k) is deliberately on NO
+  // regular table.
+  { id: "pyrefiend", name: "Pyrefiend", hp: 95, atk: 22, def: 12, gp: [150, 400], dragonfire: true, drops: [{ itemId: "death_rune", chance: 0.5 }, { itemId: "blood_rune", chance: 0.4 }, { itemId: "dragon_dart", chance: 0.12 }] },
+  { id: "lava_dragon", name: "Lava dragon", hp: 160, atk: 27, def: 14, gp: [250, 700], dragonfire: true, drops: [{ itemId: "superior_dragon_bones", chance: 0.35 }, { itemId: "dragon_mace", chance: 0.04 }, { itemId: "dragon_longsword", chance: 0.02 }] },
+  // The Abyss (9e): no fire down here — the toll is your PURSE. Leeches
+  // drain loot gp every round the fight drags; kill fast or bleed coin.
+  { id: "abyssal_leech", name: "Abyssal leech", hp: 60, atk: 18, def: 10, gp: [100, 300], leech: 40, drops: [{ itemId: "blood_rune", chance: 0.35 }] },
+  { id: "abyssal_demon", name: "Abyssal demon", hp: 130, atk: 30, def: 18, gp: [400, 1e3], leech: 80, drops: [{ itemId: "death_rune", chance: 0.6 }, { itemId: "dragon_dart", chance: 0.2 }] },
+  // The named elites — never in a region pool; their region spawns them.
+  { id: "vorkanth", name: "Vorkanth, Elder of the Maw", hp: 180, atk: 30, def: 16, gp: [1500, 4e3], dragonfire: true, elite: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "dragon_med_helm", chance: 0.25 }, { itemId: "dragon_platelegs", chance: 0.15 }] },
+  { id: "zukrath", name: "Zukrath, the Inferno Sovereign", hp: 260, atk: 36, def: 20, gp: [3e3, 8e3], dragonfire: true, elite: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "prayer_regeneration_potion_4", chance: 0.3 }, { itemId: "dragon_longsword", chance: 0.2 }] },
+  // dragon_plateskirt (121k baseCost) lives ONLY here — the Abyss jackpot.
+  { id: "vessith", name: "Vessith, the Unraveler", hp: 300, atk: 40, def: 22, gp: [5e3, 12e3], leech: 200, elite: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "dragon_plateskirt", chance: 0.25 }, { itemId: "prayer_regeneration_potion_4", chance: 0.2 }] }
+];
+var PLAYER_BASE = { maxHp: 50, atk: 5, def: 2 };
+var REST_REGEN_TICKS = 3;
+var REGIONS = [
+  { id: "lumbridge_plains", name: "Lumbridge Plains", flavor: "soft hills, soft monsters", monsters: ["giant_rat", "goblin"] },
+  { id: "varrock_sewers", name: "Varrock Sewers", flavor: "it smells like XP down here", monsters: ["goblin", "skeleton"] },
+  { id: "edgeville_dungeon", name: "Edgeville Dungeon", flavor: "the giants pay well", monsters: ["skeleton", "hill_giant"] },
+  { id: "brimhaven_caverns", name: "Brimhaven Caverns", flavor: "moss, mould, and money", monsters: ["moss_giant", "hill_giant"] },
+  { id: "wilderness_ruins", name: "Wilderness Ruins", flavor: "demons hoard runes", monsters: ["lesser_demon", "fire_giant"] },
+  { id: "dragons_maw", name: "The Dragon's Maw", flavor: "bring antifire or bring regrets", monsters: ["green_dragon", "fire_giant"], elite: "vorkanth" },
+  // 8t: the 99-track. EVERYTHING here breathes fire — the antifire ticket is
+  // not optional, and the fights are long enough that the trained stats from
+  // 8n/8s are the real entry requirement.
+  { id: "inferno_gate", name: "The Inferno Gate", flavor: "the air itself burns \u2014 no potion, no entry", monsters: ["pyrefiend", "lava_dragon"], elite: "zukrath" },
+  // 9e: past the fire, the dark that EATS. No dragonfire — the toll here is
+  // your loot purse, drained every round a fight drags on.
+  { id: "the_abyss", name: "The Abyss", flavor: "it eats light, gold, and the unprepared", monsters: ["abyssal_leech", "abyssal_demon"], elite: "vessith" }
+];
+var REGION_CLEAR_KILLS = 3;
+function regionIndex(id) {
+  return REGIONS.findIndex((r) => r.id === id);
+}
+function expeditionSeed(worldSeed, expeditionId) {
+  return (worldSeed ^ 2654435769) + Math.imul(expeditionId, 2246822507) >>> 0;
+}
+var ENCOUNTERS = {
+  monster: 0.6,
+  cache: 0.15,
+  trap: 0.1
+  // remainder: a choice event (shrine/gamble, 50/50)
+};
+var SHRINE_MIN_COST = 50;
+var GAMBLE_STAKE = 100;
+var IMP_PRIZE = [150, 400];
+var MERCHANT_MARKUP = 3;
+var SPAR_XP = 25;
+var SPAR_BRUISES = [5, 12];
+var TOLL_COST = 150;
+var CACHE_ITEM_CHANCE = 0.25;
+var AMBUSH_CHANCE = 0.08;
+var CACHE_LOOT = [
+  { minRegion: 0, items: ["law_rune", "nature_rune", "cooked_karambwan"] },
+  { minRegion: 2, items: ["death_rune", "blood_rune", "shark"] },
+  { minRegion: 4, items: ["shark", "cooked_karambwan", "blood_rune"] }
+];
+function cachePool(regionIdx) {
+  let pool = CACHE_LOOT[0].items;
+  for (const tier of CACHE_LOOT) {
+    if (regionIdx >= tier.minRegion) pool = tier.items;
+  }
+  return pool;
+}
+var MAX_LEVEL = 99;
+var XP_CURVE_K = 4;
+function levelFor(xp) {
+  return Math.min(MAX_LEVEL, 1 + Math.floor(Math.sqrt(Math.max(0, xp) / XP_CURVE_K)));
+}
+function levelsOf(xp) {
+  return { atk: levelFor(xp?.atk ?? 0), def: levelFor(xp?.def ?? 0), hp: levelFor(xp?.hp ?? 0) };
+}
+var HP_PER_LEVEL = 2;
+function maxHpFor(hpLevel) {
+  return PLAYER_BASE.maxHp + HP_PER_LEVEL * (hpLevel - 1);
+}
+function deriveStats(pack, lvls = { atk: 1, def: 1 }) {
+  const best = {};
+  for (const [itemId, qty] of Object.entries(pack)) {
+    if (qty < 1) continue;
+    const g = GEAR[itemId];
+    if (!g) continue;
+    if ((g.slot === "weapon" ? lvls.atk : lvls.def) < g.req) continue;
+    const cur = best[g.slot];
+    if (!cur || g.atk + g.def > cur.atk + cur.def) best[g.slot] = g;
+  }
+  let atk = PLAYER_BASE.atk + (lvls.atk - 1);
+  let def = PLAYER_BASE.def + (lvls.def - 1);
+  for (const g of Object.values(best)) {
+    atk += g.atk;
+    def += g.def;
+  }
+  return { atk, def };
+}
+function monsterById(id) {
+  const m = MONSTERS.find((x) => x.id === id);
+  if (!m) throw new Error(`unknown monster ${id}`);
+  return m;
+}
+function newCombat(monsterId, playerHp, intro, antifire = false, maxHp = PLAYER_BASE.maxHp) {
+  const m = monsterById(monsterId);
+  return {
+    monsterId,
+    monsterHp: m.hp,
+    playerHp,
+    // Seeded from the expedition: one potion covers the whole dive (8r).
+    antifire,
+    // Trained Hitpoints raise the heal cap (8s). Absent in old saves' combats.
+    maxHp,
+    outcome: "fighting",
+    lootGp: 0,
+    lootItems: [],
+    log: [intro ?? `a ${m.name} blocks the path`]
+  };
+}
+var FLEE_CHANCE = 0.6;
+function hitChance(atk, def) {
+  return Math.min(0.95, Math.max(0.15, 0.55 + (atk - def) * 0.02));
+}
+function damage(rng, atk, def) {
+  const raw = rng.int(Math.max(1, Math.ceil(atk / 3)), Math.max(2, atk));
+  return Math.max(1, raw - Math.floor(def / 4));
+}
+function resolveRound(state, stats, action, rng) {
+  if (state.outcome !== "fighting") return;
+  const m = monsterById(state.monsterId);
+  if (action.kind === "flee") {
+    if (rng.chance(FLEE_CHANCE)) {
+      state.outcome = "fled";
+      state.log.push("you slip away into the shadows");
+      return;
+    }
+    state.log.push("no escape \u2014 it cuts you off");
+  } else if (action.kind === "eat") {
+    const c = CONSUMABLES[action.itemId];
+    if (c) {
+      state.playerHp = Math.min(state.maxHp ?? PLAYER_BASE.maxHp, state.playerHp + c.heal);
+      if (c.antifire) state.antifire = true;
+      state.log.push(`you down the ${action.itemId.replace(/_/g, " ")} (+${c.heal} hp)`);
+    } else {
+      state.log.push("nothing edible there");
+    }
+  } else {
+    if (rng.chance(hitChance(stats.atk, m.def))) {
+      const dmg = damage(rng, stats.atk, m.def);
+      state.monsterHp -= dmg;
+      state.log.push(`you strike the ${m.name} for ${dmg}`);
+    } else {
+      state.log.push(`the ${m.name} turns your blow`);
+    }
+    if (state.monsterHp <= 0) {
+      state.outcome = "won";
+      state.lootGp = rng.int(m.gp[0], m.gp[1]);
+      for (const d of m.drops) {
+        if (rng.chance(d.chance)) state.lootItems.push(d.itemId);
+      }
+      state.log.push(`the ${m.name} falls \u2014 ${state.lootGp} gp${state.lootItems.length > 0 ? " and loot" : ""}`);
+      return;
+    }
+  }
+  if (rng.chance(hitChance(m.atk, stats.def))) {
+    let dmg = damage(rng, m.atk, stats.def);
+    let note = "";
+    if (m.dragonfire) {
+      if (state.antifire) note = " (antifire holds)";
+      else {
+        dmg += Math.ceil(m.atk / 2);
+        note = " \u2014 searing breath!";
+      }
+    }
+    state.playerHp -= dmg;
+    state.log.push(`the ${m.name} hits you for ${dmg}${note}`);
+  } else {
+    state.log.push(`you dodge the ${m.name}`);
+  }
+  if (state.playerHp <= 0) {
+    state.playerHp = 0;
+    state.outcome = "dead";
+    state.log.push("darkness takes you");
+  }
+}
+
+// packages/engine/src/rng.ts
+function createRng(seed) {
+  let s = seed >>> 0;
+  const next = () => {
+    s = s + 1831565813 >>> 0;
+    let t = s;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+  return {
+    next,
+    int(min, max) {
+      if (max < min) throw new Error(`rng.int: max < min (${min}, ${max})`);
+      return min + Math.floor(next() * (max - min + 1));
+    },
+    pick(arr) {
+      if (arr.length === 0) throw new Error("rng.pick: empty array");
+      return arr[Math.floor(next() * arr.length)];
+    },
+    chance(p) {
+      return next() < p;
+    },
+    state() {
+      return s;
+    }
+  };
+}
+function fnv1a(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
 // packages/engine/src/catalog.ts
 var DEFAULT_ITEMS = [
   { id: "adamant_dart", name: "Adamant dart", baseCost: 23, consumeValue: 47, volatility: 0.08, wikiId: 810, wikiPrice: 31, buyLimit: 11e3 },
@@ -1049,6 +1056,7 @@ function tickWorld(state) {
   }
   for (const agent of state.agents) {
     actAgent(state, agent, rng);
+    if (agent.kind === "player" && agent.sellsword) actSellsword(state, agent);
   }
   if (state.tick % BOUNTY_CHECK_TICKS === 0) {
     state.bounties = (state.bounties ?? []).filter((b) => b.expiresTick > state.tick);
@@ -1097,7 +1105,10 @@ var PROGRESSION = {
   slotCosts: [25e3, 75e3, 2e5, 5e5, 125e4],
   /** Automation tiers; cost of tier N is costs[N-1]. All burned. */
   upgrades: {
-    autoFlip: { costs: [5e4, 15e4, 4e5] }
+    autoFlip: { costs: [5e4, 15e4, 4e5] },
+    /** The Sellsword (9h): a hireling who runs your expeditions while you
+     * trade — shallow regions only, conservative, levels YOUR stats. */
+    sellsword: { costs: [3e4] }
   }
 };
 function expeditionDeath(state, agent, exp) {
@@ -1116,6 +1127,187 @@ function expeditionDeath(state, agent, exp) {
   state.stats.deaths = (state.stats.deaths ?? 0) + 1;
   agent.hp = 1;
   delete agent.expedition;
+}
+function beginExpedition(state, agent, regionId, packIn) {
+  const idx = regionIndex(regionId);
+  const pack = {};
+  for (const [itemId, qty] of Object.entries(packIn)) {
+    agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) - qty;
+    pack[itemId] = qty;
+  }
+  const expId = state.nextExpeditionId ?? 1;
+  state.nextExpeditionId = expId + 1;
+  state.stats.deepestRegion = Math.max(state.stats.deepestRegion ?? 0, idx);
+  agent.expedition = {
+    regionId,
+    rngState: expeditionSeed(state.seed, expId),
+    // Wounds persist: you set out with the hp you came home with (absent =
+    // full — full meaning your TRAINED max, 8s). Embarking hurt is allowed.
+    hp: Math.min(maxHpFor(levelsOf(agent.combatXp).hp), Math.max(1, agent.hp ?? maxHpFor(levelsOf(agent.combatXp).hp))),
+    pack,
+    packGp: 0,
+    cleared: 0,
+    combat: null
+  };
+}
+function finishExtract(agent, exp) {
+  for (const [itemId, qty] of Object.entries(exp.pack)) {
+    if (qty > 0) agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) + qty;
+  }
+  agent.gp += exp.packGp;
+  if (exp.hp < maxHpFor(levelsOf(agent.combatXp).hp)) agent.hp = Math.max(1, exp.hp);
+  else delete agent.hp;
+  delete agent.expedition;
+}
+function runCombatRound(state, agent, exp, action) {
+  if (!exp.combat) return;
+  if (action.kind === "eat") {
+    exp.pack[action.itemId] = exp.pack[action.itemId] - 1;
+    state.ledger.itemsBurned[action.itemId] = (state.ledger.itemsBurned[action.itemId] ?? 0) + 1;
+    if (CONSUMABLES[action.itemId]?.antifire) exp.antifire = true;
+  }
+  const rng = createRng(exp.rngState);
+  const lvBefore = levelsOf(agent.combatXp);
+  const hpBefore = { monster: exp.combat.monsterHp, player: exp.combat.playerHp };
+  resolveRound(exp.combat, deriveStats(exp.pack, lvBefore), action, rng);
+  exp.rngState = rng.state();
+  const c = exp.combat;
+  const leech = monsterById(c.monsterId).leech ?? 0;
+  if (leech > 0 && c.outcome === "fighting" && exp.packGp > 0) {
+    const drained = Math.min(exp.packGp, leech);
+    exp.packGp -= drained;
+    state.ledger.gpBurned += drained;
+    c.log.push(`it siphons ${drained} gp from your pack`);
+  }
+  const dealt = Math.max(0, hpBefore.monster - c.monsterHp);
+  const taken = Math.max(0, hpBefore.player - c.playerHp);
+  if (dealt + taken > 0) {
+    const xp = agent.combatXp ??= { atk: 0, def: 0 };
+    xp.atk += dealt;
+    xp.def += taken;
+    if (dealt > 0) xp.hp = (xp.hp ?? 0) + Math.ceil(dealt / 3);
+    const lv = levelsOf(xp);
+    const journal = exp.journal ??= [];
+    if (lv.atk > lvBefore.atk) journal.push(`your arm grows stronger \u2014 Attack ${lv.atk}`);
+    if (lv.def > lvBefore.def) journal.push(`you learn to take a blow \u2014 Defence ${lv.def}`);
+    if (lv.hp > lvBefore.hp) journal.push(`your vitality surges \u2014 Hitpoints ${lv.hp} (max hp ${maxHpFor(lv.hp)})`);
+  }
+  if (c.outcome === "won") {
+    state.ledger.gpMinted += c.lootGp;
+    exp.packGp += c.lootGp;
+    for (const itemId of c.lootItems) {
+      state.ledger.itemsMinted[itemId] = (state.ledger.itemsMinted[itemId] ?? 0) + 1;
+      exp.pack[itemId] = (exp.pack[itemId] ?? 0) + 1;
+    }
+    exp.cleared += 1;
+    exp.hp = c.playerHp;
+    state.stats.monstersSlain = (state.stats.monstersSlain ?? 0) + 1;
+    const tally = state.stats.killsByMonster ??= {};
+    tally[c.monsterId] = (tally[c.monsterId] ?? 0) + 1;
+    if (monsterById(c.monsterId).elite) {
+      state.stats.eliteSlain = (state.stats.eliteSlain ?? 0) + 1;
+    }
+    const idx = regionIndex(exp.regionId);
+    if (exp.cleared >= REGION_CLEAR_KILLS && idx === (agent.questProgress ?? 0) && idx < REGIONS.length - 1) {
+      agent.questProgress = idx + 1;
+    }
+    exp.combat = null;
+  } else if (c.outcome === "dead") {
+    expeditionDeath(state, agent, exp);
+  } else if (c.outcome === "fled") {
+    exp.hp = c.playerHp;
+    exp.combat = null;
+  }
+}
+function rollEncounter(state, agent, exp) {
+  const region = REGIONS[regionIndex(exp.regionId)];
+  const rng = createRng(exp.rngState);
+  const roll = rng.next();
+  const journal = exp.journal ??= [];
+  if (roll < ENCOUNTERS.monster) {
+    const rIdx = regionIndex(exp.regionId);
+    const af = exp.antifire ?? false;
+    const mhp = maxHpFor(levelsOf(agent.combatXp).hp);
+    if (region.elite && rng.chance(ELITE_CHANCE)) {
+      exp.combat = newCombat(
+        region.elite,
+        exp.hp,
+        `the ground shakes \u2014 ${monsterById(region.elite).name.toUpperCase()} descends!`,
+        af,
+        mhp
+      );
+    } else if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
+      const deeper = REGIONS[rIdx + 1];
+      const beast = rng.pick(deeper.monsters);
+      exp.combat = newCombat(beast, exp.hp, `AMBUSH \u2014 a ${monsterById(beast).name} from ${deeper.name} crosses your path!`, af, mhp);
+    } else {
+      exp.combat = newCombat(rng.pick(region.monsters), exp.hp, void 0, af, mhp);
+    }
+  } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache) {
+    const rIdx = regionIndex(exp.regionId);
+    const found = rng.int(20, 60 + 40 * rIdx);
+    state.ledger.gpMinted += found;
+    exp.packGp += found;
+    state.stats.cacheFinds = (state.stats.cacheFinds ?? 0) + 1;
+    if (rng.chance(CACHE_ITEM_CHANCE)) {
+      const itemId = rng.pick(cachePool(rIdx));
+      state.ledger.itemsMinted[itemId] = (state.ledger.itemsMinted[itemId] ?? 0) + 1;
+      exp.pack[itemId] = (exp.pack[itemId] ?? 0) + 1;
+      journal.push(`you pry open a forgotten cache: +${found} gp and a ${itemId.replace(/_/g, " ")}`);
+    } else {
+      journal.push(`you pry open a forgotten cache: +${found} gp`);
+    }
+  } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache + ENCOUNTERS.trap) {
+    const dmg = rng.int(3, 6 + 3 * regionIndex(exp.regionId));
+    exp.hp -= dmg;
+    journal.push(`a snare bites \u2014 ${dmg} hp`);
+    if (exp.hp <= 0) {
+      journal.push("the trap was the last thing you never saw");
+      expeditionDeath(state, agent, exp);
+    }
+  } else {
+    const rIdx = regionIndex(exp.regionId);
+    const kinds = ["shrine", "gamble", "imp"];
+    if (rIdx >= 1 && rIdx < REGIONS.length - 1) kinds.push("portal");
+    if (rIdx >= 1) kinds.push("spar");
+    if (rIdx >= 2) kinds.push("toll");
+    if (rIdx >= 3) kinds.push("merchant");
+    const kind = rng.pick(kinds);
+    const prompt = kind === "shrine" ? "a shrine hums in the dark \u2014 tithe a quarter of your loot gp for full healing?" : kind === "gamble" ? `a goblin rattles a cup of dice \u2014 stake ${GAMBLE_STAKE} loot gp, double or nothing?` : kind === "imp" ? "an imp scampers past with a bulging coin pouch \u2014 give chase?" : kind === "portal" ? `a humming portal opens \u2014 beyond it, ${REGIONS[rIdx + 1].name}. step through?` : kind === "spar" ? "a grizzled swordmaster bars the path, blade flat \u2014 take a lesson in bruises?" : kind === "toll" ? `a toll-keeper rattles his cup \u2014 ${TOLL_COST} gp for word of a nearby stash?` : "a soot-cloaked merchant offers a shark at triple price \u2014 pay up?";
+    exp.event = { kind, prompt };
+  }
+  exp.rngState = rng.state();
+}
+function actSellsword(state, agent) {
+  if (agent.kind !== "player" || !agent.sellsword || (agent.upgrades?.["sellsword"] ?? 0) < 1) return;
+  const T = TUNING.sellsword;
+  if (state.tick % T.cadence !== 0) return;
+  const exp = agent.expedition;
+  if (!exp) {
+    const max = maxHpFor(levelsOf(agent.combatXp).hp);
+    if ((agent.hp ?? max) < Math.min(T.embarkHp, max)) return;
+    let target = Math.min(agent.questProgress ?? 0, T.maxRegion);
+    while (target > 0 && !REGIONS[target].monsters.some((id) => monsterById(id).atk < T.fleeAtk)) target--;
+    beginExpedition(state, agent, REGIONS[target].id, {});
+    return;
+  }
+  if (exp.combat) {
+    const m = monsterById(exp.combat.monsterId);
+    const danger = m.elite === true || m.dragonfire === true || (m.leech ?? 0) > 0 || m.atk >= T.fleeAtk;
+    const action = danger || exp.combat.playerHp < T.retreatHp ? { kind: "flee" } : { kind: "fight" };
+    runCombatRound(state, agent, exp, action);
+    return;
+  }
+  if (exp.event) {
+    (exp.journal ??= []).push("the sellsword walks on");
+    exp.event = null;
+    return;
+  }
+  if (exp.cleared >= REGION_CLEAR_KILLS || exp.hp < T.retreatHp) {
+    finishExtract(agent, exp);
+    return;
+  }
+  rollEncounter(state, agent, exp);
 }
 function playerOf(state, playerId) {
   const agent = state.agents[playerId];
@@ -1245,25 +1437,7 @@ function applyCommand(state, playerId, cmd) {
         if (!Number.isSafeInteger(qty) || qty < 1) return { ok: false, reason: "bad-pack", trades: [] };
         if ((agent.inventory[itemId] ?? 0) < qty) return { ok: false, reason: "insufficient-items", trades: [] };
       }
-      const pack = {};
-      for (const [itemId, qty] of Object.entries(cmd.pack)) {
-        agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) - qty;
-        pack[itemId] = qty;
-      }
-      const expId = state.nextExpeditionId ?? 1;
-      state.nextExpeditionId = expId + 1;
-      state.stats.deepestRegion = Math.max(state.stats.deepestRegion ?? 0, idx);
-      agent.expedition = {
-        regionId: cmd.regionId,
-        rngState: expeditionSeed(state.seed, expId),
-        // Wounds persist: you set out with the hp you came home with (absent =
-        // full — full meaning your TRAINED max, 8s). Embarking hurt is allowed.
-        hp: Math.min(maxHpFor(levelsOf(agent.combatXp).hp), Math.max(1, agent.hp ?? maxHpFor(levelsOf(agent.combatXp).hp))),
-        pack,
-        packGp: 0,
-        cleared: 0,
-        combat: null
-      };
+      beginExpedition(state, agent, cmd.regionId, cmd.pack);
       return { ok: true, trades: [] };
     }
     case "advance": {
@@ -1272,63 +1446,7 @@ function applyCommand(state, playerId, cmd) {
       if (exp.combat) return { ok: false, reason: "in-combat", trades: [] };
       if (exp.event) return { ok: false, reason: "in-event", trades: [] };
       tickWorld(state);
-      const region = REGIONS[regionIndex(exp.regionId)];
-      const rng = createRng(exp.rngState);
-      const roll = rng.next();
-      const journal = exp.journal ??= [];
-      if (roll < ENCOUNTERS.monster) {
-        const rIdx = regionIndex(exp.regionId);
-        const af = exp.antifire ?? false;
-        const mhp = maxHpFor(levelsOf(agent.combatXp).hp);
-        if (region.elite && rng.chance(ELITE_CHANCE)) {
-          exp.combat = newCombat(
-            region.elite,
-            exp.hp,
-            `the ground shakes \u2014 ${monsterById(region.elite).name.toUpperCase()} descends!`,
-            af,
-            mhp
-          );
-        } else if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
-          const deeper = REGIONS[rIdx + 1];
-          const beast = rng.pick(deeper.monsters);
-          exp.combat = newCombat(beast, exp.hp, `AMBUSH \u2014 a ${monsterById(beast).name} from ${deeper.name} crosses your path!`, af, mhp);
-        } else {
-          exp.combat = newCombat(rng.pick(region.monsters), exp.hp, void 0, af, mhp);
-        }
-      } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache) {
-        const rIdx = regionIndex(exp.regionId);
-        const found = rng.int(20, 60 + 40 * rIdx);
-        state.ledger.gpMinted += found;
-        exp.packGp += found;
-        state.stats.cacheFinds = (state.stats.cacheFinds ?? 0) + 1;
-        if (rng.chance(CACHE_ITEM_CHANCE)) {
-          const itemId = rng.pick(cachePool(rIdx));
-          state.ledger.itemsMinted[itemId] = (state.ledger.itemsMinted[itemId] ?? 0) + 1;
-          exp.pack[itemId] = (exp.pack[itemId] ?? 0) + 1;
-          journal.push(`you pry open a forgotten cache: +${found} gp and a ${itemId.replace(/_/g, " ")}`);
-        } else {
-          journal.push(`you pry open a forgotten cache: +${found} gp`);
-        }
-      } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache + ENCOUNTERS.trap) {
-        const dmg = rng.int(3, 6 + 3 * regionIndex(exp.regionId));
-        exp.hp -= dmg;
-        journal.push(`a snare bites \u2014 ${dmg} hp`);
-        if (exp.hp <= 0) {
-          journal.push("the trap was the last thing you never saw");
-          expeditionDeath(state, agent, exp);
-        }
-      } else {
-        const rIdx = regionIndex(exp.regionId);
-        const kinds = ["shrine", "gamble", "imp"];
-        if (rIdx >= 1 && rIdx < REGIONS.length - 1) kinds.push("portal");
-        if (rIdx >= 1) kinds.push("spar");
-        if (rIdx >= 2) kinds.push("toll");
-        if (rIdx >= 3) kinds.push("merchant");
-        const kind = rng.pick(kinds);
-        const prompt = kind === "shrine" ? "a shrine hums in the dark \u2014 tithe a quarter of your loot gp for full healing?" : kind === "gamble" ? `a goblin rattles a cup of dice \u2014 stake ${GAMBLE_STAKE} loot gp, double or nothing?` : kind === "imp" ? "an imp scampers past with a bulging coin pouch \u2014 give chase?" : kind === "portal" ? `a humming portal opens \u2014 beyond it, ${REGIONS[rIdx + 1].name}. step through?` : kind === "spar" ? "a grizzled swordmaster bars the path, blade flat \u2014 take a lesson in bruises?" : kind === "toll" ? `a toll-keeper rattles his cup \u2014 ${TOLL_COST} gp for word of a nearby stash?` : "a soot-cloaked merchant offers a shark at triple price \u2014 pay up?";
-        exp.event = { kind, prompt };
-      }
-      exp.rngState = rng.state();
+      rollEncounter(state, agent, exp);
       return { ok: true, trades: [] };
     }
     case "choose": {
@@ -1444,11 +1562,11 @@ function applyCommand(state, playerId, cmd) {
           tickWorld(state);
           exp.pack[cmd.itemId] = exp.pack[cmd.itemId] - 1;
           state.ledger.itemsBurned[cmd.itemId] = (state.ledger.itemsBurned[cmd.itemId] ?? 0) + 1;
-          const c2 = CONSUMABLES[cmd.itemId];
-          exp.hp = Math.min(maxHpFor(levelsOf(agent.combatXp).hp), exp.hp + c2.heal);
-          if (c2.antifire) exp.antifire = true;
+          const c = CONSUMABLES[cmd.itemId];
+          exp.hp = Math.min(maxHpFor(levelsOf(agent.combatXp).hp), exp.hp + c.heal);
+          if (c.antifire) exp.antifire = true;
           (exp.journal ??= []).push(
-            `you ${c2.antifire ? "down" : "eat"} the ${cmd.itemId.replace(/_/g, " ")} by the fire (+${c2.heal} hp)`
+            `you ${c.antifire ? "down" : "eat"} the ${cmd.itemId.replace(/_/g, " ")} by the fire (+${c.heal} hp)`
           );
           return { ok: true, trades: [] };
         }
@@ -1459,76 +1577,20 @@ function applyCommand(state, playerId, cmd) {
       else if (cmd.type === "fleeCombat") action = { kind: "flee" };
       else action = { kind: "eat", itemId: cmd.itemId };
       tickWorld(state);
-      if (action.kind === "eat") {
-        exp.pack[action.itemId] = exp.pack[action.itemId] - 1;
-        state.ledger.itemsBurned[action.itemId] = (state.ledger.itemsBurned[action.itemId] ?? 0) + 1;
-        if (CONSUMABLES[action.itemId]?.antifire) exp.antifire = true;
-      }
-      const rng = createRng(exp.rngState);
-      const lvBefore = levelsOf(agent.combatXp);
-      const hpBefore = { monster: exp.combat.monsterHp, player: exp.combat.playerHp };
-      resolveRound(exp.combat, deriveStats(exp.pack, lvBefore), action, rng);
-      exp.rngState = rng.state();
-      const c = exp.combat;
-      const leech = monsterById(c.monsterId).leech ?? 0;
-      if (leech > 0 && c.outcome === "fighting" && exp.packGp > 0) {
-        const drained = Math.min(exp.packGp, leech);
-        exp.packGp -= drained;
-        state.ledger.gpBurned += drained;
-        c.log.push(`it siphons ${drained} gp from your pack`);
-      }
-      const dealt = Math.max(0, hpBefore.monster - c.monsterHp);
-      const taken = Math.max(0, hpBefore.player - c.playerHp);
-      if (dealt + taken > 0) {
-        const xp = agent.combatXp ??= { atk: 0, def: 0 };
-        xp.atk += dealt;
-        xp.def += taken;
-        if (dealt > 0) xp.hp = (xp.hp ?? 0) + Math.ceil(dealt / 3);
-        const lv = levelsOf(xp);
-        const journal = exp.journal ??= [];
-        if (lv.atk > lvBefore.atk) journal.push(`your arm grows stronger \u2014 Attack ${lv.atk}`);
-        if (lv.def > lvBefore.def) journal.push(`you learn to take a blow \u2014 Defence ${lv.def}`);
-        if (lv.hp > lvBefore.hp) journal.push(`your vitality surges \u2014 Hitpoints ${lv.hp} (max hp ${maxHpFor(lv.hp)})`);
-      }
-      if (c.outcome === "won") {
-        state.ledger.gpMinted += c.lootGp;
-        exp.packGp += c.lootGp;
-        for (const itemId of c.lootItems) {
-          state.ledger.itemsMinted[itemId] = (state.ledger.itemsMinted[itemId] ?? 0) + 1;
-          exp.pack[itemId] = (exp.pack[itemId] ?? 0) + 1;
-        }
-        exp.cleared += 1;
-        exp.hp = c.playerHp;
-        state.stats.monstersSlain = (state.stats.monstersSlain ?? 0) + 1;
-        const tally = state.stats.killsByMonster ??= {};
-        tally[c.monsterId] = (tally[c.monsterId] ?? 0) + 1;
-        if (monsterById(c.monsterId).elite) {
-          state.stats.eliteSlain = (state.stats.eliteSlain ?? 0) + 1;
-        }
-        const idx = regionIndex(exp.regionId);
-        if (exp.cleared >= REGION_CLEAR_KILLS && idx === (agent.questProgress ?? 0) && idx < REGIONS.length - 1) {
-          agent.questProgress = idx + 1;
-        }
-        exp.combat = null;
-      } else if (c.outcome === "dead") {
-        expeditionDeath(state, agent, exp);
-      } else if (c.outcome === "fled") {
-        exp.hp = c.playerHp;
-        exp.combat = null;
-      }
+      runCombatRound(state, agent, exp, action);
       return { ok: true, trades: [] };
     }
     case "extract": {
       const exp = agent.expedition;
       if (!exp) return { ok: false, reason: "not-out", trades: [] };
       if (exp.combat) return { ok: false, reason: "in-combat", trades: [] };
-      for (const [itemId, qty] of Object.entries(exp.pack)) {
-        if (qty > 0) agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) + qty;
-      }
-      agent.gp += exp.packGp;
-      if (exp.hp < maxHpFor(levelsOf(agent.combatXp).hp)) agent.hp = Math.max(1, exp.hp);
-      else delete agent.hp;
-      delete agent.expedition;
+      finishExtract(agent, exp);
+      return { ok: true, trades: [] };
+    }
+    case "configureSellsword": {
+      if ((agent.upgrades?.["sellsword"] ?? 0) < 1) return { ok: false, reason: "no-sellsword", trades: [] };
+      if (cmd.active) agent.sellsword = true;
+      else delete agent.sellsword;
       return { ok: true, trades: [] };
     }
     case "claimBounty": {

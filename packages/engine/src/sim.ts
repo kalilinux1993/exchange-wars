@@ -1,6 +1,6 @@
 import { actAgent, TUNING } from './agents';
 import { DEFAULT_ITEMS } from './catalog';
-import { PROGRESSION } from './commands';
+import { actSellsword, PROGRESSION } from './commands';
 import { createBook } from './exchange';
 import { expeditionSeed, levelsOf, maxHpFor, MONSTERS, REST_REGEN_TICKS } from './quest';
 
@@ -160,6 +160,10 @@ export function tickWorld(state: WorldState): void {
   }
   for (const agent of state.agents) {
     actAgent(state, agent, rng);
+    // The Sellsword (9h): expedition autopilot, engine-side so offline
+    // fast-forward raids for free (FINDINGS #14). No-op without the upgrade
+    // + toggle, so every existing sim and gate is byte-identical.
+    if (agent.kind === 'player' && agent.sellsword) actSellsword(state, agent);
   }
   // The bounty board (9f): kill orders post on a fixed cadence from a DERIVED
   // rng stream — a pure function of (seed, tick) that consumes ZERO draws

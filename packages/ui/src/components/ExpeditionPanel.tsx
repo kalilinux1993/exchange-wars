@@ -104,6 +104,18 @@ export function ExpeditionPanel({
             ♥ recovering: {agent!.hp}/{trainedMax} hp — mending as the market ticks
           </p>
         )}
+        {(view.upgrades['sellsword'] ?? 0) > 0 && (
+          <p className="dim small">
+            🗡 sellsword: {agent?.sellsword ? 'hunting the shallows while you trade' : 'resting at the inn'}{' '}
+            <button
+              className="chip"
+              title="the hireling runs conservative expeditions on its own — shallow regions only, flees danger, never gambles your kit"
+              onClick={() => onCommand({ type: 'configureSellsword', active: !agent?.sellsword })}
+            >
+              {agent?.sellsword ? 'call back' : 'send out'}
+            </button>
+          </p>
+        )}
         {tally && (
           <p className="dim small">
             tally: {st.monstersSlain ?? 0} slain · {st.cacheFinds ?? 0} caches · {st.diceWon ?? 0} dice won ·

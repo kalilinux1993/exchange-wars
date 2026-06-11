@@ -80,6 +80,13 @@ export const TUNING = {
       { cadence: 5, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 0.12 },
     ],
   },
+  /** The Sellsword (9h): engine-side expedition autopilot. One action every
+   * `cadence` ticks; never past `maxRegion` (no fire country — it carries no
+   * potion); embarks empty-handed when rested past `embarkHp`, retreats and
+   * extracts below `retreatHp`; flees elites/dragonfire/leeches and anything
+   * with atk ≥ `fleeAtk`. Conservative BY DESIGN — it levels and trickles
+   * loot; the deep runs stay yours. */
+  sellsword: { cadence: 4, maxRegion: 4, embarkHp: 35, retreatHp: 12, fleeAtk: 11 },
 } as const;
 
 const CADENCE: Record<AgentKind, number> = {
