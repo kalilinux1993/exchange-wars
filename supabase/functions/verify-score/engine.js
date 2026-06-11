@@ -200,7 +200,10 @@ var MONSTERS = [
   { id: "moss_giant", name: "Moss giant", hp: 45, atk: 11, def: 6, gp: [60, 240], drops: [{ itemId: "blood_rune", chance: 0.18 }] },
   { id: "lesser_demon", name: "Lesser demon", hp: 70, atk: 16, def: 9, gp: [120, 450], drops: [{ itemId: "death_rune", chance: 0.3 }, { itemId: "rune_full_helm", chance: 0.03 }] },
   { id: "fire_giant", name: "Fire giant", hp: 85, atk: 19, def: 11, gp: [180, 600], drops: [{ itemId: "rune_battleaxe", chance: 0.04 }, { itemId: "blood_rune", chance: 0.35 }] },
-  { id: "green_dragon", name: "Green dragon", hp: 110, atk: 24, def: 12, gp: [300, 900], dragonfire: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "dragon_med_helm", chance: 0.01 }, { itemId: "rune_kiteshield", chance: 0.05 }] },
+  // Bones at 0.15: a 16.7k-baseCost item at 100% made Maw farming a 29× sprint
+  // printer (FINDINGS #47). EV ≈ 3.1k/kill keeps dragons the best farm without
+  // printing; Vorkanth keeps his 100% — elites are the jackpot.
+  { id: "green_dragon", name: "Green dragon", hp: 110, atk: 24, def: 12, gp: [300, 900], dragonfire: true, drops: [{ itemId: "superior_dragon_bones", chance: 0.15 }, { itemId: "dragon_med_helm", chance: 0.01 }, { itemId: "rune_kiteshield", chance: 0.05 }] },
   // The named elite — never in a region pool; the Maw spawns him itself.
   { id: "vorkanth", name: "Vorkanth, Elder of the Maw", hp: 180, atk: 30, def: 16, gp: [1500, 4e3], dragonfire: true, elite: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "dragon_med_helm", chance: 0.25 }, { itemId: "dragon_platelegs", chance: 0.15 }] }
 ];

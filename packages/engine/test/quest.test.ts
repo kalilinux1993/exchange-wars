@@ -110,17 +110,17 @@ describe('expeditions combat core', () => {
     expect(caught).toBeGreaterThan(0);
   });
 
-  it('the dragon always drops its bones — loot rolls are seed-stable', () => {
+  it('the Elder always drops his bones — loot rolls are seed-stable', () => {
     const kill = (seed: number): CombatState => {
       const rng = createRng(seed);
       const stats = { atk: 500, def: 500 }; // executioner fixture
-      const c = newCombat('green_dragon', PLAYER_BASE.maxHp);
+      const c = newCombat('vorkanth', PLAYER_BASE.maxHp);
       for (let i = 0; i < 50 && c.outcome === 'fighting'; i++) resolveRound(c, stats, { kind: 'fight' }, rng);
       return c;
     };
     const a = kill(5);
     expect(a.outcome).toBe('won');
-    expect(a.lootItems).toContain('superior_dragon_bones'); // 100% drop
+    expect(a.lootItems).toContain('superior_dragon_bones'); // elite 100% drop
     expect(JSON.stringify(kill(5))).toBe(JSON.stringify(a)); // identical re-roll
   });
 });
