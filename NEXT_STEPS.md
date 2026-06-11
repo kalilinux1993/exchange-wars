@@ -1,7 +1,7 @@
 # Next Steps
 
 ## Phase 1 leftovers (minor, non-blocking)
-- [ ] Hard cap on resting orders per agent/book (spam-test finding: books are soft-bounded by agent cancel discipline only)
+- [x] ~~Hard cap on resting orders per agent/book~~ DONE phase 6s: MAX_RESTING_PER_AGENT_BOOK=16 in placeOrder, hash-proven non-binding in healthy sims
 - [ ] Trades window: switch `shift()` to ring buffer if window grows beyond 512
 - [x] ~~Property tests over many random seeds~~ DONE phase 6r: manyseed.test.ts — 64 derived seeds × conservation + snapshot-resume hash equality, ~30s (no fast-check dependency needed)
 - [ ] Determinism gate at 100k ticks in a slow/CI-only suite (current: 1.5k–6k ticks in the fast suite)

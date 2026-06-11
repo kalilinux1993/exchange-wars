@@ -1,5 +1,10 @@
 # Dev Guide
 
+## Phase 6s — Book Cap & Screenshot Refresh (2026-06-10)
+
+- **Resting-order hard cap** (exchange.ts): `MAX_RESTING_PER_AGENT_BOOK = 16` enforced in placeOrder (reject reason `book-cap`). Generous — players are slot-capped at 8 world-wide, no NPC archetype rests more than a handful — and hash-equality at introduction (7f338255/15cacaf8/81d9b0d9 on seeds 7/42/1337) proves it never binds in healthy sims. It bounds book growth against runaway strategies. Closes the last meaty Phase-1 spam-test leftover.
+- **README screenshot refreshed** via the SCREENSHOT=1 e2e spec — now shows the 100-item terminal with event chips/countdowns.
+
 ## Phase 6r — Many-Seed Robustness Gate (2026-06-10)
 
 - **New gate** (packages/engine/test/manyseed.test.ts): 64 seeds derived deterministically from master seed `0xc0ffee` (zero flakiness), each run 1k ticks → checkInvariants → JSON snapshot → both run 500 more ticks → `hashState` must match → invariants again. Catches seed-specific conservation/determinism violations the 5 fixed seeds can't. ~30s at 100 items — affordable only because of the 6p perf pass. Closes the Phase-1 "property tests" leftover without a fast-check dependency.

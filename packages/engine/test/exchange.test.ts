@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cancelAgentOrders, placeOrder } from '../src/exchange';
+import { cancelAgentOrders, MAX_RESTING_PER_AGENT_BOOK, placeOrder } from '../src/exchange';
 import { checkInvariants } from '../src/invariants';
 import { addAgent, createWorld } from '../src/sim';
 import type { AgentState, ItemDef, WorldState } from '../src/types';
@@ -162,6 +162,21 @@ describe('order matching', () => {
     expect(res.trades).toHaveLength(0);
     expect(state.books['ore']!.buys).toHaveLength(1);
     expect(state.books['ore']!.sells).toHaveLength(1);
+    checkInvariants(state);
+  });
+});
+
+describe('resting-order book cap', () => {
+  it('rejects the order that would exceed the per-agent book cap; cancel frees capacity', () => {
+    const { state, alice } = fixture();
+    for (let i = 0; i < MAX_RESTING_PER_AGENT_BOOK; i++) {
+      expect(placeOrder(state, alice, 'ore', 'buy', 1 + i, 1).accepted).toBe(true);
+    }
+    const over = placeOrder(state, alice, 'ore', 'buy', 50, 1);
+    expect(over.accepted).toBe(false);
+    expect(over.reason).toBe('book-cap');
+    cancelAgentOrders(state, alice, 'ore', 'buy');
+    expect(placeOrder(state, alice, 'ore', 'buy', 50, 1).accepted).toBe(true);
     checkInvariants(state);
   });
 });

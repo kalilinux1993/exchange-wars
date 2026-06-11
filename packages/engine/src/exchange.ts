@@ -23,6 +23,9 @@ export interface PlaceResult {
   trades: Trade[];
 }
 
+/** Max resting orders one agent may hold in one book (see placeOrder). */
+export const MAX_RESTING_PER_AGENT_BOOK = 16;
+
 function buyBefore(a: Order, b: Order): boolean {
   if (a.price !== b.price) return a.price > b.price;
   if (a.tick !== b.tick) return a.tick < b.tick;
@@ -97,6 +100,15 @@ export function placeOrder(
   if (!Number.isInteger(qty) || qty < 1) return rejected(state, 'bad-qty');
   if (side === 'buy' && agent.gp < price * qty) return rejected(state, 'insufficient-gp');
   if (side === 'sell' && (agent.inventory[itemId] ?? 0) < qty) return rejected(state, 'insufficient-items');
+  // Hard bound on book growth (spam-test finding): no agent may rest more
+  // than this many orders in one book. Generous — players are slot-capped
+  // at 8 world-wide and no NPC archetype rests more than a handful — so it
+  // never binds in healthy sims (hash-equality verified at introduction);
+  // it exists to stop a runaway strategy from flooding a book unboundedly.
+  let resting = 0;
+  for (const o of book.buys) if (o.agentId === agent.id) resting++;
+  for (const o of book.sells) if (o.agentId === agent.id) resting++;
+  if (resting >= MAX_RESTING_PER_AGENT_BOOK) return rejected(state, 'book-cap');
 
   state.stats.ordersPlaced++;
   const order: Order = {
