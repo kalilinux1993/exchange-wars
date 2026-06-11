@@ -16,7 +16,7 @@ const SLOTS: { slot: GearSlot; label: string; x: number; y: number }[] = [
 
 /** Best USABLE item the player holds for each slot (mirrors deriveStats's
  * choice) — the paperdoll shows what they'd actually fight in. */
-function equipped(
+export function equipped(
   inv: Record<string, number>,
   lvls: { atk: number; def: number },
 ): Partial<Record<GearSlot, string>> {
@@ -31,6 +31,44 @@ function equipped(
   }
   const out: Partial<Record<GearSlot, string>> = {};
   for (const [slot, v] of Object.entries(best)) out[slot as GearSlot] = v!.id;
+  return out;
+}
+
+export interface LockedPick {
+  id: string;
+  req: number;
+  skill: 'atk' | 'def';
+}
+
+/**
+ * The best gear the player HOLDS but can't equip yet (level-gated), per slot —
+ * the "train to unlock this" hint that makes the stats/xp ladder legible. Only
+ * items that would actually BEAT the currently-worn piece qualify (an unusable
+ * downgrade isn't an aspiration). `worn` is the result of `equipped()`.
+ */
+export function lockedUpgrades(
+  inv: Record<string, number>,
+  lvls: { atk: number; def: number },
+  worn: Partial<Record<GearSlot, string>>,
+): Partial<Record<GearSlot, LockedPick>> {
+  const wornScore = (slot: GearSlot): number => {
+    const id = worn[slot];
+    const g = id ? GEAR[id] : undefined;
+    return g ? g.atk + g.def : -1;
+  };
+  const best: Partial<Record<GearSlot, LockedPick & { score: number }>> = {};
+  for (const [id, qty] of Object.entries(inv)) {
+    if (qty < 1) continue;
+    const g = GEAR[id];
+    if (!g) continue;
+    const skill: 'atk' | 'def' = g.slot === 'weapon' ? 'atk' : 'def';
+    if (lvls[skill] >= g.req) continue; // already usable → not a locked hint
+    const score = g.atk + g.def;
+    if (score <= wornScore(g.slot)) continue; // not an upgrade over what's worn
+    if (!best[g.slot] || score > best[g.slot]!.score) best[g.slot] = { id, req: g.req, skill, score };
+  }
+  const out: Partial<Record<GearSlot, LockedPick>> = {};
+  for (const [slot, v] of Object.entries(best)) out[slot as GearSlot] = { id: v!.id, req: v!.req, skill: v!.skill };
   return out;
 }
 
@@ -52,6 +90,7 @@ export function CharacterPanel({
   const lvls = levelsOf(agent?.combatXp);
   const trainedMax = maxHpFor(lvls.hp);
   const kit = equipped(agent?.inventory ?? {}, lvls);
+  const locked = lockedUpgrades(agent?.inventory ?? {}, lvls, kit);
   const hp = agent?.hp ?? trainedMax;
   const cmb = combatLevel(agent?.combatXp);
   const [title, setTitle] = useState<string>(() => {
@@ -115,12 +154,25 @@ export function CharacterPanel({
           )}
         </div>
         <div className="equiplist">
-          {SLOTS.map((s) => (
-            <div key={s.slot} className={kit[s.slot] ? 'equip on' : 'equip'}>
-              <span className="dim">{s.label}</span>
-              <span>{kit[s.slot] ? (names.get(kit[s.slot]!) ?? kit[s.slot]) : '—'}</span>
-            </div>
-          ))}
+          {SLOTS.map((s) => {
+            const lock = locked[s.slot];
+            return (
+              <div key={s.slot} className={kit[s.slot] ? 'equip on' : 'equip'}>
+                <span className="dim">{s.label}</span>
+                <span className="equipval">{kit[s.slot] ? (names.get(kit[s.slot]!) ?? kit[s.slot]) : '—'}</span>
+                {lock && (
+                  <span
+                    className="lockhint"
+                    title={`you're holding ${names.get(lock.id) ?? lock.id} — train ${
+                      lock.skill === 'atk' ? 'Attack' : 'Defence'
+                    } to ${lock.req} to wear it`}
+                  >
+                    🔒 {lock.skill === 'atk' ? 'Atk' : 'Def'} {lock.req}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
         <div className="skills">
           {skill('atk', '⚔', 'Attack')}

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // Catalog-agnostic: everything derives from DEFAULT_ITEMS so `npm run
 // gen:catalog` regens never break these tests.
-import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, playerView, SPRINT_TICKS, tickWorld } from '@exchange-wars/engine';
+import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, playerView, SPRINT_TICKS, tickWorld, xpForLevel } from '@exchange-wars/engine';
+import type { AgentState } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ItemDef, PlayerView } from '@exchange-wars/engine';
@@ -9,6 +10,7 @@ import { App } from '../src/App';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { Icon, itemIcon } from '../src/components/Icon';
 import { MoversPanel } from '../src/components/MoversPanel';
+import { CharacterPanel, equipped, lockedUpgrades } from '../src/components/CharacterPanel';
 import { TopFlips, rankFlips } from '../src/components/TopFlips';
 import { LeaderboardPanel } from '../src/components/LeaderboardPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
@@ -436,6 +438,36 @@ describe('UI shell', () => {
     const view = { markets: [{ itemId: 'x', bestBid: 50, bestAsk: 51 }] } as unknown as PlayerView;
     render(<TopFlips view={view} items={[] as unknown as ItemDef[]} onSelect={() => {}} />);
     expect(screen.getByText(/no profitable flips right now/i)).toBeTruthy();
+  });
+
+  describe('lockedUpgrades', () => {
+    // Atk 1 / Def 8: holds two better pieces it can't wear yet (dragon longsword
+    // req 20, rune platebody req 12) over what it can (adamant dart, rune chainbody).
+    const INV = { adamant_dart: 1, dragon_longsword: 1, rune_chainbody: 1, rune_platebody: 1, rune_full_helm: 1 };
+    it('surfaces held-but-unusable upgrades, skipping already-usable slots', () => {
+      const worn = equipped(INV, { atk: 1, def: 8 });
+      expect(worn.weapon).toBe('adamant_dart');
+      expect(worn.body).toBe('rune_chainbody');
+      const lock = lockedUpgrades(INV, { atk: 1, def: 8 }, worn);
+      expect(lock.weapon).toMatchObject({ id: 'dragon_longsword', req: 20, skill: 'atk' });
+      expect(lock.body).toMatchObject({ id: 'rune_platebody', req: 12, skill: 'def' });
+      expect(lock.helm).toBeUndefined(); // rune_full_helm already usable, nothing better held
+    });
+    it('yields no locks once levels meet every requirement', () => {
+      const worn = equipped(INV, { atk: 99, def: 99 });
+      expect(lockedUpgrades(INV, { atk: 99, def: 99 }, worn)).toEqual({});
+      expect(worn.weapon).toBe('dragon_longsword'); // now the best is actually worn
+    });
+  });
+
+  it('CharacterPanel renders the "train to unlock" hints for gated gear', () => {
+    const agent = {
+      inventory: { adamant_dart: 1, dragon_longsword: 1, rune_chainbody: 1, rune_platebody: 1, rune_full_helm: 1 },
+      combatXp: { atk: 0, def: xpForLevel(8), hp: 0 },
+    } as unknown as AgentState;
+    render(<CharacterPanel agent={agent} names={new Map()} />);
+    expect(screen.getByText(/🔒 Atk 20/)).toBeTruthy();
+    expect(screen.getByText(/🔒 Def 12/)).toBeTruthy();
   });
 
   it('a #seed link starts fresh visitors on that seed directly', () => {
