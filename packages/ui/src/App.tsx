@@ -3,6 +3,7 @@ import type { CommandResult, ItemId, PlayerCommand } from '@exchange-wars/engine
 import { chooseSave, getSupabase, loadCloudSave, pushCloudSave, type Session } from './cloud';
 import { AccountBar } from './components/AccountBar';
 import { HELP_SEEN_KEY, HelpOverlay } from './components/HelpOverlay';
+import { ExpeditionPanel } from './components/ExpeditionPanel';
 import { LeaderboardPanel } from './components/LeaderboardPanel';
 import { BookLadder } from './components/BookLadder';
 import { ContractsBoard } from './components/ContractsBoard';
@@ -569,6 +570,12 @@ export function App({ initial }: { initial?: Game }) {
             playerId={game.playerId}
           />
           <MilestonesPanel unlocked={game.milestones} game={game} view={view} worth={viewNetWorth(view)} />
+          <ExpeditionPanel
+            game={game}
+            view={view}
+            onCommand={command}
+            onToast={(name, flavor) => setToast({ id: 'expedition', name, flavor, achieved: () => false })}
+          />
           <LeaderboardPanel
             game={game}
             session={session}

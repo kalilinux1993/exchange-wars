@@ -524,6 +524,44 @@ describe('UI shell', () => {
     expect(screen.getByText(/craze active — ends in ~450 ticks/)).toBeTruthy(); // ticket (FIRST selected by default)
   });
 
+  it('expeditions: regions render with locks; an empty-pack embark works fists-first', () => {
+    const game = freshApp();
+    expect(screen.getByText('Expeditions')).toBeTruthy();
+    expect(screen.getByText('Lumbridge Plains')).toBeTruthy();
+    expect(screen.getByText("The Dragon's Maw")).toBeTruthy(); // visible but locked
+    fireEvent.click(screen.getByText('embark'));
+    const agent = game.world.agents[game.playerId]!;
+    expect(agent.expedition).toBeTruthy();
+    expect(screen.getByText('venture deeper')).toBeTruthy();
+    fireEvent.click(screen.getByText('venture deeper'));
+    expect(agent.expedition!.combat).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'fight' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'flee' })).toBeTruthy();
+    // Fight until the encounter resolves one way or another — real engine.
+    for (let i = 0; i < 60 && agent.expedition?.combat; i++) {
+      fireEvent.click(screen.getByRole('button', { name: 'fight' }));
+    }
+    if (agent.expedition) {
+      // survived: extract brings everything home
+      fireEvent.click(screen.getByText(/extract/));
+      expect(agent.expedition).toBeUndefined();
+    }
+  });
+
+  it('expeditions: the pack builder escrows chosen supplies', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.inventory['shark'] = 3; // stock the satchel directly (fixture)
+    render(<App initial={game} />);
+    const panel = document.querySelector('.expedition') as HTMLElement;
+    const sharkRow = within(panel).getByText('Shark').closest('li')!;
+    fireEvent.click(within(sharkRow as HTMLElement).getByText('+'));
+    fireEvent.click(within(sharkRow as HTMLElement).getByText('+'));
+    fireEvent.click(within(panel).getByText('embark'));
+    expect(agent.expedition!.pack['shark']).toBe(2);
+    expect(agent.inventory['shark']).toBe(1);
+  });
+
   it('sanitizeHandle keeps emails off the public board', () => {
     expect(sanitizeHandle('jesse')).toBe('jesse');
     expect(sanitizeHandle('Jesse.is.back@gmail.com')).toBe('Jesse.is.back');

@@ -923,3 +923,34 @@ th.num {
   outline: none;
   border-color: var(--gold);
 }
+
+/* --- expeditions --- */
+.regions li {
+  cursor: pointer;
+}
+
+.regions li.selected-region {
+  color: var(--gold-bright);
+}
+
+.hpbar {
+  height: 8px;
+  margin: 6px 0;
+  border: 1px solid var(--hairline);
+  background: var(--ink);
+}
+
+.hpbar .hpfill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--rise), #4f9457);
+  transition: width 150ms ease-out;
+}
+
+.hpbar.foe .hpfill {
+  background: linear-gradient(90deg, var(--fall), #9a4334);
+}
+
+.combatlog {
+  max-height: 110px;
+  overflow: auto;
+}

@@ -92,6 +92,16 @@ test('a #seed challenge link boots that exact world for fresh visitors', async (
   await expect(page.locator('.clock')).toContainText('777');
 });
 
+test('expeditions: embark fists-first, meet a monster, swing once', async ({ page }) => {
+  await dismissHelp(page);
+  await expect(page.locator('.expedition')).toContainText('Expeditions');
+  await page.getByText('embark').click();
+  await page.getByText('venture deeper').click();
+  await expect(page.locator('.expedition')).toContainText('blocks the path');
+  await page.getByRole('button', { name: 'fight', exact: true }).click();
+  await expect(page.locator('.combatlog')).toBeVisible();
+});
+
 test('engine rejection reasons surface in the ticket', async ({ page }) => {
   await dismissHelp(page);
   await page.locator('.market tbody tr').first().click();

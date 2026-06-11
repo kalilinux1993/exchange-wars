@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 8c — Expedition UI (2026-06-11, Expeditions brick 3)
+
+- **ExpeditionPanel** (third column, above the Sprint Board): region list with frontier locks (🔒/⚑/✓), pack builder over quest-relevant inventory (qty steppers; gear shows atk/def, food shows heals), embark; in the field — hp bar, atk/def/cleared/loot line, venture/extract; in combat — monster hp bar, last 5 log lines, fight/flee/eat-(food) chips. Reads world for display; every mutation via onCommand.
+- **Death detection by transition**: an expedition that vanishes mid-combat (vs extract) toasts "you died — 3 most valuable made it home".
+- Tests: jsdom drives a full fists-first plains run and the pack-escrow flow against the REAL engine; new e2e spec embarks and swings in chromium. Gotcha: item names appear in market+satchel+pack — scope queries to `.expedition`.
+
 ## Phase 8b — Expedition State Machine (2026-06-11, Expeditions brick 2)
 
 - **Six-region node graph** (quest.ts REGIONS): Lumbridge Plains → Varrock Sewers → Edgeville Dungeon → Brimhaven Caverns → Wilderness Ruins → The Dragon's Maw. Clearing `REGION_CLEAR_KILLS` (3) encounters in your frontier region bumps `agent.questProgress` — the map unlocks one node at a time.
