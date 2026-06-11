@@ -2,6 +2,7 @@ import { applyCommand, EVENT_LABELS, playerView, runTicks, tickWorld } from '@ex
 import type { CommandResult, ItemId, PlayerCommand } from '@exchange-wars/engine';
 import { chooseSave, getSupabase, loadCloudSave, pushCloudSave, type Session } from './cloud';
 import { AccountBar } from './components/AccountBar';
+import { AlmanacPanel } from './components/AlmanacPanel';
 import { HELP_SEEN_KEY, HelpOverlay } from './components/HelpOverlay';
 import { ExpeditionPanel } from './components/ExpeditionPanel';
 import { LeaderboardPanel } from './components/LeaderboardPanel';
@@ -605,6 +606,7 @@ export function App({ initial }: { initial?: Game }) {
       <main className={room === 'hall' ? 'board' : 'board tabhidden'}>
         <section className="middle">
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
+          <AlmanacPanel game={game} />
         </section>
         <section className="middle">
           <WorthChart

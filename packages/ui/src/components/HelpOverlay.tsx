@@ -14,8 +14,8 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
           </li>
           <li>
             Three rooms: <b>🪙 Exchange</b> to trade, <b>⚔ Adventure</b> to delve, <b>🏰 Hall</b> for your
-            clerk, your fortune, and the sprint board. The world is one — time spent anywhere passes
-            everywhere.
+            clerk, your fortune, the almanac, and the sprint board. The world is one — time spent anywhere
+            passes everywhere.
           </li>
           <li>
             Click a market row to load it, then click prices in the <b>Depth</b> ladder: lift an ask to buy,

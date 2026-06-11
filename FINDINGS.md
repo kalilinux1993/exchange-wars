@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 9c — The Almanac (2026-06-11)
+
+63. **The conservation ledger makes a good player-facing curiosity, not just an invariant.** The Almanac (Hall panel: realm figures + your saga) is pure display of facts the engine already books — trades settled, offers rejected, NPC bailouts ("traders bailed out" with an honest tooltip), gp/items minted vs burned straight from the audited ledger, plus levels/kills/bestiary/deaths/deeds. Zero engine change, ~100 lines, and the most interesting line for players is the one built for the INVARIANT CHECKER: watching gpMinted/gpBurned tick apart in real time makes the economy feel like machinery instead of vibes. Second instance of the #56 pattern (book everything → display bricks are free), which makes it a law now, not an observation.
+
 ## Phase 9b — Death, Remembered (2026-06-11)
 
 62. **When the engine burns the evidence, the UI keeps a witness.** Death recaps ("You died in Wilderness Ruins — kept: Rune 2h sword, Rune platebody, Rune kiteshield — the dark kept 5 items and 1,230 loot gp") needed a last-render snapshot in the panel's death-detection ref, because by the time React re-renders, expeditionDeath has already deleted the expedition and booked the burns. The kept/lost math is a pure mirrored function (deathRecap) of the engine's keep-3 rule — mirroring is duplication, but display-side duplication of a 6-line rule beats threading a one-shot report through WorldState. Engine got the one fact worth persisting (stats.deaths), which the tally line and the Nine Lives deed read. Pattern: ephemeral drama = UI snapshot; durable score-keeping = engine stat — choose per fact, not per feature.

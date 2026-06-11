@@ -599,6 +599,21 @@ describe('UI shell', () => {
     // (no expedition at all = died fighting — also a settled fight)
   });
 
+  it('the almanac opens the books: realm figures and your saga', () => {
+    const game = newGame(42);
+    game.world.stats.monstersSlain = 12;
+    game.world.stats.eliteSlain = 1;
+    game.world.stats.deaths = 2;
+    game.world.stats.killsByMonster = { goblin: 12 };
+    render(<App initial={game} />);
+    const panel = document.querySelector('.almanac') as HTMLElement;
+    expect(panel).toBeTruthy();
+    expect(within(panel).getByText(/12 \(★1\)/)).toBeTruthy(); // slain, elite starred
+    expect(within(panel).getByText('2†')).toBeTruthy(); // deaths
+    expect(within(panel).getByText('gp minted / burned')).toBeTruthy(); // the ledger, public
+    expect(within(panel).getByText(/1\/\d+ met/)).toBeTruthy(); // bestiary progress
+  });
+
   it('deathRecap mirrors the engine keep-3 rule and tells the loss honestly', () => {
     const items = [
       { id: 'sword', name: 'Sword', baseCost: 30_000 },
