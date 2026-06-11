@@ -83,7 +83,12 @@ test('capture README screenshot (on demand)', async ({ page }) => {
   await page.locator('.market tbody tr').nth(2).click();
   // Anchor to this spec file — page.screenshot resolves relative paths
   // against the process cwd, which varies (it once escaped the repo).
-  await page.screenshot({ path: fileURLToPath(new URL('../../../docs/screenshot.png', import.meta.url)) });
+  // fullPage: the board is taller than the viewport and the README should
+  // show the whole game (the RPG panels live below the fold).
+  await page.screenshot({
+    path: fileURLToPath(new URL('../../../docs/screenshot.png', import.meta.url)),
+    fullPage: true,
+  });
 });
 
 test('a #seed challenge link boots that exact world for fresh visitors', async ({ page }) => {

@@ -1,5 +1,9 @@
 # Findings
 
+## Phases 8a–8h — the Expeditions RPG arc (2026-06-11)
+
+44. **The market engine was secretly an RPG engine.** Eight bricks in eight loop firings (combat core → state machine → UI → deeds → choices → dual-metric boards → cache loot → ambushes), and every hard problem was already solved by existing architecture: (a) *commands execute between ticks*, so expeditions replay inside sprint logs at ZERO extra verification CPU — one replay proves both your fortune AND your deepest dive; (b) *the conservation ledger doubles as an achievement detector* — "Dragon Slayer" is just `itemsMinted['superior_dragon_bones'] > 0`, unforgeable; (c) *per-expedition RNG streams* (seeded from world seed + counter) mean adventuring never re-rolls the market — zero balance-gate churn across the whole arc; (d) *gear-as-catalog-items* makes the loot↔market loop free: drops are sellable the moment you extract, quartermaster contracts for dragon bones can already spawn, and death-burns create gear demand. Operational rule that emerged: every engine change that touches command shapes requires a verify-score redeploy in the same phase, or sprint logs containing the new commands silently mis-replay on the stale server bundle.
+
 ## Phases 7f–7l — the leaderboards arc (2026-06-11)
 
 42. **The free-tier Edge worker's CPU budget DESIGNED the sprint format.** Replaying the 120-item world server-side hit 546 WORKER_RESOURCE_LIMIT at 10k ticks AND at 5k; 2k passes (cold 2.1s / warm 1.4s). The race horizon wasn't picked — it was measured. Corollary: future engine perf wins widen the safety margin but the horizon should stay put (comparability). Debug method worth keeping: mint a real test-user JWT via the admin API (service key fetched through the management API with Jesse's access token) and probe the function exactly as the browser would — curl alone misses CORS preflights (the FIRST failure) and gateway-vs-function distinctions.
