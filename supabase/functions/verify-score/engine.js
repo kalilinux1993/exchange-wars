@@ -260,6 +260,8 @@ var ENCOUNTERS = {
 };
 var SHRINE_MIN_COST = 50;
 var GAMBLE_STAKE = 100;
+var IMP_PRIZE = [150, 400];
+var MERCHANT_MARKUP = 3;
 var CACHE_ITEM_CHANCE = 0.25;
 var AMBUSH_CHANCE = 0.08;
 var CACHE_LOOT = [
@@ -1279,10 +1281,14 @@ function applyCommand(state, playerId, cmd) {
           journal.push("the trap was the last thing you never saw");
           expeditionDeath(state, agent, exp);
         }
-      } else if (rng.chance(0.5)) {
-        exp.event = { kind: "shrine", prompt: "a shrine hums in the dark \u2014 tithe a quarter of your loot gp for full healing?" };
       } else {
-        exp.event = { kind: "gamble", prompt: `a goblin rattles a cup of dice \u2014 stake ${GAMBLE_STAKE} loot gp, double or nothing?` };
+        const rIdx = regionIndex(exp.regionId);
+        const kinds = ["shrine", "gamble", "imp"];
+        if (rIdx >= 1 && rIdx < REGIONS.length - 1) kinds.push("portal");
+        if (rIdx >= 3) kinds.push("merchant");
+        const kind = rng.pick(kinds);
+        const prompt = kind === "shrine" ? "a shrine hums in the dark \u2014 tithe a quarter of your loot gp for full healing?" : kind === "gamble" ? `a goblin rattles a cup of dice \u2014 stake ${GAMBLE_STAKE} loot gp, double or nothing?` : kind === "imp" ? "an imp scampers past with a bulging coin pouch \u2014 give chase?" : kind === "portal" ? `a humming portal opens \u2014 beyond it, ${REGIONS[rIdx + 1].name}. step through?` : "a soot-cloaked merchant offers a shark at triple price \u2014 pay up?";
+        exp.event = { kind, prompt };
       }
       exp.rngState = rng.state();
       return { ok: true, trades: [] };
@@ -1304,6 +1310,37 @@ function applyCommand(state, playerId, cmd) {
           state.ledger.gpBurned += cost;
           exp.hp = maxHpFor(levelsOf(agent.combatXp).hp);
           journal.push(`the shrine takes ${cost} gp and knits your wounds`);
+        }
+      } else if (ev.kind === "portal") {
+        const idx = Math.min(regionIndex(exp.regionId) + 1, REGIONS.length - 1);
+        exp.regionId = REGIONS[idx].id;
+        state.stats.deepestRegion = Math.max(state.stats.deepestRegion ?? 0, idx);
+        journal.push(`you step through \u2014 ${REGIONS[idx].name}`);
+      } else if (ev.kind === "imp") {
+        if (rng.chance(0.5)) {
+          const prize = rng.int(IMP_PRIZE[0], IMP_PRIZE[1]);
+          state.ledger.gpMinted += prize;
+          exp.packGp += prize;
+          journal.push(`you snatch the pouch: +${prize} gp`);
+        } else {
+          const dmg = rng.int(4, 8 + 2 * regionIndex(exp.regionId));
+          exp.hp -= dmg;
+          journal.push(`the imp leads you into a snare \u2014 ${dmg} hp`);
+          if (exp.hp <= 0) {
+            journal.push("the imp's laughter is the last thing you hear");
+            expeditionDeath(state, agent, exp);
+          }
+        }
+      } else if (ev.kind === "merchant") {
+        const price = (itemDef(state, "shark")?.baseCost ?? 700) * MERCHANT_MARKUP;
+        if (exp.packGp < price) {
+          journal.push("the merchant eyes your purse and turns away");
+        } else {
+          exp.packGp -= price;
+          state.ledger.gpBurned += price;
+          state.ledger.itemsMinted["shark"] = (state.ledger.itemsMinted["shark"] ?? 0) + 1;
+          exp.pack["shark"] = (exp.pack["shark"] ?? 0) + 1;
+          journal.push(`the merchant takes ${price} gp and hands over a shark`);
         }
       } else {
         if (exp.packGp < GAMBLE_STAKE) {

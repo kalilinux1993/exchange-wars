@@ -204,6 +204,51 @@ describe('expeditions', () => {
     expect(exp.packGp).toBe(before);
   });
 
+  it('new faces in the dark: portal hops a region, merchant sells dear, imp gambles your blood', () => {
+    const { state, id } = fixture(25);
+    const agent = state.agents[id]!;
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    const exp = agent.expedition!;
+    // Portal: one region deeper, no unlock, deepest badge counts it.
+    exp.event = { kind: 'portal', prompt: 't' };
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.regionId).toBe(REGIONS[1]!.id);
+    expect(state.stats.deepestRegion).toBe(1);
+    expect(agent.questProgress ?? 0).toBe(0); // tourism is not progression
+    // Merchant: burns gp, mints a shark into the pack — fully conserved.
+    exp.packGp += 5_000;
+    state.ledger.gpMinted += 5_000;
+    exp.event = { kind: 'merchant', prompt: 't' };
+    const gpBefore = exp.packGp;
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.pack['shark'] ?? 0).toBe(1);
+    expect(exp.packGp).toBeLessThan(gpBefore);
+    expect(state.ledger.itemsMinted['shark'] ?? 0).toBeGreaterThanOrEqual(1);
+    // A pauper merchant visit is a polite no-op.
+    const poor = fixture(26);
+    ok(poor.state, poor.id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    poor.state.agents[poor.id]!.expedition!.event = { kind: 'merchant', prompt: 't' };
+    ok(poor.state, poor.id, { type: 'choose', accept: true });
+    expect(poor.state.agents[poor.id]!.expedition!.pack['shark'] ?? 0).toBe(0);
+    // Imp: both outcomes occur across seeds, each conserved.
+    let caught = 0;
+    let snared = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      const f = fixture(seed);
+      const a2 = f.state.agents[f.id]!;
+      ok(f.state, f.id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+      const e2 = a2.expedition!;
+      e2.event = { kind: 'imp', prompt: 't' };
+      const gp0 = e2.packGp;
+      const hp0 = e2.hp;
+      ok(f.state, f.id, { type: 'choose', accept: true });
+      if (e2.packGp > gp0) caught++;
+      else if (e2.hp < hp0) snared++;
+    }
+    expect(caught).toBeGreaterThan(0);
+    expect(snared).toBeGreaterThan(0);
+  });
+
   it('advance rolls non-combat encounters too (cache/trap/event seen across seeds)', () => {
     let cache = 0;
     let trap = 0;

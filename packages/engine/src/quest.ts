@@ -149,9 +149,11 @@ export function expeditionSeed(worldSeed: number, expeditionId: number): number 
   return ((worldSeed ^ 0x9e3779b9) + Math.imul(expeditionId, 0x85ebca6b)) >>> 0;
 }
 
-/** A pending choice event — resolved by the `choose` command. */
+/** A pending choice event — resolved by the `choose` command. The dark's
+ * repertoire grows with depth (8u): portals tempt you one region past your
+ * right, imps gamble your blood, merchants surface where the food runs out. */
 export interface EventState {
-  kind: 'shrine' | 'gamble';
+  kind: 'shrine' | 'gamble' | 'portal' | 'imp' | 'merchant';
   prompt: string;
 }
 
@@ -165,6 +167,10 @@ export const ENCOUNTERS = {
 
 export const SHRINE_MIN_COST = 50;
 export const GAMBLE_STAKE = 100;
+/** The imp's pouch (minted on a catch) — the chase costs blood when it fails. */
+export const IMP_PRIZE: [number, number] = [150, 400];
+/** The soot-cloaked merchant sells sharks at this multiple of base cost. */
+export const MERCHANT_MARKUP = 3;
 
 /** Chance a cache holds an item on top of its coin. */
 export const CACHE_ITEM_CHANCE = 0.25;

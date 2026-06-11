@@ -16,6 +16,8 @@ import {
   monsterById,
   expeditionSeed,
   GAMBLE_STAKE,
+  IMP_PRIZE,
+  MERCHANT_MARKUP,
   newCombat,
   PLAYER_BASE,
   REGION_CLEAR_KILLS,
@@ -358,10 +360,26 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
           journal.push('the trap was the last thing you never saw');
           expeditionDeath(state, agent, exp);
         }
-      } else if (rng.chance(0.5)) {
-        exp.event = { kind: 'shrine', prompt: 'a shrine hums in the dark — tithe a quarter of your loot gp for full healing?' };
       } else {
-        exp.event = { kind: 'gamble', prompt: `a goblin rattles a cup of dice — stake ${GAMBLE_STAKE} loot gp, double or nothing?` };
+        // Region-flavored repertoire (8u): one draw picks from the pool the
+        // depth deserves. Portals never spawn in the last region (nothing
+        // deeper) or the plains (nothing to escalate FROM).
+        const rIdx = regionIndex(exp.regionId);
+        const kinds: import('./quest').EventState['kind'][] = ['shrine', 'gamble', 'imp'];
+        if (rIdx >= 1 && rIdx < REGIONS.length - 1) kinds.push('portal');
+        if (rIdx >= 3) kinds.push('merchant');
+        const kind = rng.pick(kinds);
+        const prompt =
+          kind === 'shrine'
+            ? 'a shrine hums in the dark — tithe a quarter of your loot gp for full healing?'
+            : kind === 'gamble'
+              ? `a goblin rattles a cup of dice — stake ${GAMBLE_STAKE} loot gp, double or nothing?`
+              : kind === 'imp'
+                ? 'an imp scampers past with a bulging coin pouch — give chase?'
+                : kind === 'portal'
+                  ? `a humming portal opens — beyond it, ${REGIONS[rIdx + 1]!.name}. step through?`
+                  : 'a soot-cloaked merchant offers a shark at triple price — pay up?';
+        exp.event = { kind, prompt };
       }
       exp.rngState = rng.state();
       return { ok: true, trades: [] };
@@ -383,6 +401,40 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
           state.ledger.gpBurned += cost; // the gods bank elsewhere
           exp.hp = maxHpFor(levelsOf(agent.combatXp).hp); // full = trained max
           journal.push(`the shrine takes ${cost} gp and knits your wounds`);
+        }
+      } else if (ev.kind === 'portal') {
+        // Depth tourism: one region past wherever you stand — no unlock, just
+        // nerve. The deepest-region badge counts it; so do the ambush-grade
+        // monsters on the other side.
+        const idx = Math.min(regionIndex(exp.regionId) + 1, REGIONS.length - 1);
+        exp.regionId = REGIONS[idx]!.id;
+        state.stats.deepestRegion = Math.max(state.stats.deepestRegion ?? 0, idx);
+        journal.push(`you step through — ${REGIONS[idx]!.name}`);
+      } else if (ev.kind === 'imp') {
+        if (rng.chance(0.5)) {
+          const prize = rng.int(IMP_PRIZE[0], IMP_PRIZE[1]);
+          state.ledger.gpMinted += prize;
+          exp.packGp += prize;
+          journal.push(`you snatch the pouch: +${prize} gp`);
+        } else {
+          const dmg = rng.int(4, 8 + 2 * regionIndex(exp.regionId));
+          exp.hp -= dmg;
+          journal.push(`the imp leads you into a snare — ${dmg} hp`);
+          if (exp.hp <= 0) {
+            journal.push("the imp's laughter is the last thing you hear");
+            expeditionDeath(state, agent, exp);
+          }
+        }
+      } else if (ev.kind === 'merchant') {
+        const price = (itemDef(state, 'shark')?.baseCost ?? 700) * MERCHANT_MARKUP;
+        if (exp.packGp < price) {
+          journal.push('the merchant eyes your purse and turns away');
+        } else {
+          exp.packGp -= price;
+          state.ledger.gpBurned += price; // his margin leaves the world
+          state.ledger.itemsMinted['shark'] = (state.ledger.itemsMinted['shark'] ?? 0) + 1;
+          exp.pack['shark'] = (exp.pack['shark'] ?? 0) + 1;
+          journal.push(`the merchant takes ${price} gp and hands over a shark`);
         }
       } else {
         if (exp.packGp < GAMBLE_STAKE) {

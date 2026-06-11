@@ -49,7 +49,8 @@ Design (account-light, static-site-friendly — Supabase):
 - ~~Antifire as the dragon-farm key item~~ DONE phase 8r: armor-piercing breath, expedition-long coating, 17.3k ticket per dive; table healthy (naked +4–7k · geared +38–206k · tail ~260k).
 - ~~Hitpoints as a third trained stat~~ DONE phase 8s: xp = dealt/3, +2 maxHp/level, all five "full hp" sites honor the trained max; old saves = level 1 by construction.
 - ~~7th region~~ DONE phase 8t: the Inferno Gate (pyrefiend/lava dragon, elite Zukrath, all-dragonfire — the antifire ticket is mandatory; Hellwalker deed).
-- Content ideas: region-flavored events; gear durability as a market sink; hp/stat-level deeds; an 8th region someday (the chain auto-extends now that elites are per-region data).
+- ~~Region-flavored events~~ DONE phase 8u: portal (depth tourism), imp (no-stake blood gamble), merchant (3× shark resupply) — depth-gated pool, conservation-clean.
+- Content ideas: gear durability as a market sink; hp/stat-level deeds; an 8th region someday (the chain auto-extends); more event faces (the enum+pool+resolver pattern makes each ~30 lines).
 - ~~Liquidation-value scoring~~ DONE phase 8o: bid-walk mark excluding own bids; UI playerWorth = engine netWorth (display and arbiter agree); all gates held.
 - Hitpoints level (maxHp growth from xp) — natural third stat once Attack/Defence prove out.
 - ~~Geared-grind measurement~~ DONE phase 8m: capital loop validated (median geared +16.6k vs naked +1–3.9k, depth 4–5); bones faucet nerfed 1→0.15.
