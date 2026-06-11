@@ -283,6 +283,16 @@ export function ExpeditionPanel({
 
   const region = REGIONS[regionIndex(exp.regionId)]!;
   const stats = deriveStats(exp.pack, lvls);
+  // Which equipment slots the fighter actually has usable gear in — drives the
+  // combat-scene figure, mirroring the paperdoll's per-slot logic.
+  const fighterKit = { weapon: false, helm: false, body: false, legs: false, shield: false };
+  for (const [id, q] of Object.entries(exp.pack)) {
+    if (q < 1) continue;
+    const g = GEAR[id];
+    if (!g) continue;
+    if ((g.slot === 'weapon' ? lvls.atk : lvls.def) < g.req) continue; // inert — doesn't show
+    fighterKit[g.slot] = true;
+  }
   const hpPct = Math.min(100, Math.round(((exp.combat ? exp.combat.playerHp : exp.hp) / trainedMax) * 100));
   const foods = Object.entries(exp.pack).filter(([id, qty]) => qty > 0 && CONSUMABLES[id] !== undefined);
 
@@ -313,7 +323,7 @@ export function ExpeditionPanel({
                   playerHp={exp.combat!.playerHp}
                   playerMaxHp={exp.combat!.maxHp ?? trainedMax}
                   logLen={exp.combat!.log.length}
-                  geared={Object.keys(exp.pack).some((id) => GEAR[id] !== undefined && (exp.pack[id] ?? 0) > 0)}
+                  kit={fighterKit}
                 />
                 <p className="small">
                   <b>{m.name}</b> — {Math.max(0, exp.combat!.monsterHp)}/{m.hp} hp · you{' '}

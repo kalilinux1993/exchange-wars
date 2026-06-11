@@ -15,20 +15,29 @@ function hueOf(id: string): number {
  * float-and-fade replays once per round. Pure display; the engine resolved
  * the round already.
  */
+export interface FighterKit {
+  weapon: boolean;
+  helm: boolean;
+  body: boolean;
+  legs: boolean;
+  shield: boolean;
+}
+
 export function CombatScene({
   monsterId,
   monsterHp,
   playerHp,
   playerMaxHp,
   logLen,
-  geared,
+  kit,
 }: {
   monsterId: string;
   monsterHp: number;
   playerHp: number;
   playerMaxHp: number;
   logLen: number;
-  geared: boolean;
+  /** Which equipment slots are filled with usable gear (lights the figure). */
+  kit: FighterKit;
 }) {
   const m = monsterById(monsterId);
   const hue = hueOf(monsterId);
@@ -62,13 +71,16 @@ export function CombatScene({
       <rect x={110} y={8} width={76} height={7} rx={2} className="scenehp-bg" />
       <rect x={110} y={8} width={(76 * mPct) / 100} height={7} rx={2} className="scenehp foe" />
 
-      {/* the adventurer (left), feet on the floor (y≈96) */}
+      {/* the adventurer (left), feet on the floor (y≈96); each plate lights
+          when that slot holds usable gear (mirrors the paperdoll). */}
       <g className="fighter">
-        <rect x={46} y={66} width={6} height={30} rx={2} className={geared ? 'doll-slot legs on' : 'doll-slot legs'} />
-        <rect x={54} y={66} width={6} height={30} rx={2} className={geared ? 'doll-slot legs on' : 'doll-slot legs'} />
-        <rect x={42} y={42} width={22} height={28} rx={4} className={geared ? 'doll-slot body on' : 'doll-slot body'} />
+        <rect x={46} y={66} width={6} height={30} rx={2} className={`doll-slot legs${kit.legs ? ' on' : ''}`} />
+        <rect x={54} y={66} width={6} height={30} rx={2} className={`doll-slot legs${kit.legs ? ' on' : ''}`} />
+        <rect x={42} y={42} width={22} height={28} rx={4} className={`doll-slot body${kit.body ? ' on' : ''}`} />
         <ellipse cx={53} cy={34} rx={9} ry={10} className="doll-skin" />
-        <rect x={64} y={36} width={5} height={34} rx={2} className={geared ? 'doll-slot weapon on' : 'doll-slot weapon'} />
+        <rect x={45} y={24} width={16} height={8} rx={3} className={`doll-slot helm${kit.helm ? ' on' : ''}`} />
+        <rect x={64} y={36} width={5} height={34} rx={2} className={`doll-slot weapon${kit.weapon ? ' on' : ''}`} />
+        <rect x={34} y={46} width={7} height={20} rx={2} className={`doll-slot shield${kit.shield ? ' on' : ''}`} />
       </g>
 
       {/* the monster (right), generated from its id + flags. The positioning

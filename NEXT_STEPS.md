@@ -7,7 +7,7 @@ Through brick 49 (9w): RPG layer (8 regions, stats/xp, brews, bounties, sellswor
 
 ## Queued candidates (rough priority)
 - **POPULATE ART**: drop game-icons.net (CC BY) / CC0 SVGs into `packages/ui/src/assets/icons/` (naming in the folder README), credit in CREDITS.md; route monster/item/region glyphs through `<Icon>`. Auto-fetch is impossible (WebFetch strips SVG paths) — Jesse-drop or hand-author originals.
-- **HUD depth**: richer paperdoll (per-item silhouettes); ~~monster shape variety~~ DONE 9y; ~~equip discoverability~~ DONE 9z (Pack & Equip rename + ⚔ equip best button + Ledger pointer); inventory/equipment grid; OSRS-style icon sub-tabs if a room crowds.
+- **HUD depth**: richer paperdoll (per-item silhouettes); ~~monster shape variety~~ DONE 9y; ~~equip discoverability~~ DONE 9z; ~~combat fighter wears your kit~~ DONE 10f (per-slot, mirrors paperdoll); inventory/equipment grid; OSRS-style icon sub-tabs if a room crowds.
 - **Trading**: ~~market-breadth line~~ DONE 10a; ~~price alerts~~ DONE 10b (buy-below threshold, latched toast, 🔔 row); sparkline in market-table rows.
 - **Code health**: ~~usePref helper~~ DONE 10c (loadouts/watch/alerts via usePref; title/room stay bespoke — raw-string / validated-enum).
 - **Robustness**: UI to restore/export a quarantined save on next boot; guard monsterById/itemDef at UI read sites; 100k-tick determinism gate in a CI-only suite.
