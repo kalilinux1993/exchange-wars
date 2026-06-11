@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 9j — Expedition Loadouts (2026-06-11)
+
+70. **Convenience state belongs in localStorage, NOT the world.** Saved packs (up to 4, refill clamped to current inventory) are a cross-run UI preference that must never enter WorldState — putting them in the save would mean replaying them, snapshotting them, hashing them, and breaking determinism for a quality-of-life nicety. localStorage is the right home (same call the active-room and handle prefs already use), wrapped in try/catch because private-mode quota failure must never break embarking. The refill clamps to held quantity at apply time, so a saved "rune 2h + 4 shark" gracefully degrades to whatever you actually carry now — the loadout is a wish, the satchel is the law. The kit system's depth (gear ladder + antifire + food + camp meals across 8 regions) is exactly what made per-dive pack rebuilding a friction worth removing; QoL debt accrues in proportion to system depth.
+
 ## Phase 9i — The Clerk's Reach, Made Legible (2026-06-11)
 
 69. **A balance decision the player can't SEE reads as a bug — Jesse's own report proved it.** Jesse asked why his clerk bought "2 @ 22" lava rune on a 70k bankroll. Nothing was wrong: the tier-1 clerk sizes by UNIT count (maxQty 6), not purse, and trades only calm cheap goods by design (the timidity is the FINDINGS #33/#40 anti-bleed tuning). But the Clerk's Counter never stated the unit cap, so correct conservative behavior looked broken. Fix was zero engine change — the panel now shows "≤N units/flip · M at once · every C ticks · ≤V% vol" and a plain-language note ("on a 22-gp rune that's ~132 gp — your bankroll barely matters; tier 2 unlocks the big staples; flip exotics yourself"). Rule: every visible product of a balance constraint needs an in-UI explanation, or players file it as a defect. Pairs with the #58/#66 legibility laws — those keep numbers from drifting; this keeps intentional limits from reading as malfunctions.

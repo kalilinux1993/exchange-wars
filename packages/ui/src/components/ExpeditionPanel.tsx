@@ -13,7 +13,7 @@ import {
 } from '@exchange-wars/engine';
 import type { PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { deathRecap, type Game } from '../game';
+import { deathRecap, loadLoadouts, saveLoadouts, type Game } from '../game';
 
 /**
  * The Expeditions panel: outfit an adventurer from your REAL inventory,
@@ -44,6 +44,7 @@ export function ExpeditionPanel({
   };
   const [regionId, setRegionId] = useState(REGIONS[0]!.id);
   const [draft, setDraft] = useState<Record<string, number>>({});
+  const [loadouts, setLoadouts] = useState<Record<string, number>[]>(loadLoadouts);
 
   // Death detection: an expedition that vanishes mid-combat wasn't extracted.
   // The last-render snapshot lets the toast tell the SPECIFIC story — the
@@ -173,6 +174,57 @@ export function ExpeditionPanel({
           ))}
         </ul>
         <h3>Pack (from your satchel)</h3>
+        {(() => {
+          const draftUnits = Object.values(draft).reduce((a, b) => a + b, 0);
+          const label = (lo: Record<string, number>): string => {
+            const entries = Object.entries(lo).filter(([, q]) => q > 0);
+            if (entries.length === 0) return 'empty';
+            const first = names.get(entries[0]![0]) ?? entries[0]![0];
+            return entries.length === 1 ? `${first} ×${entries[0]![1]}` : `${first} +${entries.length - 1}`;
+          };
+          const applyLoadout = (lo: Record<string, number>): void => {
+            const next: Record<string, number> = {};
+            for (const [id, q] of Object.entries(lo)) {
+              const held = view.inventory[id] ?? 0; // clamp to what you actually hold now
+              if (held > 0) next[id] = Math.min(q, held);
+            }
+            setDraft(next);
+          };
+          const saveCurrent = (): void => {
+            const pack: Record<string, number> = {};
+            for (const [id, q] of Object.entries(draft)) if (q > 0) pack[id] = q;
+            if (Object.keys(pack).length === 0) return;
+            const next = [pack, ...loadouts].slice(0, 4);
+            setLoadouts(next);
+            saveLoadouts(next);
+          };
+          const removeLoadout = (idx: number): void => {
+            const next = loadouts.filter((_, j) => j !== idx);
+            setLoadouts(next);
+            saveLoadouts(next);
+          };
+          if (loadouts.length === 0 && draftUnits === 0) return null;
+          return (
+            <p className="dim small loadouts">
+              loadouts:{' '}
+              {loadouts.map((lo, i) => (
+                <span key={i}>
+                  <button className="chip" title="fill the pack from this saved kit (clamped to what you hold)" onClick={() => applyLoadout(lo)}>
+                    {label(lo)}
+                  </button>
+                  <button className="chip" title="forget this loadout" onClick={() => removeLoadout(i)}>
+                    ×
+                  </button>{' '}
+                </span>
+              ))}
+              {draftUnits > 0 && loadouts.length < 4 && (
+                <button className="chip" title="save the current pack as a loadout" onClick={saveCurrent}>
+                  + save kit
+                </button>
+              )}
+            </p>
+          );
+        })()}
         {relevant.length === 0 && <p className="dim small">buy gear and food on the exchange first — or go in swinging fists</p>}
         <ul className="rows small">
           {relevant.map(([id, held]) => {

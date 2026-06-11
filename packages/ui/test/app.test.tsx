@@ -599,6 +599,29 @@ describe('UI shell', () => {
     // (no expedition at all = died fighting — also a settled fight)
   });
 
+  it('expedition loadouts: save a kit, refill from it clamped to what you hold', () => {
+    localStorage.removeItem('ew-loadouts');
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.inventory['shark'] = 5;
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const panel = document.querySelector('.expedition') as HTMLElement;
+    // Build a pack of 2 sharks, save it as a loadout.
+    const sharkRow = within(panel).getByText('Shark').closest('li')!;
+    fireEvent.click(within(sharkRow as HTMLElement).getByText('+'));
+    fireEvent.click(within(sharkRow as HTMLElement).getByText('+'));
+    fireEvent.click(within(panel).getByText('+ save kit'));
+    expect(within(panel).getByText(/Shark ×2/)).toBeTruthy(); // the loadout chip
+    // Clear the draft to 0, then refill from the saved kit.
+    fireEvent.click(within(sharkRow as HTMLElement).getByText('−'));
+    fireEvent.click(within(sharkRow as HTMLElement).getByText('−'));
+    expect(within(sharkRow as HTMLElement).getByText('0/5')).toBeTruthy();
+    fireEvent.click(within(panel).getByText(/Shark ×2/));
+    expect(within(sharkRow as HTMLElement).getByText('2/5')).toBeTruthy(); // refilled
+    localStorage.removeItem('ew-loadouts');
+  });
+
   it('the clerk counter explains the unit cap once hired (legibility, not breakage)', () => {
     const game = newGame(42);
     applyCommand(game.world, game.playerId, { type: 'buyUpgrade', upgradeId: 'autoFlip' }); // tier 1

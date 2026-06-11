@@ -423,6 +423,26 @@ export function playerWorth(game: Game): number {
   return agent ? netWorth(game.world, agent) : 0;
 }
 
+/** Saved expedition packs (9j) — a UI convenience in localStorage, NOT in the
+ * world (it's a cross-run preference, never replayed). Up to 4. */
+const LOADOUTS_KEY = 'ew-loadouts';
+export function loadLoadouts(): Record<string, number>[] {
+  try {
+    const raw = localStorage.getItem(LOADOUTS_KEY);
+    const v = raw ? JSON.parse(raw) : null;
+    return Array.isArray(v) ? (v as Record<string, number>[]) : [];
+  } catch {
+    return [];
+  }
+}
+export function saveLoadouts(list: Record<string, number>[]): void {
+  try {
+    localStorage.setItem(LOADOUTS_KEY, JSON.stringify(list.slice(0, 4)));
+  } catch {
+    /* private mode / quota — loadouts are a nicety, never fatal */
+  }
+}
+
 /** What death keeps and what it takes — mirrors the engine's keep-3 rule
  * (units sorted by baseCost desc, ties by item id) so the recap toast tells
  * the truth. Display only; the engine already did the bookkeeping. */
