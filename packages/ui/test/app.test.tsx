@@ -599,6 +599,16 @@ describe('UI shell', () => {
     // (no expedition at all = died fighting — also a settled fight)
   });
 
+  it('the clerk counter explains the unit cap once hired (legibility, not breakage)', () => {
+    const game = newGame(42);
+    applyCommand(game.world, game.playerId, { type: 'buyUpgrade', upgradeId: 'autoFlip' }); // tier 1
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Hall/ }));
+    const shop = document.querySelector('.shop') as HTMLElement;
+    expect(within(shop).getByText(/units a flip/)).toBeTruthy(); // the cap is stated
+    expect(within(shop).getByText(/flip it yourself/)).toBeTruthy(); // and the escape hatch
+  });
+
   it('the almanac opens the books: realm figures and your saga', () => {
     const game = newGame(42);
     game.world.stats.monstersSlain = 12;

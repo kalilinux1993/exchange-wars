@@ -1,6 +1,11 @@
 import { PROGRESSION, TUNING } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 
+/** A representative cheap-rune price for the clerk-reach example — just a
+ * concrete number to make the unit cap legible (the clerk's actual fills
+ * vary with the live ask). */
+const EXAMPLE_PRICE = 22;
+
 export function UpgradeShop({
   view,
   items,
@@ -38,7 +43,9 @@ export function UpgradeShop({
           <span className="dim">
             {' '}
             tier {tier}
-            {conf ? ` · ${conf.maxFlips} flips · every ${conf.cadence} ticks` : ''}
+            {conf
+              ? ` · ≤${conf.maxQty} units/flip · ${conf.maxFlips} at once · every ${conf.cadence} ticks · ≤${Math.round(conf.maxVolatility * 100)}% vol`
+              : ''}
           </span>
         </div>
         <button
@@ -49,6 +56,16 @@ export function UpgradeShop({
           {nextTierCost === undefined ? 'maxed' : `${nextTierCost.toLocaleString('en-US')} gp`}
         </button>
       </div>
+      {conf && (
+        <p className="dim small" title="the clerk sizes trades by UNIT COUNT, not your purse — so cheap goods mean small gp per flip no matter how rich you are">
+          the clerk buys at most <b>{conf.maxQty}</b> units a flip, so on a {EXAMPLE_PRICE}-gp rune that's ~
+          {(conf.maxQty * EXAMPLE_PRICE).toLocaleString('en-US')} gp — your bankroll barely matters here.
+          {conf.maxVolatility < 0.12
+            ? ' This junior trades only calm cheap goods; tier 2 unlocks the big ≥5k-gp staples where the real profit is.'
+            : ' It works the big ≥5k-gp staples now — that 8-unit cap on a 6k staple is ~48k a flip.'}{' '}
+          For exotics or anything bigger, <b>flip it yourself</b> in the Exchange — manual trades have no unit cap.
+        </p>
+      )}
       <div className="upgrade">
         <div>
           <b>Sellsword</b>
