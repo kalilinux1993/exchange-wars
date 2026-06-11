@@ -3,6 +3,18 @@ import type { CommandResult, ItemDef, ItemId, PlayerCommand, PlayerView, Side } 
 import { useEffect, useRef, useState } from 'react';
 import { Sparkline } from './Sparkline';
 
+/**
+ * Split the resting book into bid/ask proportions for the liquidity bar —
+ * bidDepth is your exit (what the resting bids will absorb), askDepth is your
+ * entry (what's there to lift). null when the book is empty. Pure.
+ */
+export function depthSplit(bidDepth: number, askDepth: number): { bidPct: number; askPct: number } | null {
+  const total = bidDepth + askDepth;
+  if (total <= 0) return null;
+  const bidPct = Math.round((bidDepth / total) * 100);
+  return { bidPct, askPct: 100 - bidPct };
+}
+
 export interface TicketPrefill {
   side: Side;
   price: number;
@@ -140,6 +152,26 @@ export function TradeTicket({
           )}
         </p>
       )}
+      {market &&
+        (() => {
+          const d = depthSplit(market.bidDepth, market.askDepth);
+          if (!d) return null;
+          return (
+            <div
+              className="depth"
+              title="resting liquidity — bids are your exit (what you can sell into right now), asks are your entry (what's there to buy)"
+            >
+              <span className="dim small">
+                book: <b className="up">{market.bidDepth.toLocaleString('en-US')} bid</b> ·{' '}
+                <b className="down">{market.askDepth.toLocaleString('en-US')} ask</b>
+              </span>
+              <div className="depthbar" aria-hidden="true">
+                <span className="dseg bid" style={{ width: `${d.bidPct}%` }} />
+                <span className="dseg ask" style={{ width: `${d.askPct}%` }} />
+              </div>
+            </div>
+          );
+        })()}
       <div className="sides">
         <button className={side === 'buy' ? 'side buy active' : 'side buy'} onClick={() => setSide('buy')}>
           buy

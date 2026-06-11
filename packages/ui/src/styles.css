@@ -723,6 +723,25 @@ kbd {
   font-size: 0.75rem;
 }
 
+/* order-book liquidity bar (11f): bid = exit, ask = entry. */
+.depth {
+  margin: 4px 0 2px;
+}
+.depthbar {
+  display: flex;
+  height: 5px;
+  margin-top: 3px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--ink);
+}
+.dseg.bid {
+  background: var(--rise);
+}
+.dseg.ask {
+  background: var(--fall);
+}
+
 /* ── trade ticket ─────────────────────────────────────── */
 .sides {
   display: grid;

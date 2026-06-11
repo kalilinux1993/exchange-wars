@@ -15,6 +15,7 @@ import { TopFlips, rankFlips } from '../src/components/TopFlips';
 import { RecordsPanel, recordRows } from '../src/components/RecordsPanel';
 import { resolveShortcut } from '../src/keyboard';
 import { ProfitPanel } from '../src/components/ProfitPanel';
+import { depthSplit } from '../src/components/TradeTicket';
 import { LeaderboardPanel } from '../src/components/LeaderboardPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { ghostWorthAt } from '../src/components/WorthChart';
@@ -559,6 +560,22 @@ describe('UI shell', () => {
       expect(banked.title).toBe('1,234,567 gp'); // exact in the tooltip
       expect(rows.find((r) => r.label === 'Sellsword kills')!.value).toBe('4');
     });
+  });
+
+  describe('depthSplit', () => {
+    it('splits the resting book into bid/ask percentages, null when empty', () => {
+      expect(depthSplit(100, 100)).toEqual({ bidPct: 50, askPct: 50 });
+      expect(depthSplit(75, 25)).toEqual({ bidPct: 75, askPct: 25 });
+      expect(depthSplit(30, 0)).toEqual({ bidPct: 100, askPct: 0 });
+      expect(depthSplit(0, 50)).toEqual({ bidPct: 0, askPct: 100 });
+      expect(depthSplit(0, 0)).toBeNull();
+    });
+  });
+
+  it('the ticket shows an order-book liquidity bar once the book has depth', () => {
+    freshApp(); // seed 42, paused
+    fireEvent.click(screen.getByText('+1k')); // run 1000 ticks → the book fills
+    expect(document.querySelector('.depthbar')).toBeTruthy();
   });
 
   describe('realizedPnL', () => {
