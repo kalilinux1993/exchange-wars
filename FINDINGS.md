@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 6p (2026-06-10)
+
+39. **The sim spent two-thirds of its time rebuilding an unchanged snapshot.** CPU profile at 84 items: `playerView` was 73.5% of self-time. Root causes, both quadratic: (a) `buyRemaining` did `items.find` per item inside playerView's per-item loop (O(items²) per call — fixed with a WeakMap item index keyed on the items ARRAY's identity, so snapshot/restore self-invalidates); (b) the flipper's re-quote loop rebuilt the full view up to twice per item per act (~168 full-book scans), even though most iterations mutate nothing — fixed with a dirty flag that rebuilds only after an actual cancel/place. **Net: 4.5× faster** (8k-tick 84-item sim: 5.1s → 1.13s) with hashState BIT-IDENTICAL on seeds 7/42/1337 — the determinism contract turns risky perf work into a one-command proof: same hash, same universe, no re-sweep.
+
 ## Phase 6o (2026-06-10)
 
 38. **#37 refuted: the sweep-free regen was luck, not structure.** The 84-item regen broke tier 1 (isolated seed 7, −2,641) AND tier 2 (competitive seed 42, −457). The vol fences narrowed the blast radius (tier 3 sailed through re-verify: min +3,188) but staple-universe tiers still re-roll. Re-swept both legs: tier 1 → cad 7 / vol 0.10 (min +285, medians 1,534/1,917 — cad 8-9 at vol 0.09 both fall into the recurring isolated-seed-7 hole, which wanders across the cadence band as the catalog changes); tier 2 → cad 7 / vol 0.12 (min +1,149, medians 2,740/3,212; tied cad 9 on stats, picked on design — a senior clerk shouldn't be slower than a junior). Tier curve stays monotonic: ~1.5-1.9k / ~2.7-3.2k / ~3.8-5.2k. Operational rule restored: **every regen budgets a sweep**; #37's "routine content work" framing only holds for the exotic-fenced tier 3.

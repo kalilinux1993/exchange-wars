@@ -1,5 +1,6 @@
 import { applyCommand, playerView } from './commands';
 import { bestAsk, bestBid, cancelAgentOrders, GE_TAX_RATE, placeOrder } from './exchange';
+import { itemDef } from './items';
 import type { RNG } from './rng';
 import type { AgentKind, AgentState, ItemDef, ItemId, WorldEvent, WorldState } from './types';
 
@@ -112,7 +113,7 @@ export function actAgent(state: WorldState, agent: AgentState, rng: RNG): void {
 }
 
 function defFor(state: WorldState, itemId: ItemId | undefined): ItemDef {
-  const def = state.items.find((i) => i.id === itemId);
+  const def = itemDef(state, itemId);
   if (!def) throw new Error(`agent specialised in unknown item ${itemId}`);
   return def;
 }
@@ -352,14 +353,27 @@ function runFlipper(state: WorldState, agent: AgentState, opts: FlipperOpts): vo
   // (cancelling frees our own slot, so re-listing is always possible then).
   // Fresh positions never list below post-tax break-even; stale positions
   // (held too long) take the market price and cut the loss.
+  // PERF: playerView is a pure function of state, so it is rebuilt ONLY
+  // after a mutation (cancel/place). Most items mutate nothing, so this
+  // turns ~2×items full-book scans per act into a handful — measured 66%
+  // of all sim self-time before the fix. Decisions are output-identical
+  // (hash-equality proven on seeds 7/42/1337 × 8k ticks).
+  let v = playerView(state, agent.id);
+  if (!v) return;
+  let dirty = false;
   for (const def of state.items) {
-    let v = playerView(state, agent.id);
-    if (!v) return;
+    if (dirty) {
+      v = playerView(state, agent.id);
+      if (!v) return;
+      dirty = false;
+    }
     const mySells = v.openOrders.filter((o) => o.itemId === def.id && o.side === 'sell').length;
     if (mySells === 0 && v.openOrders.length >= v.slots) continue; // no free slot to list into
-    if (mySells > 0) applyCommand(state, agent.id, { type: 'cancel', itemId: def.id, side: 'sell' });
-    v = playerView(state, agent.id);
-    if (!v) return;
+    if (mySells > 0) {
+      applyCommand(state, agent.id, { type: 'cancel', itemId: def.id, side: 'sell' });
+      v = playerView(state, agent.id);
+      if (!v) return;
+    }
     const held = v.inventory[def.id] ?? 0;
     if (held < 1) continue;
     const m = v.markets.find((x) => x.itemId === def.id);
@@ -372,6 +386,7 @@ function runFlipper(state: WorldState, agent: AgentState, opts: FlipperOpts): vo
       sellAt = Math.max(sellAt, Math.ceil((basis + 1) / (1 - GE_TAX_RATE)));
     }
     applyCommand(state, agent.id, { type: 'place', itemId: def.id, side: 'sell', price: sellAt, qty: held });
+    dirty = true;
   }
 
   // Hunt flips — up to maxConcurrentFlips across distinct items, while slots
@@ -379,14 +394,14 @@ function runFlipper(state: WorldState, agent: AgentState, opts: FlipperOpts): vo
   // ranking chases high-ticket illiquid spreads whose stale-dump losses scale
   // with item price (measured: −16k over 6k ticks on the 14-item catalog).
   // Ties keep catalog order via stable sort — cheapest, most liquid first.
-  let vBuy = playerView(state, agent.id);
+  let vBuy = dirty ? playerView(state, agent.id) : v;
   if (!vBuy) return;
   const candidates: { itemId: ItemId; buyAt: number; profit: number; pct: number; bidDepth: number }[] = [];
   for (const m of vBuy.markets) {
     if (m.bestBid === null || m.bestAsk === null) continue;
     if (m.bestAskIsMine) continue; // our own sell is best ask — no flip here
     if (opts.focusItemId !== null && m.itemId !== opts.focusItemId) continue;
-    const def = state.items.find((i) => i.id === m.itemId);
+    const def = itemDef(state, m.itemId);
     if (!def || def.volatility > opts.maxVolatility) continue;
     // Read the news: never open a flip on an item with ANY active event.
     // Falling events crash into you; rising events mean-revert the moment the

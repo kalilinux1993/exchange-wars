@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 6p — Engine Performance Pass (2026-06-10)
+
+- **4.5× sim speedup, hash-identical** (FINDINGS #39). Two fixes: `packages/engine/src/items.ts` — `itemDef()` O(1) item lookup via WeakMap keyed on `state.items` identity (used by commands.ts buyRemaining/applyCommand and agents.ts defFor/runFlipper); and runFlipper's re-quote loop now rebuilds `playerView` only after an actual mutation (dirty flag) instead of ~2×items times per act.
+- **Perf-change protocol established:** capture `hashState` on seeds 7/42/1337 × 8k ticks BEFORE the change, assert identical after. Identical hashes = identical universes = balance numbers untouched, no sweep. Profile with `node --cpu-prof --cpu-prof-dir=<dir> --import tsx <script>`.
+- Suite-time win flows straight to CI (the balance gate was ~95s/scenario locally; now ~20s) and reopens catalog-growth headroom (the cost noted in phase 6o).
+
 ## Phase 6o — Catalog 84 & Event Countdowns (2026-06-10)
 
 - **Catalog 84** (56 staples + 28 exotics; exotic ladder tops at Dragon platelegs). The regen broke tiers 1-2 — #37 refuted (FINDINGS #38). Re-swept both legs: tier 1 → cad 7 / vol 0.10, tier 2 → cad 7 / vol 0.12, tier 3 re-verified untouched. Every regen budgets a sweep again.

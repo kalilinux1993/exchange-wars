@@ -2,6 +2,7 @@
 // player EXCLUSIVELY through applyCommand + playerView — never the internals.
 // Everything in and out is plain JSON (null, never undefined in views).
 import { bestAsk, bestBid, cancelAgentOrders, placeOrder } from './exchange';
+import { itemDef } from './items';
 import type { AgentState, ItemId, Side, Trade, WorldState } from './types';
 
 /** Rolling GE buy-limit window — a command-layer mechanic (NPCs unaffected). */
@@ -9,7 +10,7 @@ export const BUY_LIMIT_WINDOW_TICKS = 4_000;
 
 /** Remaining GE buy allowance for this item in the current window (null = unlimited). */
 function buyRemaining(state: WorldState, agent: AgentState, itemId: ItemId): number | null {
-  const def = state.items.find((i) => i.id === itemId);
+  const def = itemDef(state, itemId);
   const limit = def?.buyLimit ?? 0;
   if (limit <= 0) return null;
   const w = agent.buyWindows?.[itemId];
@@ -125,7 +126,7 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       }
       const res = placeOrder(state, agent, cmd.itemId, cmd.side, cmd.price, cmd.qty);
       if (res.accepted && cmd.side === 'buy') {
-        const def = state.items.find((i) => i.id === cmd.itemId);
+        const def = itemDef(state, cmd.itemId);
         if ((def?.buyLimit ?? 0) > 0) {
           // Counted at PLACEMENT, never refunded on cancel — placing an offer
           // reserves your allowance (stricter than OSRS fill-counting; simpler
