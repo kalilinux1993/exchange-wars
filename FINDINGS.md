@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 9x — Consolidation #2 (2026-06-11)
+
+84. **Second consolidation, same seam as the first (#67): per-phase rituals keep arc-level docs stale.** Brick 50 (round-number rule): DEV_GUIDE got a "9g–9w consolidated" map (engine additions: combatLevel, brews, bounties, sellsword refactor; the full OSRS HUD; robustness; art pipeline; the 4 localStorage prefs), NEXT_STEPS collapsed from per-brick DONE lists back to forward-looking buckets. Nothing new shipped — the value is that a returning reader (or future-me post-compaction) sees the system, not 17 changelog fragments. The cadence is holding: consolidate every ~16 bricks, delegate detail to .phases/+FINDINGS by reference, keep the live docs a MAP not a LOG. Observed meta-pattern across the whole run: the autonomous loop's failure mode is never the code (gated, tested, deployed each brick) — it's documents drifting from reality, which is exactly what scheduled consolidation cures.
+
 ## Phase 9w — Watchlist (2026-06-11)
 
 83. **Movers and watchlist answer different questions, so both earn their space.** Movers = "what's hot right now" (the market tells you); watchlist = "how are MY shortlisted items doing" (you tell the market). Star toggle in the ticket header (aria-pressed for a11y + testability), a panel mirroring the movers row format, localStorage-backed (cross-run UI pref, never in the world). Shared state lifted to App so the ticket's star and the panel stay in sync. The fourth localStorage UI-pref now (room, title, loadouts, watch) — consistent shape (load/save with try/catch, cap the list), worth a future tiny `usePref` helper if a fifth appears. Round-number checkpoint next: brick 50 is consolidation per the standing loop rule (#67).

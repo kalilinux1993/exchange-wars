@@ -1,5 +1,31 @@
 # Dev Guide
 
+## Phases 9g–9w consolidated — the OSRS-HUD + trading-tools arc (2026-06-11)
+
+Per-phase detail in `.phases/` and FINDINGS #67–#83; this maps the ~17 bricks since the 8h–9f consolidation. Jesse steered mid-arc toward an OSRS interface (map, player model, shorter deeds) and open-licensed art.
+
+### Engine additions
+- **combatLevel(xp)** (quest.ts): pure derived 1→99 (floor((atk+def+hp)/3)); display-only, no replay impact (FINDINGS #76).
+- **Combat brews** (FINDINGS #82): ConsumableDef.boostAtk/boostDef + ExpeditionState.boost — a dive-long stat buff reusing the antifire flag SHAPE (divine_bastion_potion_4 → +10 def/dive); applied in the command layer (runCombatRound), NOT deriveStats (that pure fn feeds gear-only UI). Replay-affecting → redeploy.
+- **Bounty board** (sim.ts spawner on a derived stream + claimBounty command, stats.bountiesClaimed); **Sellsword** (actSellsword in tickWorld — expedition autopilot; expedition logic was REFACTORED into shared helpers rollEncounter/runCombatRound/beginExpedition/finishExtract so command + autopilot share one source of truth, FINDINGS #68).
+- **stats.deaths** + death recap data.
+
+### UI: the OSRS HUD (all SVG/CSS, no art deps)
+- **RegionMap** (node-graph trail, locked/frontier/cleared/selected, ★ elites), **CharacterPanel** (paperdoll lit per best-usable-gear-per-slot + skills strip + combat level + earned-deed **title** selector), **CombatScene** (figure vs id-generated monster, hp bars, render-diff hit-splats — animation via React keys, never engine timers; positioning transform on an OUTER `<g>`, bob animation on INNER `<g>` because CSS transform CLOBBERS the SVG attribute, FINDINGS #78).
+- Trading tools: **MoversPanel** (hot/cold vs EMA), **WatchlistPanel** (starred items, localStorage), **Sparkline** (ticket price trend from state.trades), **Almanac** (ledger/stats reader).
+- Deeds compacted to a badge grid + top-3-closest inline.
+
+### Robustness (Jesse-asked)
+- **ErrorBoundary** wraps App — catches render crashes, save-safe recovery card (FINDINGS #75).
+- **loadGame** shape-gates + QUARANTINES an unreadable save to `<key>-corrupt` instead of letting the first autosave destroy it (FINDINGS #77).
+
+### Art pipeline (FINDINGS #73/#74)
+- `Icon` auto-discovers `src/assets/icons/<name>.svg` via import.meta.glob, emoji fallback. Drop a file → it appears. WebFetch CANNOT auto-pull game-icons (markdown-converts, strips SVG paths) — populate by Jesse dropping files or hand-authoring originals. CREDITS.md tracks CC BY / CC0 / original; NO Jagex/OSRS or CC BY-NC-SA art.
+
+### localStorage UI-prefs (4, same load/save+try/catch shape; candidate for a `usePref` helper): `ew-room`, `ew-title`, `ew-loadouts`, `ew-watch`.
+
+### Operational law added: round-number brick = consolidation (FINDINGS #67).
+
 ## Phases 8h–9f consolidated — the RPG layer as it stands (2026-06-11)
 
 Per-phase details live in `.phases/` and FINDINGS #42–#66; this is the map of the system AFTER 25 more bricks.

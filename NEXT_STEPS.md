@@ -3,45 +3,21 @@
 Live: https://kalilinux1993.github.io/exchange-wars/ · repo github.com/kalilinux1993/exchange-wars
 Deploy: push to main → CI (typecheck + vitest + e2e) auto-deploys Pages. Verifier: `npm run build:fn` + `npx supabase functions deploy verify-score --project-ref chynnshtcjclphlazkmv` (needs SUPABASE_ACCESS_TOKEN) — required in the same phase as any replay-affecting engine change.
 
-## OSRS HUD arc (Jesse-directed 2026-06-11, started 9k)
-- 9k DONE: SVG region map, paperdoll + skills strip, compact deed badge grid.
-- 9l DONE: combat scene — figure vs generated monster, hp bars, hit-splats (render-diff animation, no engine timers).
-- 9p DONE: combat level (derived 1→99) + worn titles (earned deeds) on the character panel.
-- 9m DONE: art pipeline — Icon loader (import.meta.glob auto-discovery, emoji fallback), CREDITS.md, assets README. Jesse chose game-icons.net (CC BY) + CC0 packs.
-- 9n DONE: original sword/shield/heart skill icons as the default set (WebFetch markdown-converts SVGs → can't auto-pull game-icons; originals are replaceable same-filename).
-- **POPULATE MORE ART**: route monster/item/region glyphs through `<Icon>` and author originals (or Jesse drops game-icons CC BY / CC0 files — same-name overrides the defaults, credit in CREDITS.md). game-icons auto-fetch is NOT possible with current tools (markdown conversion strips paths) — Jesse-drop or hand-author only.
-- **Next steps**: richer paperdoll (per-item silhouettes, not just lit plates); OSRS-style icon tabs WITHIN rooms if panels crowd; an inventory/equipment grid view; level-up flash on the skills strip; monster variety in the scene (more shapes, not just hue). Raster sprites would need real art assets — SVG is the deterministic, dependency-free path; keep going SVG unless Jesse supplies art.
-- Jesse-gate check-in: confirm the SVG direction matches his mental image before investing in deeper art.
+Through brick 49 (9w): RPG layer (8 regions, stats/xp, brews, bounties, sellsword), OSRS HUD (map/paperdoll/combat-scene/combat-level/titles), trading tools (movers/watchlist/sparkline/almanac), robustness (error boundary + corrupt-save quarantine), art pipeline. Details in `.phases/` + DEV_GUIDE consolidations + FINDINGS #1–#83.
 
-## Trading-side polish
-- 9t DONE: Market Movers panel (hot/cold vs EMA, click-to-load) in the Exchange room.
-- 9u DONE: price sparkline in the ticket (derived from state.trades, last 48).
-- 9w DONE: watchlist (star from ticket, panel in Exchange, localStorage).
-- Candidates: a market-breadth/index line; price alerts (notify when a watched item crosses a threshold); sparkline in the market-table rows. A `usePref` helper to dedupe the 4 localStorage UI-prefs (room/title/loadouts/watch).
+## Queued candidates (rough priority)
+- **POPULATE ART**: drop game-icons.net (CC BY) / CC0 SVGs into `packages/ui/src/assets/icons/` (naming in the folder README), credit in CREDITS.md; route monster/item/region glyphs through `<Icon>`. Auto-fetch is impossible (WebFetch strips SVG paths) — Jesse-drop or hand-author originals.
+- **HUD depth**: richer paperdoll (per-item silhouettes); level-up flash on the skills strip; monster shape variety in the combat scene; inventory/equipment grid; OSRS-style icon sub-tabs if a room crowds.
+- **Trading**: market-breadth/index line; price alerts on watched items; sparkline in market-table rows.
+- **Code health**: a `usePref` helper to dedupe the 4 localStorage UI-prefs (ew-room/title/loadouts/watch).
+- **Robustness**: UI to restore/export a quarantined save on next boot; guard monsterById/itemDef at UI read sites; 100k-tick determinism gate in a CI-only suite.
+- **RPG content**: more event faces (each bends a system no other does, FINDINGS #64); a 9th region (needs a NEW resource to extort); an attack/strength brew (needs a clean attack-flavored catalog potion — none in the current snapshot); encounter depletion (only if an audit shows the TAS tail needs bounding).
+- **Jesse-gated**: prestige/rebirth loop; a deeper art-direction steering pass.
 
-## Queued (real candidates, in rough priority)
-- **Idle raiding ("the Sellsword")**: the clerk flips while you're away; nothing raids while you're away. A hireable companion running a fixed shallow-region policy inside tickWorld would complete the idle game's second half. BIG brick: engine automation + balance audit + offline interaction — bring full attention, measure with tools/audit-grind.ts before/after.
-- **Encounter depletion** (structural kill-rate bound, FINDINGS #51): cleared regions run dry within an expedition. Only if a future audit shows the TAS tail needs bounding — it currently doesn't.
-- **9th region someday**: wants a NEW resource to extort (precedent: Maw=potion, Inferno=potion+nerve, Abyss=purse+DPS).
-- 9v DONE: combat brews (divine bastion → +10 def/dive) reusing the antifire dive-long-flag pattern.
-- More event faces (~30 lines each; each should bend a system no other face touches — FINDINGS #64).
-- More brews if catalog has fit items (an attack/strength buff would want a real attack-flavored potion — none clean in the current snapshot; goading_potion_4 is the only candidate and it's a stretch).
-- Sub-tabs within rooms if any room re-clutters.
-- Prestige/rebirth loop — **Jesse-gated** (design conversation first).
-- Art direction / game-feel steering pass — **Jesse-gated** (theme explicitly provisional).
-
-## Robustness (Jesse asked; ongoing)
-- 9o DONE: app-level error boundary (catches render crashes, save-safe recovery card).
-- 9q DONE: corrupt-save quarantine — shape gate + `<key>-corrupt` backup on boot-load failure (no silent destruction).
-- Candidates: a UI surface for the quarantined save (offer to restore/export it on next boot, vs only via devtools); guard monsterById/itemDef at UI read sites; a slow/CI determinism gate at 100k ticks.
-
-## Decided / dropped (so they stop haunting the pile)
-- **Gear durability as a market sink — DROPPED 2026-06-11**: every audit since 8l shows raiders already pay three honest taxes (bid/ask spread on kit ~20k, death burns, tick opportunity cost), and the potion ticket (8r) + merchant/toll (8u/9d) added consumable sinks. A durability tax would re-punish the capital loop 8m validated, for bookkeeping nobody asked for. Revisit only if an audit shows gear hoarding distorting books.
-- Tier-3 clerk "trades events too" — DROPPED (clerks farm neither events nor exotics, FINDINGS #27/#35).
+## Decided / dropped
+- **Gear durability — DROPPED** (FINDINGS, 9g): raiders already pay spread + death burns + tick cost + consumable tickets; a durability tax re-punishes the validated capital loop for no asked-for benefit.
+- **Tier-3 clerk "trades events too" — DROPPED**: clerks farm neither events nor exotics (FINDINGS #27/#35).
 
 ## Old minor leftovers (non-blocking)
-- Trades window: switch `shift()` to ring buffer if window grows beyond 512.
-- Determinism gate at 100k ticks in a slow/CI-only suite (current fast suite: 1.5k–6k).
-- Momentum traders bleed slowly (FINDINGS #12) — acceptable, low priority.
-
-Everything shipped through Phase 9f (bricks 1–32) is recorded in `.phases/` and FINDINGS; the DEV_GUIDE's consolidated entry maps the current system.
+- Trades window: `shift()` → ring buffer if it ever grows beyond 512.
+- Momentum traders bleed slowly (FINDINGS #12) — acceptable.
