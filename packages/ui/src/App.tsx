@@ -30,10 +30,10 @@ import {
   loadGame,
   newGame,
   recordFills,
+  playerWorth,
   recordWorth,
   saveGame,
   updateNews,
-  viewNetWorth,
   type Game,
   type Milestone,
   type OfflinePlan,
@@ -122,7 +122,7 @@ export function App({ initial }: { initial?: Game }) {
     if (!g) return;
     beginOffline(g);
     const v0 = playerView(g.world, g.playerId);
-    if (v0) checkMilestones(g, v0, viewNetWorth(v0));
+    if (v0) checkMilestones(g, v0, playerWorth(g));
     const ch = parseChallengeSeed(window.location.hash);
     if (ch !== null) {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -151,7 +151,7 @@ export function App({ initial }: { initial?: Game }) {
       updateNews(g);
       recordFills(g);
       const v = playerView(g.world, g.playerId);
-      if (v) checkMilestones(g, v, viewNetWorth(v));
+      if (v) checkMilestones(g, v, playerWorth(g));
       saveGame(g);
       schedulePush();
       setCatchUp(null);
@@ -200,7 +200,7 @@ export function App({ initial }: { initial?: Game }) {
   const refreshProgress = (): void => {
     const v = playerView(game.world, game.playerId);
     if (!v) return;
-    const w = viewNetWorth(v);
+    const w = playerWorth(game);
     recordWorth(game, w);
     updateNews(game);
     recordFills(game);
@@ -442,10 +442,12 @@ export function App({ initial }: { initial?: Game }) {
         <div className="purse">
           <span className="value gold">{view.gp.toLocaleString('en-US')}</span>
           <span className="label">gp</span>
-          <span className="value">{viewNetWorth(view).toLocaleString('en-US')}</span>
+          <span className="value" title="liquidation value — what the resting bids would pay for everything you hold, right now">
+            {playerWorth(game).toLocaleString('en-US')}
+          </span>
           <span className="label">net</span>
           {(() => {
-            const delta = viewNetWorth(view) - game.startGp;
+            const delta = playerWorth(game) - game.startGp;
             return (
               <span className={delta >= 0 ? 'value up' : 'value down'}>
                 {delta >= 0 ? '+' : ''}
@@ -569,7 +571,7 @@ export function App({ initial }: { initial?: Game }) {
             items={game.world.items}
             playerId={game.playerId}
           />
-          <MilestonesPanel unlocked={game.milestones} game={game} view={view} worth={viewNetWorth(view)} />
+          <MilestonesPanel unlocked={game.milestones} game={game} view={view} worth={playerWorth(game)} />
           <ExpeditionPanel
             game={game}
             view={view}

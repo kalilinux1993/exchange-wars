@@ -1439,9 +1439,16 @@ function netWorth(state, agent) {
   for (const def of state.items) {
     const book = state.books[def.id];
     if (!book) continue;
-    total += (agent.inventory[def.id] ?? 0) * book.lastPrice;
+    let qty = agent.inventory[def.id] ?? 0;
     for (const o of book.buys) if (o.agentId === agent.id) total += o.escrowGp;
-    for (const o of book.sells) if (o.agentId === agent.id) total += o.remaining * book.lastPrice;
+    for (const o of book.sells) if (o.agentId === agent.id) qty += o.remaining;
+    for (const o of book.buys) {
+      if (qty <= 0) break;
+      if (o.agentId === agent.id) continue;
+      const take = Math.min(qty, o.remaining);
+      total += take * o.price;
+      qty -= take;
+    }
   }
   return total;
 }

@@ -116,8 +116,8 @@ function grind(
   if (DEBUG) {
     const positions = Object.entries(human.inventory)
       .filter(([, q]) => q > 0)
-      .map(([id, q]) => ({ id, q, mark: (world.books[id]?.lastPrice ?? 0) * q }))
-      .sort((a, b) => b.mark - a.mark)
+      .map(([id, q]) => ({ id, q, lastX: (world.books[id]?.lastPrice ?? 0) * q })) // lastPrice ref only — worth uses the bid walk
+      .sort((a, b) => b.lastX - a.lastX)
       .slice(0, 6);
     console.log(`  [debug seed ${seed}] gp ${human.gp} · top holdings:`, positions);
   }

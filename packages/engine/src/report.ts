@@ -1,15 +1,28 @@
 import { bestAsk, bestBid } from './exchange';
 import type { AgentKind, AgentState, WorldState } from './types';
 
-/** gp + buy-order escrow + (held + sell-escrowed) inventory valued at last price. */
+/** gp + buy-order escrow + LIQUIDATION value of holdings (held + sell-escrowed):
+ * what the resting bids would pay for the whole stack right now, walking depth,
+ * EXCLUDING the agent's own bids (a self-bid would mark your own hoard for free
+ * — escrow is already counted). The unmatched remainder is worth nothing this
+ * instant. lastPrice marks let unsold loot in thin books score 10× its
+ * realizable value and rewarded hoarding over selling (FINDINGS #47/#49).
+ * Gross of tax — consistent across all uses, and dwarfed by the bid spread. */
 export function netWorth(state: WorldState, agent: AgentState): number {
   let total = agent.gp;
   for (const def of state.items) {
     const book = state.books[def.id];
     if (!book) continue;
-    total += (agent.inventory[def.id] ?? 0) * book.lastPrice;
+    let qty = agent.inventory[def.id] ?? 0;
     for (const o of book.buys) if (o.agentId === agent.id) total += o.escrowGp;
-    for (const o of book.sells) if (o.agentId === agent.id) total += o.remaining * book.lastPrice;
+    for (const o of book.sells) if (o.agentId === agent.id) qty += o.remaining;
+    for (const o of book.buys) {
+      if (qty <= 0) break;
+      if (o.agentId === agent.id) continue;
+      const take = Math.min(qty, o.remaining);
+      total += take * o.price;
+      qty -= take;
+    }
   }
   return total;
 }

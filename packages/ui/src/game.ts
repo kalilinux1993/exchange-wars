@@ -1,6 +1,6 @@
 // Game bootstrap + persistence. The human is an idle-policy player agent:
 // engine-inert unless automation is purchased, acting only via UI commands.
-import { addAgent, createWorld, EVENT_LABELS, playerView, runTicks } from '@exchange-wars/engine';
+import { addAgent, createWorld, EVENT_LABELS, netWorth, playerView, runTicks } from '@exchange-wars/engine';
 import type { PlayerView, RunLogEntry, WorldEvent, WorldState } from '@exchange-wars/engine';
 
 export interface Game {
@@ -358,15 +358,13 @@ export function checkMilestones(game: Game, view: PlayerView, worth: number): Mi
   return newly;
 }
 
-/** Liquid net worth from the view: gp + inventory and open orders at last price. */
-export function viewNetWorth(view: PlayerView): number {
-  const last = new Map(view.markets.map((m) => [m.itemId, m.lastPrice]));
-  let total = view.gp;
-  for (const [id, qty] of Object.entries(view.inventory)) total += qty * (last.get(id) ?? 0);
-  for (const o of view.openOrders) {
-    total += o.side === 'buy' ? o.price * o.remaining : o.remaining * (last.get(o.itemId) ?? 0);
-  }
-  return total;
+/** The player's worth as the leaderboard verifies it: the engine's honest
+ * liquidation mark (gp + escrow + what the resting bids would pay right now).
+ * Display and arbiter MUST agree — a lastPrice view-mark here once disagreed
+ * with the verifier by 10× on thin-book hoards (FINDINGS #47/#49). */
+export function playerWorth(game: Game): number {
+  const agent = game.world.agents[game.playerId];
+  return agent ? netWorth(game.world, agent) : 0;
 }
 
 const SAMPLE_EVERY_TICKS = 50;
@@ -431,13 +429,12 @@ export function planOfflineProgress(game: Game, nowMs: number): OfflinePlan | nu
   if (ticks < OFFLINE_MIN_TICKS) return null;
   const before = playerView(game.world, game.playerId);
   if (!before) return null;
-  return { ticks, worthBefore: viewNetWorth(before) };
+  return { ticks, worthBefore: playerWorth(game) };
 }
 
 /** Close out a plan after its ticks have run (however they were chunked). */
 export function finishOfflineProgress(game: Game, plan: OfflinePlan): OfflineResult {
-  const after = playerView(game.world, game.playerId);
-  const worthAfter = after ? viewNetWorth(after) : plan.worthBefore;
+  const worthAfter = playerWorth(game);
   recordWorth(game, worthAfter);
   return { ticks: plan.ticks, worthBefore: plan.worthBefore, worthAfter };
 }

@@ -42,9 +42,10 @@ Design (account-light, static-site-friendly — Supabase):
 
 ## Phase 6k — DONE 2026-06-10 (tier-3 printer closed: vol ceiling 0.12 / cadence 4; gate magnitude ceiling 20×; FINDINGS #35)
 
-## RPG arc — queued (post phases 8k–8n, data in FINDINGS #45–#48)
-- **NEXT BRICK — liquidation-value scoring**: netWorth marks holdings at lastPrice; a routed Maw line scores 636k of which ~590k is unsold loot in thin books (FINDINGS #47), and the 8n stats system amplified the paper magnitudes further (60k–263k). Fix: mark at liquidation against resting bids EXCLUDING the agent's own orders (self-bid pump guard), walking depth; unmatched remainder 0. Blast radius: balance/market gates use netWorth (liquid staples bid≈last, should hold — re-run and verify, don't assume), UI worth display, Edge fn (redeploy). Re-measure with `npx tsx tools/audit-grind.ts`.
-- **Bestiary rebalance vs leveled fighters — ONLY after honest marks land** (FINDINGS #48): monsters were tuned pre-levels; a mid-sprint fighter carries +14 atk from training alone. Candidates: deeper top-end regions, regional monster scaling. Never tune against the current paper-marked scoreboard.
+## RPG arc — queued (post phases 8k–8o, data in FINDINGS #45–#49)
+- **NEXT BRICK — cache loot redesign** (FINDINGS #49): deep caches mint 15–19k gear at 25%/cache, so flee-everything cache-farming out-earns fighting (5 rune full helms in a 14-kill run). Fix is design, not rates: cache pools hold consumables/runes/coin at every tier; gear drops ONLY from monsters. Re-measure with `npx tsx tools/audit-grind.ts` (honest marks now in place).
+- **Bestiary rebalance vs leveled fighters** (FINDINGS #48): monsters were tuned pre-levels; a mid-sprint fighter carries +14 atk from training alone. Candidates: deeper top-end regions, regional monster scaling. Measure AFTER the cache fix.
+- ~~Liquidation-value scoring~~ DONE phase 8o: bid-walk mark excluding own bids; UI playerWorth = engine netWorth (display and arbiter agree); all gates held.
 - Hitpoints level (maxHp growth from xp) — natural third stat once Attack/Defence prove out.
 - ~~Geared-grind measurement~~ DONE phase 8m: capital loop validated (median geared +16.6k vs naked +1–3.9k, depth 4–5); bones faucet nerfed 1→0.15.
 - ~~Grind-vs-trade loot parity tuning~~ RESOLVED phase 8l as a side effect of wounds: naked grind +0.3k–3.9k, inside trading's band (FINDINGS #46).
