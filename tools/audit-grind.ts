@@ -4,13 +4,13 @@
 import { applyCommand } from '../packages/engine/src/commands';
 import type { PlayerCommand } from '../packages/engine/src/commands';
 import { netWorth } from '../packages/engine/src/report';
-import { REGION_CLEAR_KILLS, REGIONS } from '../packages/engine/src/quest';
+import { PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS } from '../packages/engine/src/quest';
 import { SPRINT_MAX_COMMANDS, SPRINT_TICKS, verifySprint, type RunLogEntry } from '../packages/engine/src/replay';
-import { addAgent, createWorld } from '../packages/engine/src/sim';
+import { addAgent, createWorld, tickWorld } from '../packages/engine/src/sim';
 
 const START = 55_000;
 
-function grind(seed: number): { worth: number; verified: number; deepest: number; kills: number; cmds: number } {
+function grind(seed: number, restTo = 35): { worth: number; verified: number; deepest: number; kills: number; cmds: number } {
   const world = createWorld({ seed });
   const human = addAgent(world, 'player', START, {});
   human.policy = 'idle';
@@ -27,6 +27,9 @@ function grind(seed: number): { worth: number; verified: number; deepest: number
   while (log.length < SPRINT_MAX_COMMANDS - 5 && world.tick < SPRINT_TICKS && guard++ < 30_000) {
     const exp = human.expedition;
     if (!exp) {
+      // Wounds persist: rest at home until fit to dive (ticks pass, no commands).
+      while ((human.hp ?? PLAYER_BASE.maxHp) < restTo && world.tick < SPRINT_TICKS) tickWorld(world);
+      if (world.tick >= SPRINT_TICKS) break;
       const frontier = Math.min(human.questProgress ?? 0, REGIONS.length - 1);
       if (!issue({ type: 'startExpedition', regionId: REGIONS[frontier]!.id, pack: {} })) break;
       continue;
@@ -82,9 +85,10 @@ function trade(seed: number): number {
 }
 
 for (const seed of [7, 42, 666, 1337, 2024]) {
-  const r = grind(seed);
   const t = trade(seed);
-  console.log(
-    `seed ${seed}: grind ${r.verified} (raw ${r.worth}) · ${r.kills} kills · depth ${r.deepest} · ${r.cmds} cmds | clerk-trade ${t} | idle 55000`,
-  );
+  const byRest = [15, 25, 35, 50].map((restTo) => {
+    const r = grind(seed, restTo);
+    return `rest${restTo}: ${r.verified} (${r.kills}k/${r.cmds}c)`;
+  });
+  console.log(`seed ${seed}: ${byRest.join(' · ')} | clerk-trade ${t} | idle 55000`);
 }

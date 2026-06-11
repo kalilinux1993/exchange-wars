@@ -68,6 +68,9 @@ export interface AgentState {
   expedition?: import('./quest').ExpeditionState;
   /** Players only: highest region index unlocked (absent = 0, the plains). */
   questProgress?: number;
+  /** Players only: persistent hit points (absent = full). Wounds carry between
+   * expeditions; mends out-of-field via tick regen (quest.REST_REGEN_TICKS). */
+  hp?: number;
   /** Strategy scratch space — JSON-serializable numbers only. */
   memo: Record<string, number>;
 }

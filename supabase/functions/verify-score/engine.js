@@ -205,6 +205,7 @@ var MONSTERS = [
   { id: "vorkanth", name: "Vorkanth, Elder of the Maw", hp: 180, atk: 30, def: 16, gp: [1500, 4e3], dragonfire: true, elite: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "dragon_med_helm", chance: 0.25 }, { itemId: "dragon_platelegs", chance: 0.15 }] }
 ];
 var PLAYER_BASE = { maxHp: 50, atk: 5, def: 2 };
+var REST_REGEN_TICKS = 3;
 var REGIONS = [
   { id: "lumbridge_plains", name: "Lumbridge Plains", flavor: "soft hills, soft monsters", monsters: ["giant_rat", "goblin"] },
   { id: "varrock_sewers", name: "Varrock Sewers", flavor: "it smells like XP down here", monsters: ["goblin", "skeleton"] },
@@ -978,6 +979,13 @@ function tickWorld(state) {
   for (const agent of state.agents) {
     actAgent(state, agent, rng);
   }
+  if (state.tick % REST_REGEN_TICKS === 0) {
+    for (const agent of state.agents) {
+      if (agent.kind !== "player" || agent.hp === void 0 || agent.expedition) continue;
+      agent.hp += 1;
+      if (agent.hp >= PLAYER_BASE.maxHp) delete agent.hp;
+    }
+  }
   state.rngState = rng.state();
 }
 
@@ -1014,6 +1022,7 @@ function expeditionDeath(state, agent, exp) {
     else state.ledger.itemsBurned[u.itemId] = (state.ledger.itemsBurned[u.itemId] ?? 0) + 1;
   }
   state.ledger.gpBurned += exp.packGp;
+  agent.hp = 1;
   delete agent.expedition;
 }
 function playerOf(state, playerId) {
@@ -1155,7 +1164,9 @@ function applyCommand(state, playerId, cmd) {
       agent.expedition = {
         regionId: cmd.regionId,
         rngState: expeditionSeed(state.seed, expId),
-        hp: PLAYER_BASE.maxHp,
+        // Wounds persist: you set out with the hp you came home with (absent =
+        // full). Embarking hurt is allowed — that's the player's gamble.
+        hp: Math.min(PLAYER_BASE.maxHp, Math.max(1, agent.hp ?? PLAYER_BASE.maxHp)),
         pack,
         packGp: 0,
         cleared: 0,
@@ -1306,6 +1317,8 @@ function applyCommand(state, playerId, cmd) {
         if (qty > 0) agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) + qty;
       }
       agent.gp += exp.packGp;
+      if (exp.hp < PLAYER_BASE.maxHp) agent.hp = Math.max(1, exp.hp);
+      else delete agent.hp;
       delete agent.expedition;
       return { ok: true, trades: [] };
     }

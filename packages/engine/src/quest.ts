@@ -74,6 +74,11 @@ export const MONSTERS: MonsterDef[] = [
 
 export const PLAYER_BASE = { maxHp: 50, atk: 5, def: 2 };
 
+/** Out-of-field rest: +1 hp per this many world ticks. Wounds persist between
+ * expeditions (the extract→re-embark free heal was THE grind exploit —
+ * FINDINGS #45), so hurt raiders trade while they mend. 1→full ≈ 147 ticks. */
+export const REST_REGEN_TICKS = 3;
+
 export interface RegionDef {
   id: string;
   name: string;

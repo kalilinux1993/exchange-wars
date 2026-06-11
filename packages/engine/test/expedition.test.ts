@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { applyCommand, type PlayerCommand } from '../src/commands';
 import { hashState } from '../src/hash';
 import { checkInvariants } from '../src/invariants';
-import { PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS } from '../src/quest';
-import { addAgent, createWorld } from '../src/sim';
+import { PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS } from '../src/quest';
+import { addAgent, createWorld, tickWorld } from '../src/sim';
 import type { WorldState } from '../src/types';
 
 /** Tiny world (CI scaling rule) with a stocked adventurer. */
@@ -123,6 +123,7 @@ describe('expeditions', () => {
     expect(kept).toBe(6 + 3);
     expect(agent.inventory['rune_2h_sword']).toBe(1); // top-value gear kept
     expect(agent.inventory['rune_platebody']).toBe(1);
+    expect(agent.hp).toBe(1); // you barely crawled home
     checkInvariants(state);
   });
 
@@ -295,6 +296,38 @@ describe('expeditions', () => {
       }
     }
     expect(met).toBe(true); // 10% per Maw monster across 100 seeds × 6 steps
+  });
+
+  it('wounds persist: extract carries hp home, re-embark carries it back in, rest mends it', () => {
+    const { state, id } = fixture(13);
+    const agent = state.agents[id]!;
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    agent.expedition!.hp = 20; // fixture wound (combat damage is seed-dependent)
+    ok(state, id, { type: 'extract' });
+    expect(agent.hp).toBe(20); // the wound came home
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    expect(agent.expedition!.hp).toBe(20); // NO free heal on re-embark (FINDINGS #45)
+    ok(state, id, { type: 'extract' });
+    // Resting at home: +1 hp per REST_REGEN_TICKS; full health drops the field.
+    const start = state.tick;
+    while (agent.hp !== undefined && state.tick - start < 200) tickWorld(state);
+    expect(agent.hp).toBeUndefined(); // fully mended → canonical absent form
+    const healed = PLAYER_BASE.maxHp - 20;
+    expect(state.tick - start).toBeGreaterThanOrEqual((healed - 1) * REST_REGEN_TICKS);
+    expect(state.tick - start).toBeLessThanOrEqual((healed + 1) * REST_REGEN_TICKS);
+    checkInvariants(state);
+  });
+
+  it('no mending in the field: regen only runs at home', () => {
+    const { state, id } = fixture(17);
+    const agent = state.agents[id]!;
+    agent.hp = 10; // wounded from a previous dive
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    expect(agent.expedition!.hp).toBe(10); // carried in
+    const fieldHp = agent.expedition!.hp;
+    for (let i = 0; i < 4 * REST_REGEN_TICKS; i++) tickWorld(state);
+    expect(agent.hp).toBe(10); // home-side field untouched while out
+    expect(agent.expedition!.hp).toBe(fieldHp); // the dark grants no rest
   });
 
   it('advance costs exactly one world tick; embark and extract are free', () => {

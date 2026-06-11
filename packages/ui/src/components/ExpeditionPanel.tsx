@@ -64,9 +64,15 @@ export function ExpeditionPanel({
     const st = game.world.stats;
     const tally =
       (st.monstersSlain ?? 0) > 0 || (st.cacheFinds ?? 0) > 0 || (st.diceWon ?? 0) > 0;
+    const resting = agent?.hp !== undefined && agent.hp < PLAYER_BASE.maxHp;
     return (
       <section className="panel expedition">
         <h2>Expeditions</h2>
+        {resting && (
+          <p className="warn small" title="wounds persist between expeditions — rest (or embark hurt, your gamble)">
+            ♥ recovering: {agent!.hp}/{PLAYER_BASE.maxHp} hp — mending as the market ticks
+          </p>
+        )}
         {tally && (
           <p className="dim small">
             tally: {st.monstersSlain ?? 0} slain · {st.cacheFinds ?? 0} caches · {st.diceWon ?? 0} dice won ·

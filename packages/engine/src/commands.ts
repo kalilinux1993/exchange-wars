@@ -133,6 +133,7 @@ function expeditionDeath(
     else state.ledger.itemsBurned[u.itemId] = (state.ledger.itemsBurned[u.itemId] ?? 0) + 1;
   }
   state.ledger.gpBurned += exp.packGp;
+  agent.hp = 1; // you barely crawled home — rest before diving again
   delete agent.expedition;
 }
 
@@ -289,7 +290,9 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       agent.expedition = {
         regionId: cmd.regionId,
         rngState: expeditionSeed(state.seed, expId),
-        hp: PLAYER_BASE.maxHp,
+        // Wounds persist: you set out with the hp you came home with (absent =
+        // full). Embarking hurt is allowed — that's the player's gamble.
+        hp: Math.min(PLAYER_BASE.maxHp, Math.max(1, agent.hp ?? PLAYER_BASE.maxHp)),
         pack,
         packGp: 0,
         cleared: 0,
@@ -447,6 +450,10 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
         if (qty > 0) agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) + qty;
       }
       agent.gp += exp.packGp; // already minted at each kill
+      // Wounds come home with you; full health drops the field (canonical
+      // absent-= -full form keeps never-hurt saves byte-identical).
+      if (exp.hp < PLAYER_BASE.maxHp) agent.hp = Math.max(1, exp.hp);
+      else delete agent.hp;
       delete agent.expedition;
       return { ok: true, trades: [] };
     }
