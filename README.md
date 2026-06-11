@@ -44,7 +44,7 @@ packages/
 │   │   ├── report.ts      economy report / net-worth helpers
 │   │   ├── harness.ts     balance measurement helpers (shared by CLI + gate)
 │   │   └── catalog.ts     default item set
-│   └── test/              the gates (12 suites) — see DEV_GUIDE.md
+│   └── test/              the gates (14 suites) — see DEV_GUIDE.md
 └── cli/                   @exchange-wars/cli
     └── src/               run.ts (sim runner) · balance.ts (tier-curve matrix)
 ```
