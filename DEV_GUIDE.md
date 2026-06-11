@@ -1,5 +1,10 @@
 # Dev Guide
 
+## Phase 6w — Race Readout & Guide Refresh (2026-06-10)
+
+- **"vs ghost ±N"** in the Fortune legend: `ghostWorthAt` (WorthChart.tsx, exported for tests) linearly interpolates the ghost's worth at the current tick (clamped at its endpoints) and renders a signed, colored delta — the race is readable mid-run. The "what's the grey line" explanation moved to the delta's tooltip.
+- **Guide bullet** for the racing loop (HelpOverlay): seeds, ghosts, challenge links. Gotcha: the bullet's bold "challenge link" text collided with the chip in getByText — button queries should use getByRole.
+
 ## Phase 6v — Challenge Links (2026-06-10)
 
 - **`#seed=N` links** (parseChallengeSeed in game.ts; boot effect in App.tsx): fresh visitors start that exact seed directly; players with a save get a ⚔ challenge bar (accept = restart on that seed, never a silent clobber). The hash is consumed via history.replaceState so reloads don't re-prompt.

@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it } from 'vitest';
 import { App } from '../src/App';
 import { TradeFeed } from '../src/components/TradeFeed';
+import { ghostWorthAt } from '../src/components/WorthChart';
 import { chooseSave } from '../src/cloud';
 import {
   applyOfflineProgress,
@@ -255,7 +256,7 @@ describe('UI shell', () => {
 
   it('the challenge-link chip raises a copied toast naming the seed', () => {
     freshApp();
-    fireEvent.click(screen.getByText('challenge link'));
+    fireEvent.click(screen.getByRole('button', { name: 'challenge link' }));
     expect(screen.getByText('Challenge link copied')).toBeTruthy();
     expect(screen.getByText(/seed 42/)).toBeTruthy();
   });
@@ -289,8 +290,19 @@ describe('UI shell', () => {
     fireEvent.change(seedInput, { target: { value: '42' } }); // SAME seed
     fireEvent.click(screen.getByText('start'));
     fireEvent.click(screen.getByText('+1k')); // new run draws its own line
-    expect(screen.getByText(/your best run on this seed/)).toBeTruthy();
+    expect(screen.getByText(/vs ghost/)).toBeTruthy();
     expect(document.querySelectorAll('.worth polyline').length).toBe(2);
+  });
+
+  it('ghostWorthAt interpolates and clamps', () => {
+    const h = [
+      { tick: 100, worth: 1_000 },
+      { tick: 200, worth: 2_000 },
+    ];
+    expect(ghostWorthAt(h, 50)).toBe(1_000); // clamp left
+    expect(ghostWorthAt(h, 150)).toBe(1_500); // interpolate
+    expect(ghostWorthAt(h, 999)).toBe(2_000); // clamp right
+    expect(ghostWorthAt([], 10)).toBe(0);
   });
 
   it('big offline debts run chunked behind the catch-up overlay', async () => {

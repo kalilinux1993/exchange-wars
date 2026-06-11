@@ -1,3 +1,20 @@
+/** Ghost worth at a tick: linear interpolation; clamps to the endpoints. */
+export function ghostWorthAt(history: { tick: number; worth: number }[], tick: number): number {
+  if (history.length === 0) return 0;
+  if (tick <= history[0]!.tick) return history[0]!.worth;
+  const last = history[history.length - 1]!;
+  if (tick >= last.tick) return last.worth;
+  for (let i = 1; i < history.length; i++) {
+    const b = history[i]!;
+    if (b.tick >= tick) {
+      const a = history[i - 1]!;
+      const f = (tick - a.tick) / Math.max(1, b.tick - a.tick);
+      return Math.round(a.worth + f * (b.worth - a.worth));
+    }
+  }
+  return last.worth;
+}
+
 export function WorthChart({
   history,
   startGp,
@@ -57,7 +74,23 @@ export function WorthChart({
       <p className="dim small">
         low {Math.min(...worths).toLocaleString('en-US')} · high {Math.max(...worths).toLocaleString('en-US')}{' '}
         · now <b>{last.toLocaleString('en-US')}</b> · dashed = start {startGp.toLocaleString('en-US')}
-        {g && <> · grey ghost = your best run on this seed</>}
+        {g &&
+          (() => {
+            const delta = last - ghostWorthAt(g, history[history.length - 1]!.tick);
+            return (
+              <>
+                {' '}
+                · vs ghost{' '}
+                <b
+                  className={delta >= 0 ? 'up' : 'down'}
+                  title="the grey dashes are your best previous run on this seed"
+                >
+                  {delta >= 0 ? '+' : ''}
+                  {delta.toLocaleString('en-US')}
+                </b>
+              </>
+            );
+          })()}
       </p>
     </section>
   );
