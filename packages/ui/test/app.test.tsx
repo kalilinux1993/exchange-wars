@@ -575,6 +575,29 @@ describe('UI shell', () => {
     expect(playerView(game.world, game.playerId)!.openOrders.length).toBe(0); // no resting residue
   });
 
+  it('fight it out: auto-resolve settles the fight or hands back control when low', () => {
+    const game = freshApp();
+    const agent = game.world.agents[game.playerId]!;
+    const panel = document.querySelector('.expedition') as HTMLElement;
+    fireEvent.click(within(panel).getByText('embark'));
+    for (let i = 0; i < 30 && agent.expedition && !agent.expedition.combat; i++) {
+      if (agent.expedition.event) fireEvent.click(screen.getByText('walk on'));
+      else fireEvent.click(screen.getByText(/venture deeper/));
+    }
+    expect(agent.expedition?.combat).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'fight it out' }));
+    // Outcome space: combat settled (won/fled/dead), or the safety stop fired
+    // (low hp, no food). Either way the loop must have ENDED.
+    const c = agent.expedition?.combat;
+    if (c) {
+      const max = c.maxHp ?? 50;
+      expect(c.playerHp).toBeLessThan(Math.ceil(max * 0.4)); // only the safety stop leaves a live fight
+    } else if (agent.expedition) {
+      expect(agent.expedition.cleared).toBeGreaterThanOrEqual(1); // settled by victory
+    }
+    // (no expedition at all = died fighting — also a settled fight)
+  });
+
   it('the bestiary reveals monsters you have met and hides the rest', () => {
     const game = newGame(42);
     game.world.stats.monstersSlain = 5;

@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 8y — Fight It Out (2026-06-11)
+
+59. **The audit harness's combat policy was secretly a UX prototype.** Auto-resolve ("fight it out") is the grinder's fight loop distilled into a button: antifire against breath, eat below 40%, fight otherwise — with one deliberate difference: where the harness flees, the button STOPS and hands back control (below 25% max hp with no food). A bot may gamble with simulated lives; a convenience feature must never decide death-risk for the player. Because it issues ordinary logged commands, replay/leaderboard correctness needed zero thought — the command protocol keeps absorbing features for free. Process note: 8w's e2e failure (exact-name 'sell' collision) was applied proactively — the button name avoids the 'fight' locator, and e2e ran locally BEFORE the push this time.
+
 ## Phase 8x — The Field Manual (2026-06-11)
 
 58. **The guide was lying to players — docs drift in shipped UIs is a bug class, not a chore.** The help overlay still said "10k-tick sprint" (it's been 2,000 since the Edge-budget measurement in #42) and taught none of the last ten systems. Fix plus prevention: the overlay now IMPORTS SPRINT_TICKS instead of hand-writing the number — any constant a player-facing surface quotes should be the constant, not a copy. README got the same pass (7 regions, training, fire country, honest scoring, quest.ts/replay.ts in the tree). Rule for the loop: a content brick isn't done until the guide knows about it — adding "guide current?" to the mental end-phase checklist.

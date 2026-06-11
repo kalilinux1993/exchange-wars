@@ -227,6 +227,32 @@ export function ExpeditionPanel({
             <button className="chip" title="one round — the market moves one tick" onClick={() => onCommand({ type: 'fight' })}>
               fight
             </button>
+            <button
+              className="chip"
+              title="swing until it's settled — drinks antifire against breath, eats when badly hurt, and hands back control if food runs out while you're low (each round still costs a tick)"
+              onClick={() => {
+                // Auto-resolve: the same logged commands a player would issue,
+                // just faster fingers. Replay- and leaderboard-identical.
+                const agent = game.world.agents[game.playerId];
+                let guard = 0;
+                while (agent?.expedition?.combat && guard++ < 100) {
+                  const e = agent.expedition;
+                  const c = e.combat!;
+                  const max = c.maxHp ?? trainedMax;
+                  const breath = monsterById(c.monsterId).dragonfire === true && !c.antifire;
+                  const potion = (e.pack['super_antifire_potion_4'] ?? 0) > 0;
+                  const food = ['shark', 'cooked_karambwan', 'prayer_regeneration_potion_4'].find(
+                    (f) => (e.pack[f] ?? 0) > 0,
+                  );
+                  if (breath && potion) onCommand({ type: 'eatFood', itemId: 'super_antifire_potion_4' });
+                  else if (c.playerHp < Math.ceil(max * 0.4) && food) onCommand({ type: 'eatFood', itemId: food });
+                  else if (c.playerHp < Math.ceil(max * 0.25)) break; // too risky without a plan — your call now
+                  else onCommand({ type: 'fight' });
+                }
+              }}
+            >
+              fight it out
+            </button>
             <button className="chip" title="one round — the market moves one tick" onClick={() => onCommand({ type: 'fleeCombat' })}>
               flee
             </button>
