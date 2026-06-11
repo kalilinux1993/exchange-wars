@@ -33,7 +33,8 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
           <li>
             <b>Race on fair ground</b>: the same seed is always the same world. Restart your seed to chase
             your best run's <b>ghost</b> on the Fortune chart, or copy a <b>challenge link</b> to put a
-            friend on your exact market.
+            friend on your exact market. Sign in and submit a <b>10k-tick sprint</b> to the board — every
+            entry is verified by replaying your actual run.
           </li>
           <li>
             <b>Sign in</b> with your email to sync your save across devices.

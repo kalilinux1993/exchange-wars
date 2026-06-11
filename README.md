@@ -16,6 +16,7 @@ The defining constraint: **the entire game core is testable and debuggable with 
 - **Progression**: GE offer slots (3→8), a hireable **auto-flipping clerk** with three tiers and configurable orders (risk / capital / focus), real **GE buy limits**, quartermaster **delivery contracts**, and 10 Deeds to earn
 - **True idle game**: the world advances ~1 tick per real second while the tab is closed (≈28h cap); installable PWA; save export/import; optional email sign-in for cross-device cloud saves
 - **Challenge seeds & ghosts**: the same seed always produces the identical world — send a friend a `#seed=` challenge link, or restart your own seed and race your best previous run as a chart ghost
+- **Verified leaderboards**: submit your best fortune at tick 10,000 — the server replays your entire command log through the same deterministic engine and posts the worth *it* computed. Determinism is the anti-cheat; a forged score cannot reproduce
 
 ## Quick start
 
