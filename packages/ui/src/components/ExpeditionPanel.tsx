@@ -13,7 +13,7 @@ import {
 } from '@exchange-wars/engine';
 import type { PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import type { Game } from '../game';
+import { deathRecap, type Game } from '../game';
 
 /**
  * The Expeditions panel: outfit an adventurer from your REAL inventory,
@@ -46,16 +46,33 @@ export function ExpeditionPanel({
   const [draft, setDraft] = useState<Record<string, number>>({});
 
   // Death detection: an expedition that vanishes mid-combat wasn't extracted.
-  const prevRef = useRef<{ active: boolean; inCombat: boolean }>({ active: false, inCombat: false });
+  // The last-render snapshot lets the toast tell the SPECIFIC story — the
+  // engine already burned the evidence by the time we render.
+  const prevRef = useRef<{
+    active: boolean;
+    inCombat: boolean;
+    snapshot: { regionId: string; pack: Record<string, number>; packGp: number } | undefined;
+  }>({ active: false, inCombat: false, snapshot: undefined });
   useEffect(() => {
     const prev = prevRef.current;
-    const now = { active: exp !== undefined, inCombat: exp?.combat != null };
-    if (prev.active && prev.inCombat && !now.active) {
-      onToast('You died in the depths', 'your 3 most valuable carried items made it home — the rest is gone');
+    const now = {
+      active: exp !== undefined,
+      inCombat: exp?.combat != null,
+      snapshot: exp ? { regionId: exp.regionId, pack: { ...exp.pack }, packGp: exp.packGp } : prev.snapshot,
+    };
+    if (prev.active && prev.inCombat && !now.active && prev.snapshot) {
+      const r = deathRecap(game.world.items, prev.snapshot.pack, prev.snapshot.packGp);
+      const where = REGIONS[regionIndex(prev.snapshot.regionId)]?.name ?? 'the depths';
+      const keptLine = r.kept.length > 0 ? `kept: ${r.kept.join(', ')}` : 'you carried nothing worth keeping';
+      const lostLine =
+        r.lostUnits > 0 || r.lostGp > 0
+          ? ` — the dark kept ${r.lostUnits} item${r.lostUnits === 1 ? '' : 's'} and ${r.lostGp.toLocaleString('en-US')} loot gp`
+          : '';
+      onToast(`You died in ${where}`, `${keptLine}${lostLine}`);
     }
     prevRef.current = now;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exp !== undefined, exp?.combat != null]);
+  }, [exp !== undefined, exp?.combat != null, exp?.packGp, JSON.stringify(exp?.pack ?? null)]);
 
   const relevant = Object.entries(view.inventory)
     .filter(([id, qty]) => qty > 0 && (GEAR[id] !== undefined || CONSUMABLES[id] !== undefined))
@@ -91,6 +108,7 @@ export function ExpeditionPanel({
           <p className="dim small">
             tally: {st.monstersSlain ?? 0} slain · {st.cacheFinds ?? 0} caches · {st.diceWon ?? 0} dice won ·
             deepest {REGIONS[st.deepestRegion ?? 0]?.name ?? '—'}
+            {(st.deaths ?? 0) > 0 ? ` · ${st.deaths}† deaths` : ''}
           </p>
         )}
         {(st.monstersSlain ?? 0) > 0 && (

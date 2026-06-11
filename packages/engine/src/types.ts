@@ -124,6 +124,8 @@ export interface SimStats {
   eliteSlain?: number;
   /** Kill tally per monster id (absent = none) — feeds the Bestiary codex. */
   killsByMonster?: Record<string, number>;
+  /** Times the depths kept the body (absent = never). */
+  deaths?: number;
 }
 
 /** A standing NPC buy-order at a premium — the realm's quartermaster pays

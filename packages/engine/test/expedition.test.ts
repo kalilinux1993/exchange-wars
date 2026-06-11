@@ -132,6 +132,7 @@ describe('expeditions', () => {
     expect(agent.inventory['rune_platebody']).toBe(1);
     expect(agent.hp).toBe(1); // you barely crawled home
     expect(agent.combatXp!.def).toBeGreaterThan(0); // the beating taught you something
+    expect(state.stats.deaths).toBe(1); // the depths kept count
     checkInvariants(state);
   });
 

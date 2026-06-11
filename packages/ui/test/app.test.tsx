@@ -12,6 +12,7 @@ import { chooseSave, sanitizeHandle, type Session } from '../src/cloud';
 import {
   applyOfflineProgress,
   checkMilestones,
+  deathRecap,
   exportSaveString,
   fmtDuration,
   ghostForRestart,
@@ -596,6 +597,21 @@ describe('UI shell', () => {
       expect(agent.expedition.cleared).toBeGreaterThanOrEqual(1); // settled by victory
     }
     // (no expedition at all = died fighting — also a settled fight)
+  });
+
+  it('deathRecap mirrors the engine keep-3 rule and tells the loss honestly', () => {
+    const items = [
+      { id: 'sword', name: 'Sword', baseCost: 30_000 },
+      { id: 'body', name: 'Body', baseCost: 28_000 },
+      { id: 'shark', name: 'Shark', baseCost: 700 },
+    ];
+    const r = deathRecap(items, { shark: 4, sword: 1, body: 1 }, 1_230);
+    expect(r.kept).toEqual(['Sword', 'Body', 'Shark']); // top 3 units by cost
+    expect(r.lostUnits).toBe(3); // the other 3 sharks feed the depths
+    expect(r.lostGp).toBe(1_230);
+    const naked = deathRecap(items, {}, 0);
+    expect(naked.kept).toEqual([]);
+    expect(naked.lostUnits).toBe(0);
   });
 
   it('the bestiary reveals monsters you have met and hides the rest', () => {

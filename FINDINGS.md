@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 9b — Death, Remembered (2026-06-11)
+
+62. **When the engine burns the evidence, the UI keeps a witness.** Death recaps ("You died in Wilderness Ruins — kept: Rune 2h sword, Rune platebody, Rune kiteshield — the dark kept 5 items and 1,230 loot gp") needed a last-render snapshot in the panel's death-detection ref, because by the time React re-renders, expeditionDeath has already deleted the expedition and booked the burns. The kept/lost math is a pure mirrored function (deathRecap) of the engine's keep-3 rule — mirroring is duplication, but display-side duplication of a 6-line rule beats threading a one-shot report through WorldState. Engine got the one fact worth persisting (stats.deaths), which the tally line and the Nine Lives deed read. Pattern: ephemeral drama = UI snapshot; durable score-keeping = engine stat — choose per fact, not per feature.
+
 ## Phase 9a — The Camp Meal (2026-06-11)
 
 61. **Command-shape generalizations want validation-first, mutate-after discipline.** eatFood now works between fights (time passes, heal by the fire, antifire coats the dive BEFORE the Maw instead of at the first dragon's face) — and the entire change was re-sequencing the shared fight/flee/eat case so eatFood's validations (edible, held, not-in-event) run before any branch mutates. Rejected commands must stay no-ops in every branch (replays apply logs verbatim — a tick consumed by a rejected command would desync live from replay), so the validation ladder is the load-bearing structure of every case. Side win: the not-edible rejection now fires even out of combat, a small honesty improvement the old early not-in-combat check masked.

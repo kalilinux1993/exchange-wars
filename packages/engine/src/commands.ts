@@ -137,6 +137,7 @@ function expeditionDeath(
     else state.ledger.itemsBurned[u.itemId] = (state.ledger.itemsBurned[u.itemId] ?? 0) + 1;
   }
   state.ledger.gpBurned += exp.packGp;
+  state.stats.deaths = (state.stats.deaths ?? 0) + 1;
   agent.hp = 1; // you barely crawled home — rest before diving again
   delete agent.expedition;
 }

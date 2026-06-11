@@ -332,6 +332,13 @@ export const MILESTONES: Milestone[] = [
     progress: (g) => levelsOf(g.world.agents[g.playerId]?.combatXp).hp / 10,
   },
   {
+    id: 'nine-lives',
+    name: 'Nine Lives',
+    flavor: 'Nine deaths. The depths are starting to feel like rent.',
+    achieved: (g) => (g.world.stats.deaths ?? 0) >= 9,
+    progress: (g) => (g.world.stats.deaths ?? 0) / 9,
+  },
+  {
     id: 'monster-scholar',
     name: 'Monster Scholar',
     flavor: 'Every page of the bestiary, written in something other than ink.',
@@ -400,6 +407,25 @@ export function checkMilestones(game: Game, view: PlayerView, worth: number): Mi
 export function playerWorth(game: Game): number {
   const agent = game.world.agents[game.playerId];
   return agent ? netWorth(game.world, agent) : 0;
+}
+
+/** What death keeps and what it takes — mirrors the engine's keep-3 rule
+ * (units sorted by baseCost desc, ties by item id) so the recap toast tells
+ * the truth. Display only; the engine already did the bookkeeping. */
+export function deathRecap(
+  items: { id: string; name: string; baseCost: number }[],
+  pack: Record<string, number>,
+  packGp: number,
+): { kept: string[]; lostUnits: number; lostGp: number } {
+  const cost = new Map(items.map((i) => [i.id, i.baseCost]));
+  const name = new Map(items.map((i) => [i.id, i.name]));
+  const units: { itemId: string; cost: number }[] = [];
+  for (const [itemId, qty] of Object.entries(pack)) {
+    for (let i = 0; i < qty; i++) units.push({ itemId, cost: cost.get(itemId) ?? 0 });
+  }
+  units.sort((a, b) => b.cost - a.cost || (a.itemId < b.itemId ? -1 : 1));
+  const kept = units.slice(0, 3).map((u) => name.get(u.itemId) ?? u.itemId);
+  return { kept, lostUnits: Math.max(0, units.length - 3), lostGp: packGp };
 }
 
 /** What the resting bids (excluding the player's own) would pay for `qty` of
