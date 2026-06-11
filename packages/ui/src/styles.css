@@ -1001,6 +1001,19 @@ th.num {
   height: 6px;
 }
 
+.mover {
+  cursor: pointer;
+}
+.mover:hover {
+  color: var(--gold-bright);
+}
+.pct.up {
+  color: #7fd66f;
+}
+.pct.down {
+  color: #ff6b5a;
+}
+
 .deedgrid {
   display: flex;
   flex-wrap: wrap;

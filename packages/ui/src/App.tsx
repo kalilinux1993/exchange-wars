@@ -4,6 +4,7 @@ import { chooseSave, getSupabase, loadCloudSave, pushCloudSave, type Session } f
 import { AccountBar } from './components/AccountBar';
 import { AlmanacPanel } from './components/AlmanacPanel';
 import { BountyBoard } from './components/BountyBoard';
+import { MoversPanel } from './components/MoversPanel';
 import { HELP_SEEN_KEY, HelpOverlay } from './components/HelpOverlay';
 import { ExpeditionPanel } from './components/ExpeditionPanel';
 import { LeaderboardPanel } from './components/LeaderboardPanel';
@@ -559,6 +560,7 @@ export function App({ initial }: { initial?: Game }) {
               )
             }
           />
+          <MoversPanel view={view} items={game.world.items} onSelect={setSelected} />
           <NewsLog log={game.newsLog} />
         </section>
         <section className="middle">

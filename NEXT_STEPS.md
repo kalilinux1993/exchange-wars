@@ -13,6 +13,10 @@ Deploy: push to main → CI (typecheck + vitest + e2e) auto-deploys Pages. Verif
 - **Next steps**: richer paperdoll (per-item silhouettes, not just lit plates); OSRS-style icon tabs WITHIN rooms if panels crowd; an inventory/equipment grid view; level-up flash on the skills strip; monster variety in the scene (more shapes, not just hue). Raster sprites would need real art assets — SVG is the deterministic, dependency-free path; keep going SVG unless Jesse supplies art.
 - Jesse-gate check-in: confirm the SVG direction matches his mental image before investing in deeper art.
 
+## Trading-side polish
+- 9t DONE: Market Movers panel (hot/cold vs EMA, click-to-load) in the Exchange room.
+- Candidates: per-item price sparkline in the ticket; a market-breadth/index line; watchlist/price alerts.
+
 ## Queued (real candidates, in rough priority)
 - **Idle raiding ("the Sellsword")**: the clerk flips while you're away; nothing raids while you're away. A hireable companion running a fixed shallow-region policy inside tickWorld would complete the idle game's second half. BIG brick: engine automation + balance audit + offline interaction — bring full attention, measure with tools/audit-grind.ts before/after.
 - **Encounter depletion** (structural kill-rate bound, FINDINGS #51): cleared regions run dry within an expedition. Only if a future audit shows the TAS tail needs bounding — it currently doesn't.

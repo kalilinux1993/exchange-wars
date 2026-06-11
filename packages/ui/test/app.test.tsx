@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 // Catalog-agnostic: everything derives from DEFAULT_ITEMS so `npm run
 // gen:catalog` regens never break these tests.
-import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, playerView, SPRINT_TICKS } from '@exchange-wars/engine';
+import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, playerView, SPRINT_TICKS, tickWorld } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../src/App';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { Icon } from '../src/components/Icon';
+import { MoversPanel } from '../src/components/MoversPanel';
 import { LeaderboardPanel } from '../src/components/LeaderboardPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { ghostWorthAt } from '../src/components/WorthChart';
@@ -661,6 +662,20 @@ describe('UI shell', () => {
     const panel = document.querySelector('.expedition') as HTMLElement;
     expect(within(panel).getByText(/Combat Lv \d+/)).toBeTruthy();
     expect(within(panel).getByRole('option', { name: 'Dragon Slayer' })).toBeTruthy();
+  });
+
+  it('market movers list traded items by trend and click selects one', () => {
+    const game = newGame(42);
+    for (let t = 0; t < 400; t++) tickWorld(game.world); // give items volume + a wandering EMA
+    const view = playerView(game.world, game.playerId)!;
+    const onSelect = vi.fn();
+    const { container } = render(<MoversPanel view={view} items={game.world.items} onSelect={onSelect} />);
+    const movers = container.querySelectorAll('.mover');
+    expect(movers.length).toBeGreaterThan(0); // 400 ticks of trading produces movers
+    fireEvent.click(movers[0]!);
+    expect(onSelect).toHaveBeenCalledWith(expect.any(String)); // clicking loads that item
+    // Every mover shows a signed % badge.
+    expect(container.querySelector('.pct')!.textContent).toMatch(/[▲▼]\s*\d+%/);
   });
 
   it('the combat scene renders the foe and animates a hit splat per round', () => {
