@@ -5,6 +5,7 @@ import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, playerView, SPRINT_
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../src/App';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { Icon } from '../src/components/Icon';
 import { LeaderboardPanel } from '../src/components/LeaderboardPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
@@ -600,6 +601,25 @@ describe('UI shell', () => {
       expect(agent.expedition.cleared).toBeGreaterThanOrEqual(1); // settled by victory
     }
     // (no expedition at all = died fighting — also a settled fight)
+  });
+
+  it('the error boundary catches a render crash and offers recovery (save untouched)', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    localStorage.setItem('exchange-wars-save-v1', '{"sentinel":true}');
+    const Boom = (): never => {
+      throw new Error('kaboom');
+    };
+    render(
+      <ErrorBoundary>
+        <Boom />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText('The interface hit a snag')).toBeTruthy();
+    expect(screen.getByText('reload the game')).toBeTruthy();
+    // The save on disk is never touched by the boundary.
+    expect(localStorage.getItem('exchange-wars-save-v1')).toBe('{"sentinel":true}');
+    localStorage.removeItem('exchange-wars-save-v1');
+    spy.mockRestore();
   });
 
   it('the icon pipeline renders dropped-in art and falls back to the glyph otherwise', () => {

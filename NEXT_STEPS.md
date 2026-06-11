@@ -21,6 +21,10 @@ Deploy: push to main → CI (typecheck + vitest + e2e) auto-deploys Pages. Verif
 - Prestige/rebirth loop — **Jesse-gated** (design conversation first).
 - Art direction / game-feel steering pass — **Jesse-gated** (theme explicitly provisional).
 
+## Robustness (Jesse asked; ongoing)
+- 9o DONE: app-level error boundary (catches render crashes, save-safe recovery card).
+- Candidates: guard monsterById/itemDef against unknown ids at the read site (belt-and-suspenders with the boundary); a corrupt-save recovery path beyond normalizeGame; a slow/CI determinism gate at 100k ticks.
+
 ## Decided / dropped (so they stop haunting the pile)
 - **Gear durability as a market sink — DROPPED 2026-06-11**: every audit since 8l shows raiders already pay three honest taxes (bid/ask spread on kit ~20k, death burns, tick opportunity cost), and the potion ticket (8r) + merchant/toll (8u/9d) added consumable sinks. A durability tax would re-punish the capital loop 8m validated, for bookkeeping nobody asked for. Revisit only if an audit shows gear hoarding distorting books.
 - Tier-3 clerk "trades events too" — DROPPED (clerks farm neither events nor exotics, FINDINGS #27/#35).
