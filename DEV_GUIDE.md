@@ -1,5 +1,9 @@
 # Dev Guide
 
+## Phase 6z — Catalog 120 (2026-06-10)
+
+- **Catalog 120** (80 staples + 40 exotics). The re-roll broke tiers 1-2 with −10k-class holes (FINDINGS #40 — deeper staple track = pricier items = bigger stale-dump losses). Full three-tier sweep in one ~5-min self-locking script: t1 → cad 6 / vol 0.10, t2 → cad 7 / vol 0.12, t3 unchanged. Vol 0.10 vs 0.12 is currently degenerate (no items in the band).
+
 ## Phase 6y — Hidden-Tab Parity (2026-06-10)
 
 - **Hidden ≡ closed** (App.tsx visibilitychange effect): browsers throttle background `setInterval`, so a hidden tab used to tick erratically — slower than the 1 tps offline rate — yet earned no accrual on return. Now: on hide, the run pauses and the save stamps `lastSeenMs`; on show, `beginOffline` accrues (banner, or the chunked overlay for long absences); sub-minute blips silently resume the prior speed (`planOfflineProgress`'s blip filter does the gating).

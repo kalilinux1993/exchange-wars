@@ -64,17 +64,18 @@ export const TUNING = {
       // are for the 84-item catalog; per-tier numbers in the comments below.
       // Do NOT raise any clerk vol ceiling to 0.13+: that admits the
       // exotics, whose wide gp corridors print 130k+/8k ticks (FINDINGS #33).
-      // Tier 1 (84-item catalog re-sweep): cad 7 / vol 0.10 — min +285,
-      // medians 1,534/1,917; cad 8-9 / vol 0.09 fail isolated seed 7 (the
-      // recurring seed-7 cadence-band hole; see FINDINGS #34/#38).
-      { cadence: 7, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.1 },
-      // Tier 2 (100 items): cad 8 / vol 0.12 — min +3,306, medians
-      // 4,540/4,659 (cad 7 fails seed 11 competitive on this catalog; the
-      // winning cadence cycles with each catalog era, cf FINDINGS #29).
-      { cadence: 8, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
+      // Tier 1 (120 items): cad 6 / vol 0.10 — min +1,603, medians
+      // 2,646/3,381; cad 7/0.10 hides a -10,943 isolated-seed-1337 hole
+      // (stale dumps on the 80-deep staple track's pricier items).
+      { cadence: 6, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.1 },
+      // Tier 2 (120 items): cad 7 / vol 0.12 — min +1,617, medians
+      // 2,837/6,266. NOTE: vol 0.10 and 0.12 measured IDENTICAL here (no
+      // items in that vol band on this catalog); 0.12 kept for identity.
+      // cad 8 hides a -10,215 competitive-seed-7 hole.
+      { cadence: 7, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
       // Tier 3 vol ceiling is 0.12, NOT 1: exotics are HUMAN territory —
       // same design rule as events (FINDINGS #27/#33). Tier 3 = speed +
-      // size. 84-item re-verify: min +3,188, medians 5,216/3,791.
+      // size. 120-item re-verify: min +5,187, medians 6,233/7,203.
       { cadence: 4, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 0.12 },
     ],
   },

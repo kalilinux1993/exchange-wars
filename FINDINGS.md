@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 6z (2026-06-10)
+
+40. **Catalog depth changes the LOSS scale, not just the re-roll.** The 120-item regen (80-deep staple track) broke tiers 1-2 with −10k-class holes — 3-5× deeper than any previous re-roll failure — because the staple track now reaches pricier items whose stale dumps cost thousands per flip. The fix was still config (t1 cad 6/vol 0.10 min +1,603; t2 cad 7 min +1,617; t3 untouched min +5,187), but the lesson scales: deeper catalogs raise the stakes of every bad cadence cell. Bonus discovery: vol ceilings 0.10 and 0.12 are IDENTICAL on this catalog (staples top out at 0.10, exotics sit at 0.13 — nothing lives between), so tier-2's ceiling is currently decorative; kept at 0.12 for identity against future catalogs.
+
 ## Phase 6p (2026-06-10)
 
 39. **The sim spent two-thirds of its time rebuilding an unchanged snapshot.** CPU profile at 84 items: `playerView` was 73.5% of self-time. Root causes, both quadratic: (a) `buyRemaining` did `items.find` per item inside playerView's per-item loop (O(items²) per call — fixed with a WeakMap item index keyed on the items ARRAY's identity, so snapshot/restore self-invalidates); (b) the flipper's re-quote loop rebuilt the full view up to twice per item per act (~168 full-book scans), even though most iterations mutate nothing — fixed with a dirty flag that rebuilds only after an actual cancel/place. **Net: 4.5× faster** (8k-tick 84-item sim: 5.1s → 1.13s) with hashState BIT-IDENTICAL on seeds 7/42/1337 — the determinism contract turns risky perf work into a one-command proof: same hash, same universe, no re-sweep.
