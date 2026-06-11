@@ -431,14 +431,14 @@ describe('UI shell', () => {
     });
   });
 
-  it('TopFlips renders profitable rows and selects on click', () => {
+  it('TopFlips renders profitable rows and loads the flip (id + buy price) on click', () => {
     const onSelect = vi.fn();
     const view = { markets: [{ itemId: 'gold_bar', bestBid: 1000, bestAsk: 1100 }] } as unknown as PlayerView;
     const items = [{ id: 'gold_bar', name: 'Gold bar' }] as unknown as ItemDef[];
     render(<TopFlips view={view} items={items} onSelect={onSelect} />);
     expect(screen.getByText('+77')).toBeTruthy();
     fireEvent.click(screen.getByText('Gold bar'));
-    expect(onSelect).toHaveBeenCalledWith('gold_bar');
+    expect(onSelect).toHaveBeenCalledWith('gold_bar', 1001); // bestBid + 1 → buy leg prefill
   });
 
   it('TopFlips shows the empty state when nothing clears the tax', () => {

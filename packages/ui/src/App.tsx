@@ -751,7 +751,14 @@ export function App({ initial }: { initial?: Game }) {
               )
             }
           />
-          <TopFlips view={view} items={game.world.items} onSelect={setSelected} />
+          <TopFlips
+            view={view}
+            items={game.world.items}
+            onSelect={(id, buyPrice) => {
+              setSelected(id);
+              onLevel('buy', buyPrice); // land in the ticket with the buy leg ready to submit
+            }}
+          />
           <MoversPanel view={view} items={game.world.items} onSelect={setSelected} />
           <ProfitPanel game={game} items={game.world.items} onSelect={setSelected} />
           <WatchlistPanel

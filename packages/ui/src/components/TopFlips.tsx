@@ -53,7 +53,8 @@ export function TopFlips({
 }: {
   view: PlayerView;
   items: ItemDef[];
-  onSelect: (id: string) => void;
+  /** Load this flip: select the item AND prefill the buy leg at `buyPrice`. */
+  onSelect: (id: string, buyPrice: number) => void;
   limit?: number;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
@@ -70,8 +71,8 @@ export function TopFlips({
             <li
               key={f.id}
               className="mover flip"
-              onClick={() => onSelect(f.id)}
-              title={`buy @ ${f.buy.toLocaleString('en-US')} → sell @ ${f.sell.toLocaleString(
+              onClick={() => onSelect(f.id, f.buy)}
+              title={`click to load a buy @ ${f.buy.toLocaleString('en-US')} → then sell @ ${f.sell.toLocaleString(
                 'en-US',
               )}, nets ${f.margin.toLocaleString('en-US')} gp/unit (${(f.roi * 100).toFixed(1)}% of cost) after the ${taxPct}% tax${
                 f.limit !== null ? ` · GE limit ${f.limit.toLocaleString('en-US')} this window` : ''
