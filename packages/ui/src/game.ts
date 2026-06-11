@@ -1,7 +1,7 @@
 // Game bootstrap + persistence. The human is an idle-policy player agent:
 // engine-inert unless automation is purchased, acting only via UI commands.
 import { addAgent, createWorld, EVENT_LABELS, playerView, runTicks } from '@exchange-wars/engine';
-import type { PlayerView, WorldEvent, WorldState } from '@exchange-wars/engine';
+import type { PlayerView, RunLogEntry, WorldEvent, WorldState } from '@exchange-wars/engine';
 
 export interface Game {
   world: WorldState;
@@ -25,6 +25,9 @@ export interface Game {
   /** Your best previous run on THIS seed — raced as a dim line on the
    * Fortune chart. Determinism makes it a fair ghost. */
   ghost?: GhostRun;
+  /** Every human command with its tick — the run is REPLAYABLE from seed +
+   * this log (engine replayRun), which is what verified leaderboards check. */
+  commandLog: RunLogEntry[];
 }
 
 export interface GhostRun {
@@ -345,6 +348,7 @@ export function newGame(seed: number): Game {
     seenEvents: [],
     fills: [],
     fillScanTick: 0,
+    commandLog: [],
   };
 }
 
@@ -416,6 +420,8 @@ export function normalizeGame(game: Game): Game {
     seenEvents: game.seenEvents ?? [],
     fills: game.fills ?? [],
     fillScanTick: game.fillScanTick ?? 0,
+    // Old saves have no log: they stay playable but can't prove their run.
+    commandLog: game.commandLog ?? [],
   };
 }
 

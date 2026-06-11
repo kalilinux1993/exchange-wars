@@ -17,6 +17,7 @@ import {
   HUMAN_START_GP,
   importSaveString,
   newGame,
+  normalizeGame,
   OFFLINE_CAP_TICKS,
   parseChallengeSeed,
   updateNews,
@@ -206,6 +207,7 @@ describe('UI shell', () => {
       seenEvents: [],
       fills: [],
       fillScanTick: 0,
+      commandLog: [],
     };
     expect(applyOfflineProgress(game, 1_000_000)).toBeNull();
     expect(game.world.tick).toBe(0);
@@ -348,6 +350,7 @@ describe('UI shell', () => {
       seenEvents: [],
       fills: [],
       fillScanTick: 0,
+      commandLog: [],
       lastSeenMs: Date.now() - 20_000_500, // owes ~20k ticks > sync threshold
     };
     render(<App initial={game} />);
@@ -501,6 +504,22 @@ describe('UI shell', () => {
     fireEvent.click(screen.getByText('start trading'));
     expect(screen.getByText(/450 left/)).toBeTruthy(); // newsbar chip
     expect(screen.getByText(/craze active — ends in ~450 ticks/)).toBeTruthy(); // ticket (FIRST selected by default)
+  });
+
+  it('human commands are recorded into the replayable command log', () => {
+    const game = freshApp();
+    expect(game.commandLog).toHaveLength(0);
+    fireEvent.click(screen.getByText('25,000 gp')); // buySlot
+    expect(game.commandLog).toHaveLength(1);
+    expect(game.commandLog[0]!.cmd.type).toBe('buySlot');
+    expect(game.commandLog[0]!.tick).toBe(0);
+    placeRestingBuy('1');
+    expect(game.commandLog.some((e) => e.cmd.type === 'place')).toBe(true);
+    // Old saves normalize to an empty log.
+    const g2 = newGame(7);
+    // @ts-expect-error — simulating a pre-log save shape
+    delete g2.commandLog;
+    expect(normalizeGame(g2).commandLog).toEqual([]);
   });
 
   it('fmtDuration speaks human time', () => {

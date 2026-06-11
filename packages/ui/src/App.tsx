@@ -279,6 +279,9 @@ export function App({ initial }: { initial?: Game }) {
   if (!view) return <p className="reject">save corrupted — clear site data and reload</p>;
 
   const command = (cmd: PlayerCommand): void => {
+    // Recorded BEFORE applying, rejections included — replayRun applies the
+    // log verbatim, so the replay re-rejects them identically.
+    game.commandLog.push({ tick: game.world.tick, cmd });
     setLastResult(applyCommand(game.world, game.playerId, cmd));
     refreshProgress();
     saveGame(game);

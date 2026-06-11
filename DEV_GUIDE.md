@@ -1,5 +1,12 @@
 # Dev Guide
 
+## Phase 7f — Replay Verifier (2026-06-11, leaderboards brick 1)
+
+- **UNBLOCKED**: Jesse ran the Supabase schema — `saves` table live, RLS verified both directions (anonymous read → `[]`, anonymous write → 42501).
+- **`replayRun(seed, startGp, log, finalTick)`** (packages/engine/src/replay.ts, exported via barrel): rebuilds a run from its command log — commands recorded at tick T apply once the world reaches T, before T+1, matching the UI; clerk automation replays for free inside tickWorld; rejected commands re-reject identically (the log applies verbatim). Test proves record→replay hash-identity AND that a tampered log diverges.
+- **`Game.commandLog`** (RunLogEntry[], persisted, normalized empty for old saves): App.command() records every human command pre-apply. A save file is now a *provable run*.
+- Next bricks: leaderboard table SQL + Edge Function wrapping replayRun (deploy needs Jesse's Supabase access token), then submit/browse UI.
+
 ## Phase 7e — Time-Speak & Screenshot Refresh (2026-06-10)
 
 - **fmtDuration** (game.ts): offline ticks → "~3h 25m" (1 tick ≡ 1s away); shown in the away banner and the catch-up overlay alongside raw ticks.
