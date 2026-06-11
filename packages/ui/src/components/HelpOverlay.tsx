@@ -20,7 +20,8 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
           </li>
           <li>
             Hire the <b>clerk</b> in the shop to flip automatically, then give it orders: risk, capital,
-            focus. Buy more slots to scale.
+            focus. Cheap staples are everyone's; <b>big staples</b> (5k+) need senior clerks; <b>exotics</b>{' '}
+            are yours alone. Buy more slots to scale.
           </li>
           <li>
             Watch the <b>⚡ news</b>: shortages and crazes move prices; crashes are buying opportunities.

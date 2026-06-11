@@ -12,6 +12,7 @@ import {
   applyOfflineProgress,
   checkMilestones,
   exportSaveString,
+  fmtDuration,
   ghostForRestart,
   HUMAN_START_GP,
   importSaveString,
@@ -500,6 +501,14 @@ describe('UI shell', () => {
     fireEvent.click(screen.getByText('start trading'));
     expect(screen.getByText(/450 left/)).toBeTruthy(); // newsbar chip
     expect(screen.getByText(/craze active — ends in ~450 ticks/)).toBeTruthy(); // ticket (FIRST selected by default)
+  });
+
+  it('fmtDuration speaks human time', () => {
+    expect(fmtDuration(45)).toBe('45s');
+    expect(fmtDuration(150)).toBe('2m');
+    expect(fmtDuration(3_600)).toBe('1h');
+    expect(fmtDuration(12_345)).toBe('3h 25m');
+    expect(fmtDuration(100_000)).toBe('27h 46m');
   });
 
   it('the ticket names the selected item band; Big Leagues latches on a 0.12-band fill', () => {

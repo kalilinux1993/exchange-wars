@@ -32,6 +32,17 @@ export interface GhostRun {
   history: { tick: number; worth: number }[];
 }
 
+/** Offline ticks as human time (1 tick ≡ 1 real second while away). */
+export function fmtDuration(ticks: number): string {
+  if (ticks >= 3_600) {
+    const h = Math.floor(ticks / 3_600);
+    const m = Math.floor((ticks % 3_600) / 60);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+  if (ticks >= 60) return `${Math.floor(ticks / 60)}m`;
+  return `${ticks}s`;
+}
+
 /** Parse a `#seed=N` challenge fragment (the "race a friend" link). */
 export function parseChallengeSeed(hash: string): number | null {
   const m = /^#seed=(\d{1,10})$/.exec(hash);

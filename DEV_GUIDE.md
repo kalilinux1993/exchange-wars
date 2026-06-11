@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 7e — Time-Speak & Screenshot Refresh (2026-06-10)
+
+- **fmtDuration** (game.ts): offline ticks → "~3h 25m" (1 tick ≡ 1s away); shown in the away banner and the catch-up overlay alongside raw ticks.
+- **Guide** clerk bullet teaches the band vocabulary (cheap staples / big staples 5k+ / exotics yours alone).
+- **README screenshot recaptured** — previous was 8 UI phases old (predated track chips, band line, vs-ghost delta).
+
 ## Phase 7d — Band Visibility & Big Leagues Deed (2026-06-10)
 
 - **Ticket band tag**: the wiki-snapshot line now names the selected item's band — "staple — all clerks" (≤0.10) / "big staple — senior clerks" (0.12) / "exotic — human-only" (0.13) — making the risk select's vocabulary visible per item.

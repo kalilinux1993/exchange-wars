@@ -18,6 +18,7 @@ import { WorthChart } from './components/WorthChart';
 import {
   checkMilestones,
   finishOfflineProgress,
+  fmtDuration,
   ghostForRestart,
   parseChallengeSeed,
   planOfflineProgress,
@@ -471,7 +472,7 @@ export function App({ initial }: { initial?: Game }) {
           <section className="panel catchup">
             <h2>The world turns…</h2>
             <p className="dim">
-              while you were away: {catchUp.done.toLocaleString('en-US')} /{' '}
+              while you were away (~{fmtDuration(catchUp.total)}): {catchUp.done.toLocaleString('en-US')} /{' '}
               {catchUp.total.toLocaleString('en-US')} ticks
             </p>
             <div className="bar">
@@ -500,8 +501,8 @@ export function App({ initial }: { initial?: Game }) {
       )}
       {offlineRef.current && !awayDismissed && (
         <div className="awaybar">
-          while you were away: <b>{offlineRef.current.ticks.toLocaleString('en-US')}</b> ticks passed · net
-          worth{' '}
+          while you were away: <b>{offlineRef.current.ticks.toLocaleString('en-US')}</b> ticks (~
+          {fmtDuration(offlineRef.current.ticks)}) passed · net worth{' '}
           <b className={offlineRef.current.worthAfter >= offlineRef.current.worthBefore ? 'up' : 'down'}>
             {offlineRef.current.worthAfter - offlineRef.current.worthBefore >= 0 ? '+' : ''}
             {(offlineRef.current.worthAfter - offlineRef.current.worthBefore).toLocaleString('en-US')} gp
