@@ -73,7 +73,18 @@ export function PlayerPanel({
           </li>
         )}
       </ul>
-      <h3>Open offers</h3>
+      <h3>
+        Open offers
+        {view.openOrders.length > 1 && (
+          <button
+            className="chip danger"
+            title="cancel every resting offer (escrow is refunded)"
+            onClick={() => onCommand({ type: 'cancel' })}
+          >
+            abort all
+          </button>
+        )}
+      </h3>
       <ul className="rows">
         {view.openOrders.map((o) => (
           <li key={o.id}>

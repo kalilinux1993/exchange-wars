@@ -679,6 +679,18 @@ describe('UI shell', () => {
     }
   });
 
+  it('abort all cancels every resting offer at once', () => {
+    const game = newGame(42);
+    applyCommand(game.world, game.playerId, { type: 'place', itemId: FIRST.id, side: 'buy', price: 1, qty: 1 });
+    applyCommand(game.world, game.playerId, { type: 'place', itemId: LAST.id, side: 'buy', price: 1, qty: 1 });
+    render(<App initial={game} />);
+    const player = document.querySelector('.player') as HTMLElement;
+    expect(within(player).getAllByText('abort').length).toBe(2); // two resting
+    fireEvent.click(within(player).getByText('abort all'));
+    expect(within(player).getByText('no open offers')).toBeTruthy();
+    expect(within(player).queryByText('abort all')).toBeNull(); // hidden at ≤1 order
+  });
+
   it('the masthead market pulse shows breadth once the market has traded', () => {
     const game = newGame(42);
     for (let t = 0; t < 400; t++) tickWorld(game.world);

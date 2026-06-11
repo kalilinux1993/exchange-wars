@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 10g — Abort All (2026-06-11)
+
+93. **Sometimes the feature already exists in the engine and only the UI is missing.** `cancel` with no itemId/side already cancels every resting order (cancelAgentOrders iterates all when unfiltered) — the engine had "abort all" since the command layer existed; the Ledger just never exposed it, so a player with a dozen offers cancelled them one chip at a time. A single button issuing `{type:'cancel'}` (shown only at >1 order) closes the gap. Zero engine change, escrow refunded by the existing path. Worth a periodic audit pass: "what can applyCommand do that no button calls?" — latent capabilities are the cheapest features.
+
 ## Phase 10f — The Fighter Wears Your Kit (2026-06-11)
 
 92. **Cohesion polish: a derived value already computed once should drive every view of it.** The combat-scene fighter used a single `geared` boolean while the paperdoll already lit per-slot from best-usable-gear — same underlying truth (which slots hold usable gear), two fidelities. Replaced `geared` with a `FighterKit` (5 slot booleans) computed in ExpeditionPanel from exp.pack + usable levels (the same inert-skip rule), and the scene figure now lights helm/body/legs/weapon/shield independently — so a fully-rune raider visibly differs from a fists-first one mid-fight, and inert gear (below level) correctly shows nothing. No engine change, no new data — just routing the existing per-slot truth into the scene instead of a lossy boolean. The win is consistency: paperdoll and combat figure can no longer disagree about what you're wearing.
