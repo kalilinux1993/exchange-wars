@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 9e — The Abyss (2026-06-11)
+
+65. **The 8th region cost one mechanic, and the mechanic is an economy lever wearing a monster suit.** The Abyss's identity is the LEECH: abyssal creatures drain loot gp (burned) every round a fight drags on — so the region prices SLOWNESS, the one thing neither gear reqs (8n), wounds (8l), nor dragonfire (8r) charged for. Kill fast or bleed coin; flee-spam is now itself expensive down there. No new key item needed and antifire means nothing in the dark — each deep region now extorts a different resource: the Maw your potion, the Inferno your potion AND your nerve, the Abyss your purse and your DPS. Everything else was the usual free ride on data-driven rules (unlock chain, ambush-from-deeper, per-region elites, bestiary rows, cache pools), with Vessith the Unraveler finally giving the 121k dragon_plateskirt a home (elite-only, bid-capped like every jackpot). The #54 audit habit ("check every length-1") had already made appending a region a zero-code event.
+
 ## Phase 9d — The Swordmaster and the Toll-Keeper (2026-06-11)
 
 64. **Event design space: each new face should bend a different system.** Spar is the first NON-COMBAT xp source (flat +25 ⚔/🛡, +9 ♥ for bruises that floor at 1 hp — a lesson, not a mugging), giving hurt-but-rich players a way to train without risking the pack; Toll converts loot gp into cache rolls (150 gp burned for a guaranteed stash — EV roughly fair at depth, the VALUE is converting coin into a chance at items). Neither is "more loot" — one bends progression, one bends liquidity. The seven-face event pool now touches: healing (shrine), coin gambling (dice), blood gambling (imp), depth (portal), supplies (merchant), training (spar), and coin→item conversion (toll). The ~30-line event pattern held for both; conservation held by vocabulary (every effect is a mint/burn the ledger already speaks).

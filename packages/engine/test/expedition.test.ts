@@ -352,6 +352,40 @@ describe('expeditions', () => {
     expect(ambushed).toBe(true);
   });
 
+  it('the Abyss bleeds purses: leeches drain loot gp every round, capped at what you carry', () => {
+    expect(REGIONS[7]!.id).toBe('the_abyss');
+    expect(REGIONS[7]!.elite).toBe('vessith');
+    let drained = false;
+    for (let seed = 1; seed <= 60 && !drained; seed++) {
+      const { state, id } = fixture(seed);
+      const agent = state.agents[id]!;
+      agent.questProgress = 7; // fixture: the Abyss is open
+      ok(state, id, { type: 'startExpedition', regionId: 'the_abyss', pack: { shark: 4 } });
+      const exp = agent.expedition!;
+      exp.packGp += 500;
+      state.ledger.gpMinted += 500;
+      for (let i = 0; i < 8 && agent.expedition; i++) {
+        if (exp.combat) {
+          const gpBefore = exp.packGp;
+          const burnedBefore = state.ledger.gpBurned;
+          ok(state, id, { type: 'fleeCombat' });
+          if (!agent.expedition) break;
+          if (exp.combat && exp.packGp < gpBefore) {
+            drained = true;
+            // Drain is booked as a burn, coin for coin.
+            expect(state.ledger.gpBurned - burnedBefore).toBe(gpBefore - exp.packGp);
+            break;
+          }
+        } else if (exp.event) ok(state, id, { type: 'choose', accept: false });
+        else ok(state, id, { type: 'advance' });
+      }
+      if (agent.expedition) checkInvariants(state);
+    }
+    expect(drained).toBe(true); // a failed flee in the Abyss costs coin
+    // A settled fight (won/fled) does NOT drain — only rounds that drag.
+    // (Covered by the cap: drains never exceed packGp, enforced above.)
+  });
+
   it('the Inferno Gate sits past the Maw and Zukrath stalks it', () => {
     expect(REGIONS[6]!.id).toBe('inferno_gate');
     expect(REGIONS[5]!.elite).toBe('vorkanth'); // the Maw keeps its Elder

@@ -66,6 +66,9 @@ export interface MonsterDef {
   drops: { itemId: string; chance: number }[];
   /** Dragonfire: damage halved by an active antifire. */
   dragonfire?: boolean;
+  /** Abyssal leech: loot gp drained (burned) from your pack EVERY round the
+   * fight continues — the Abyss bleeds purses, not just bodies (9e). */
+  leech?: number;
   /** Named elites: rare spawns outside the normal region pools. */
   elite?: boolean;
 }
@@ -99,9 +102,15 @@ export const MONSTERS: MonsterDef[] = [
   // regular table.
   { id: 'pyrefiend', name: 'Pyrefiend', hp: 95, atk: 22, def: 12, gp: [150, 400], dragonfire: true, drops: [{ itemId: 'death_rune', chance: 0.5 }, { itemId: 'blood_rune', chance: 0.4 }, { itemId: 'dragon_dart', chance: 0.12 }] },
   { id: 'lava_dragon', name: 'Lava dragon', hp: 160, atk: 27, def: 14, gp: [250, 700], dragonfire: true, drops: [{ itemId: 'superior_dragon_bones', chance: 0.35 }, { itemId: 'dragon_mace', chance: 0.04 }, { itemId: 'dragon_longsword', chance: 0.02 }] },
+  // The Abyss (9e): no fire down here — the toll is your PURSE. Leeches
+  // drain loot gp every round the fight drags; kill fast or bleed coin.
+  { id: 'abyssal_leech', name: 'Abyssal leech', hp: 60, atk: 18, def: 10, gp: [100, 300], leech: 40, drops: [{ itemId: 'blood_rune', chance: 0.35 }] },
+  { id: 'abyssal_demon', name: 'Abyssal demon', hp: 130, atk: 30, def: 18, gp: [400, 1_000], leech: 80, drops: [{ itemId: 'death_rune', chance: 0.6 }, { itemId: 'dragon_dart', chance: 0.2 }] },
   // The named elites — never in a region pool; their region spawns them.
   { id: 'vorkanth', name: 'Vorkanth, Elder of the Maw', hp: 180, atk: 30, def: 16, gp: [1_500, 4_000], dragonfire: true, elite: true, drops: [{ itemId: 'superior_dragon_bones', chance: 1 }, { itemId: 'dragon_med_helm', chance: 0.25 }, { itemId: 'dragon_platelegs', chance: 0.15 }] },
   { id: 'zukrath', name: 'Zukrath, the Inferno Sovereign', hp: 260, atk: 36, def: 20, gp: [3_000, 8_000], dragonfire: true, elite: true, drops: [{ itemId: 'superior_dragon_bones', chance: 1 }, { itemId: 'prayer_regeneration_potion_4', chance: 0.3 }, { itemId: 'dragon_longsword', chance: 0.2 }] },
+  // dragon_plateskirt (121k baseCost) lives ONLY here — the Abyss jackpot.
+  { id: 'vessith', name: 'Vessith, the Unraveler', hp: 300, atk: 40, def: 22, gp: [5_000, 12_000], leech: 200, elite: true, drops: [{ itemId: 'superior_dragon_bones', chance: 1 }, { itemId: 'dragon_plateskirt', chance: 0.25 }, { itemId: 'prayer_regeneration_potion_4', chance: 0.2 }] },
 ];
 
 export const PLAYER_BASE = { maxHp: 50, atk: 5, def: 2 };
@@ -135,6 +144,9 @@ export const REGIONS: RegionDef[] = [
   // not optional, and the fights are long enough that the trained stats from
   // 8n/8s are the real entry requirement.
   { id: 'inferno_gate', name: 'The Inferno Gate', flavor: 'the air itself burns — no potion, no entry', monsters: ['pyrefiend', 'lava_dragon'], elite: 'zukrath' },
+  // 9e: past the fire, the dark that EATS. No dragonfire — the toll here is
+  // your loot purse, drained every round a fight drags on.
+  { id: 'the_abyss', name: 'The Abyss', flavor: 'it eats light, gold, and the unprepared', monsters: ['abyssal_leech', 'abyssal_demon'], elite: 'vessith' },
 ];
 
 export const REGION_CLEAR_KILLS = 3;

@@ -97,11 +97,11 @@ function grind(
           if (q > 0) pack[id] = q;
         }
       }
-      // Region selection: everything past the wilderness breathes fire —
-      // without the antifire ticket, index 4 is the deepest sane farm (8r/8t).
+      // Region selection: 5/6 breathe fire (ticket required); the Abyss (7)
+      // burns no flesh but bleeds purses — fine for this policy either way.
       let target = Math.min(human.questProgress ?? 0, REGIONS.length - 1);
-      if ((human.inventory['super_antifire_potion_4'] ?? 0) < 1) {
-        target = Math.min(target, 4);
+      if ((human.inventory['super_antifire_potion_4'] ?? 0) < 1 && (target === 5 || target === 6)) {
+        target = 4;
       }
       if (!issue({ type: 'startExpedition', regionId: REGIONS[target]!.id, pack })) break;
       continue;
@@ -111,8 +111,8 @@ function grind(
       // Usable strength, not carried strength — under-leveled gear is inert (8n).
       const armed = deriveStats(exp.pack, levelsOf(human.combatXp)).atk >= 30;
       const fleeList = armed
-        ? ['vorkanth', 'zukrath']
-        : ['lesser_demon', 'fire_giant', 'green_dragon', 'vorkanth', 'moss_giant', 'pyrefiend', 'lava_dragon', 'zukrath'];
+        ? ['vorkanth', 'zukrath', 'vessith']
+        : ['lesser_demon', 'fire_giant', 'green_dragon', 'vorkanth', 'moss_giant', 'pyrefiend', 'lava_dragon', 'zukrath', 'abyssal_leech', 'abyssal_demon', 'vessith'];
       const breath = monsterById(exp.combat.monsterId).dragonfire === true && !(exp.antifire ?? false);
       const dangerous = fleeList.includes(exp.combat.monsterId) || breath;
       const canEat = (exp.pack['shark'] ?? 0) > 0;

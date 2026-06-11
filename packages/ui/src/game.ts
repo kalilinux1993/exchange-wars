@@ -311,6 +311,13 @@ export const MILESTONES: Milestone[] = [
     achieved: (g) => (g.world.stats.deepestRegion ?? 0) >= 6,
   },
   {
+    id: 'abyss-walker',
+    name: 'Abyss Walker',
+    flavor: 'You looked into the Abyss. It checked your purse.',
+    // Region index 7 = The Abyss (entered, not just unlocked).
+    achieved: (g) => (g.world.stats.deepestRegion ?? 0) >= 7,
+  },
+  {
     id: 'swordhand',
     name: 'Swordhand',
     flavor: 'Attack 10. The blade no longer argues.',

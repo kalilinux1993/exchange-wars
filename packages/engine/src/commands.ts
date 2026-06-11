@@ -544,6 +544,15 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       resolveRound(exp.combat, deriveStats(exp.pack, lvBefore), action, rng);
       exp.rngState = rng.state();
       const c = exp.combat;
+      // The Abyss bleeds purses: leeches drain loot gp every round the fight
+      // drags on (burned — the dark banks nowhere). Kill fast or pay.
+      const leech = monsterById(c.monsterId).leech ?? 0;
+      if (leech > 0 && c.outcome === 'fighting' && exp.packGp > 0) {
+        const drained = Math.min(exp.packGp, leech);
+        exp.packGp -= drained;
+        state.ledger.gpBurned += drained;
+        c.log.push(`it siphons ${drained} gp from your pack`);
+      }
       // Training: Attack xp = damage dealt, Defence xp = damage taken (eating
       // heals, so a net-positive round trains nothing defensively). Death
       // never takes xp — wounds cost loot, never experience.
