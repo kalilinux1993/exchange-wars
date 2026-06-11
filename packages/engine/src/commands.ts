@@ -23,6 +23,7 @@ import {
   SHRINE_MIN_COST,
 } from './quest';
 import { createRng } from './rng';
+import { tickWorld } from './sim';
 import type { AgentState, ItemId, Side, Trade, WorldState } from './types';
 
 /** Rolling GE buy-limit window — a command-layer mechanic (NPCs unaffected). */
@@ -301,6 +302,11 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       if (!exp) return { ok: false, reason: 'not-out', trades: [] };
       if (exp.combat) return { ok: false, reason: 'in-combat', trades: [] };
       if (exp.event) return { ok: false, reason: 'in-event', trades: [] };
+      // The trek costs time: each step forward advances the world one tick,
+      // so a sprint's grind is bounded by the same clock the market runs on
+      // (without this, score scales with raw command spam — FINDINGS #45).
+      // Safe in replay: recorded ticks fully determine application order.
+      tickWorld(state);
       const region = REGIONS[regionIndex(exp.regionId)]!;
       const rng = createRng(exp.rngState);
       const roll = rng.next();
@@ -394,9 +400,14 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       else {
         if (!CONSUMABLES[cmd.itemId]) return { ok: false, reason: 'not-edible', trades: [] };
         if ((exp.pack[cmd.itemId] ?? 0) < 1) return { ok: false, reason: 'insufficient-items', trades: [] };
-        exp.pack[cmd.itemId] = exp.pack[cmd.itemId]! - 1;
-        state.ledger.itemsBurned[cmd.itemId] = (state.ledger.itemsBurned[cmd.itemId] ?? 0) + 1;
         action = { kind: 'eat', itemId: cmd.itemId };
+      }
+      // A combat round costs a world tick too — otherwise loot scales with
+      // command spam, not sprint time (same lever as 'advance', FINDINGS #45).
+      tickWorld(state);
+      if (action.kind === 'eat') {
+        exp.pack[action.itemId] = exp.pack[action.itemId]! - 1;
+        state.ledger.itemsBurned[action.itemId] = (state.ledger.itemsBurned[action.itemId] ?? 0) + 1;
       }
       const rng = createRng(exp.rngState);
       resolveRound(exp.combat, deriveStats(exp.pack), action, rng);

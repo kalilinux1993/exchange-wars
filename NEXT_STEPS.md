@@ -42,6 +42,11 @@ Design (account-light, static-site-friendly — Supabase):
 
 ## Phase 6k — DONE 2026-06-10 (tier-3 printer closed: vol ceiling 0.12 / cadence 4; gate magnitude ceiling 20×; FINDINGS #35)
 
+## RPG arc — queued (post phase 8k audit, data in FINDINGS #45)
+- **Grind-vs-trade loot parity tuning**: clock-bounded grind still nets +7.4k–12.7k per 2k sprint vs low-single-digit-k plausible manual flipping — compress monster gp ranges / cache finds, or make `advance` cost >1 tick. Re-measure with `npx tsx tools/audit-grind.ts` (verifySprint-scored, 5 seeds), don't guess.
+- **Price the extract→re-embark heal loop**: embarking resets hp for free, so cycling extract/embark between fights nullifies attrition (food/shrines pointless). Candidates: embark costs a tick, or hp persists between expeditions with slow out-of-field regen.
+- Region-flavored event variants; gear durability as a market sink; more bestiary/regions (idea pile from the RPG arc)
+
 ## Next candidates
 - Quests/contracts: NPC buy-contracts at premium ("deliver 50 lobsters") — goal-directed trading (FINDINGS #28)
 - ~~Tier-3 clerk perk: "trades events too"~~ DROPPED: contradicts the human-territory design rule (FINDINGS #27/#35 — clerks farm neither events nor exotics)

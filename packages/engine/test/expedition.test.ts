@@ -297,23 +297,42 @@ describe('expeditions', () => {
     expect(met).toBe(true); // 10% per Maw monster across 100 seeds × 6 steps
   });
 
-  it('fleeing ends the encounter without kill credit; market RNG is untouched', () => {
+  it('advance costs exactly one world tick; embark and extract are free', () => {
+    const { state, id } = fixture(11);
+    expect(state.tick).toBe(0);
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    expect(state.tick).toBe(0); // embarking is instant
+    ok(state, id, { type: 'advance' });
+    expect(state.tick).toBe(1); // the trek costs time (FINDINGS #45)
+    const agent = state.agents[id]!;
+    if (agent.expedition && !agent.expedition.combat && !agent.expedition.event) {
+      ok(state, id, { type: 'extract' });
+      expect(state.tick).toBe(1); // walking home is instant
+    }
+    // Rejected advances must NOT consume time (replays apply logs verbatim).
+    const r = applyCommand(state, id, { type: 'advance' });
+    if (!r.ok) expect(state.tick).toBe(1);
+  });
+
+  it('fleeing ends the encounter without kill credit; every combat round costs a tick', () => {
     const { state, id } = fixture(11);
     const agent = state.agents[id]!;
-    const marketCursor = state.rngState;
     ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: { shark: 2 } });
     let guard = 0;
     while (agent.expedition && !agent.expedition.combat && guard++ < 30) {
       if (agent.expedition.event) ok(state, id, { type: 'choose', accept: false });
-      else ok(state, id, { type: 'advance' });
+      else ok(state, id, { type: 'advance' }); // moves the world clock (by design)
     }
+    const tickBefore = state.tick;
+    let rounds = 0;
     while (agent.expedition?.combat && guard++ < 80) {
       ok(state, id, { type: 'fleeCombat' });
+      rounds++;
       if (agent.expedition && !agent.expedition.combat) break;
     }
     if (agent.expedition) {
       expect(agent.expedition.cleared).toBe(0); // running away earns nothing
     }
-    expect(state.rngState).toBe(marketCursor); // the world's cursor never moved
+    expect(state.tick).toBe(tickBefore + rounds); // time passes while you scramble
   });
 });

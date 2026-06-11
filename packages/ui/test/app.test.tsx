@@ -559,11 +559,11 @@ describe('UI shell', () => {
     fireEvent.click(within(panel).getByText('embark'));
     const agent = game.world.agents[game.playerId]!;
     expect(agent.expedition).toBeTruthy();
-    expect(screen.getByText('venture deeper')).toBeTruthy();
+    expect(screen.getByText(/venture deeper/)).toBeTruthy();
     // Drive until a combat happens, declining choice events — real engine.
     for (let i = 0; i < 30 && agent.expedition && !agent.expedition.combat; i++) {
       if (agent.expedition.event) fireEvent.click(screen.getByText('walk on'));
-      else fireEvent.click(screen.getByText('venture deeper'));
+      else fireEvent.click(screen.getByText(/venture deeper/));
     }
     expect(agent.expedition?.combat).toBeTruthy();
     expect(screen.getByRole('button', { name: 'fight' })).toBeTruthy();

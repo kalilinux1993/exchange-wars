@@ -159,10 +159,10 @@ export function ExpeditionPanel({
             ))}
           </ul>
           <div className="controls">
-            <button className="chip" onClick={() => onCommand({ type: 'fight' })}>
+            <button className="chip" title="one round — the market moves one tick" onClick={() => onCommand({ type: 'fight' })}>
               fight
             </button>
-            <button className="chip" onClick={() => onCommand({ type: 'fleeCombat' })}>
+            <button className="chip" title="one round — the market moves one tick" onClick={() => onCommand({ type: 'fleeCombat' })}>
               flee
             </button>
             {foods.map(([id, qty]) => (
@@ -186,8 +186,8 @@ export function ExpeditionPanel({
         </>
       ) : (
         <div className="controls">
-          <button className="chip" onClick={() => onCommand({ type: 'advance' })}>
-            venture deeper
+          <button className="chip" title="each step takes time — the market moves one tick" onClick={() => onCommand({ type: 'advance' })}>
+            venture deeper (+1 tick)
           </button>
           <button
             className="chip"
