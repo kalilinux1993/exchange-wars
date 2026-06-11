@@ -16,6 +16,7 @@ import { deathRecap, MILESTONES, type Game } from '../game';
 import { usePref } from '../usePref';
 import { CharacterPanel } from './CharacterPanel';
 import { CombatScene } from './CombatScene';
+import { Icon, itemIcon } from './Icon';
 import { RegionMap } from './RegionMap';
 
 /**
@@ -244,7 +245,9 @@ export function ExpeditionPanel({
             const inert = g !== undefined && (g.slot === 'weapon' ? lvls.atk : lvls.def) < g.req;
             return (
             <li key={id} className={inert ? 'dim' : ''} title={inert ? `requires ${g!.slot === 'weapon' ? 'Attack' : 'Defence'} ${g!.req} — carried gear below your level is inert` : undefined}>
-              <span>{names.get(id) ?? id}</span>
+              <span>
+                <Icon name={itemIcon(id).name} glyph={itemIcon(id).glyph} size={14} className="itemicon" /> {names.get(id) ?? id}
+              </span>
               <span className="dim small">
                 {g
                   ? `atk ${g.atk} def ${g.def} · req ${g.slot === 'weapon' ? '⚔' : '🛡'}${g.req}${inert ? ' 🔒' : ''}`

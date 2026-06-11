@@ -28,6 +28,7 @@ Authored for this project; covered by the project's own license. Placeholder
 defaults — drop a game-icons.net (CC BY) or CC0 file with the same name to
 replace any of them.
 - `skill-attack.svg`, `skill-defence.svg`, `skill-hitpoints.svg` — sword / shield / heart (original SVG)
+- `item-potion.svg`, `item-food.svg`, `item-rune.svg`, `item-bone.svg` — category icons for the inventory/pack lists (original SVG)
 
 ## Explicitly NOT used
 - Jagex / Old School RuneScape game sprites — Jagex copyright.

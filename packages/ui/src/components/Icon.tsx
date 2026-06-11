@@ -11,10 +11,24 @@
  *   - CC0 / public-domain art needs no attribution, but list it anyway.
  *   - NEVER add Jagex/OSRS sprites or CC BY-NC-SA (OSRS Wiki) art.
  */
+import { CONSUMABLES, GEAR } from '@exchange-wars/engine';
+
 const ICON_URLS = import.meta.glob('../assets/icons/*.svg', { eager: true, query: '?url', import: 'default' }) as Record<
   string,
   string
 >;
+
+/** Map an item id to a category icon (name + emoji fallback) — weapons/armor
+ * reuse the skill icons, the rest are item-* originals; runes/bones by id. */
+export function itemIcon(id: string): { name: string; glyph: string } {
+  const g = GEAR[id];
+  if (g) return g.slot === 'weapon' ? { name: 'skill-attack', glyph: '⚔' } : { name: 'skill-defence', glyph: '🛡' };
+  const c = CONSUMABLES[id];
+  if (c) return c.heal > 0 && !c.antifire && !c.boostAtk && !c.boostDef ? { name: 'item-food', glyph: '🍖' } : { name: 'item-potion', glyph: '⚗' };
+  if (id.includes('bone')) return { name: 'item-bone', glyph: '🦴' };
+  if (id.includes('rune')) return { name: 'item-rune', glyph: '🔮' };
+  return { name: 'item-misc', glyph: '◆' }; // no asset → glyph fallback
+}
 
 export function iconUrl(name: string): string | undefined {
   return ICON_URLS[`../assets/icons/${name}.svg`];

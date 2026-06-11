@@ -1030,6 +1030,9 @@ th.num {
 .valueband.fair {
   color: var(--parchment-dim);
 }
+.itemicon {
+  vertical-align: -2px;
+}
 .pulse {
   display: inline-flex;
   align-items: center;

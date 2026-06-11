@@ -1,6 +1,7 @@
 import { GEAR } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { bidWalk, type Game } from '../game';
+import { Icon, itemIcon } from './Icon';
 
 export function PlayerPanel({
   game,
@@ -36,7 +37,9 @@ export function PlayerPanel({
           const walk = bidWalk(game, i.id, qty);
           return (
             <li key={i.id}>
-              <span>{i.name}</span>
+              <span>
+                <Icon name={itemIcon(i.id).name} glyph={itemIcon(i.id).glyph} size={14} className="itemicon" /> {i.name}
+              </span>
               <span className="num">
                 {qty.toLocaleString('en-US')} · bids pay ≈{(walk?.gp ?? 0).toLocaleString('en-US')} gp
               </span>

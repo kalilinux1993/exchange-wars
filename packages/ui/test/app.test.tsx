@@ -6,7 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../src/App';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
-import { Icon } from '../src/components/Icon';
+import { Icon, itemIcon } from '../src/components/Icon';
 import { MoversPanel } from '../src/components/MoversPanel';
 import { LeaderboardPanel } from '../src/components/LeaderboardPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
@@ -649,6 +649,20 @@ describe('UI shell', () => {
     expect(localStorage.getItem('exchange-wars-save-v1')).toBe('{"sentinel":true}');
     localStorage.removeItem('exchange-wars-save-v1');
     spy.mockRestore();
+  });
+
+  it('itemIcon categorizes items and the inventory shows icons', () => {
+    expect(itemIcon('rune_2h_sword').name).toBe('skill-attack'); // weapon → sword
+    expect(itemIcon('rune_platebody').name).toBe('skill-defence'); // armor → shield
+    expect(itemIcon('shark').name).toBe('item-food'); // pure food
+    expect(itemIcon('super_antifire_potion_4').name).toBe('item-potion'); // potion
+    expect(itemIcon('superior_dragon_bones').name).toBe('item-bone');
+    expect(itemIcon('blood_rune').name).toBe('item-rune');
+    const game = newGame(42);
+    game.world.agents[game.playerId]!.inventory['shark'] = 2;
+    render(<App initial={game} />);
+    const player = document.querySelector('.player') as HTMLElement;
+    expect(player.querySelector('.itemicon')).toBeTruthy(); // inventory rows carry an icon
   });
 
   it('the icon pipeline renders dropped-in art and falls back to the glyph otherwise', () => {
