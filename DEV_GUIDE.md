@@ -1,5 +1,12 @@
 # Dev Guide
 
+## Phase 8e — Choices in the Dark (2026-06-11, Expeditions brick 5)
+
+- **Encounter mix** (commands.ts advance, odds in quest.ts ENCOUNTERS): 60% monster, 15% cache (gp mints, scales with region depth), 10% snare (hp loss; lethal traps reuse `expeditionDeath` — the keep-3 rule now lives in one helper), 15% choice event.
+- **`choose {accept}` command** resolves events: Shrine (tithe `max(50, packGp/4)` → full heal; cost burns), Goblin Dice (stake 100; win mints, loss burns). Declining is always free. `exp.journal` narrates non-combat moments (rendered under the controls).
+- Test-loop rule: anything that drives expeditions must handle THREE states (combat / event / open path). E2e asserts "whatever the dark sends" via regex.
+- verify-score redeployed (66.7kb) — choose/journal shapes now replay server-side.
+
 ## Phase 8c — Expedition UI (2026-06-11, Expeditions brick 3)
 
 - **ExpeditionPanel** (third column, above the Sprint Board): region list with frontier locks (🔒/⚑/✓), pack builder over quest-relevant inventory (qty steppers; gear shows atk/def, food shows heals), embark; in the field — hp bar, atk/def/cleared/loot line, venture/extract; in combat — monster hp bar, last 5 log lines, fight/flee/eat-(food) chips. Reads world for display; every mutation via onCommand.

@@ -72,7 +72,12 @@ describe('expeditions', () => {
     ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: { rune_2h_sword: 1, rune_platebody: 1, rune_kiteshield: 1, shark: 4 } });
     let guard = 0;
     while (agent.expedition && agent.expedition.cleared < REGION_CLEAR_KILLS && guard++ < 200) {
-      if (agent.expedition.combat) ok(state, id, { type: 'fight' });
+      const exp = agent.expedition;
+      if (exp.combat) {
+        // Deterministic survival instinct: eat when hurt, else swing.
+        if (exp.combat.playerHp < 20 && (exp.pack['shark'] ?? 0) > 0) ok(state, id, { type: 'eatFood', itemId: 'shark' });
+        else ok(state, id, { type: 'fight' });
+      } else if (exp.event) ok(state, id, { type: 'choose', accept: false });
       else ok(state, id, { type: 'advance' });
     }
     expect(agent.expedition, 'died on the PLAINS in full rune??').toBeTruthy();
@@ -99,6 +104,7 @@ describe('expeditions', () => {
     let guard = 0;
     while (agent.expedition && guard++ < 300) {
       if (agent.expedition.combat) ok(state, id, { type: 'fight' });
+      else if (agent.expedition.event) ok(state, id, { type: 'choose', accept: false });
       else ok(state, id, { type: 'advance' });
     }
     expect(agent.expedition).toBeUndefined(); // the depths took them
@@ -139,6 +145,7 @@ describe('expeditions', () => {
       let guard = 0;
       while (agent.expedition && agent.expedition.cleared < 2 && guard++ < 120) {
         if (agent.expedition.combat) applyCommand(state, id, { type: 'fight' });
+        else if (agent.expedition.event) applyCommand(state, id, { type: 'choose', accept: true });
         else applyCommand(state, id, { type: 'advance' });
       }
       if (agent.expedition && !agent.expedition.combat) applyCommand(state, id, { type: 'extract' });
@@ -151,14 +158,78 @@ describe('expeditions', () => {
     checkInvariants(a.state);
   });
 
+  it('choices in the dark: shrine and dice resolve both ways, fully conserved', () => {
+    const { state, id } = fixture(21);
+    const agent = state.agents[id]!;
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: { shark: 2 } });
+    const exp = agent.expedition!;
+    // Fixture loot gp (conserved: booked as minted).
+    exp.packGp += 1_000;
+    state.ledger.gpMinted += 1_000;
+    exp.hp = 10;
+    // Shrine accept: pays max(50, packGp/4), heals to full, burn booked.
+    exp.event = { kind: 'shrine', prompt: 'test shrine' };
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.hp).toBe(PLAYER_BASE.maxHp);
+    expect(exp.packGp).toBe(750);
+    expect(state.ledger.gpBurned).toBeGreaterThanOrEqual(250);
+    // Gamble: both outcomes occur across seeds, each conserved.
+    let won = 0;
+    let lost = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      const f = fixture(seed);
+      const a2 = f.state.agents[f.id]!;
+      ok(f.state, f.id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+      const e2 = a2.expedition!;
+      e2.packGp += 500;
+      f.state.ledger.gpMinted += 500;
+      e2.event = { kind: 'gamble', prompt: 'test dice' };
+      ok(f.state, f.id, { type: 'choose', accept: true });
+      if (e2.packGp === 600) won++;
+      else if (e2.packGp === 400) lost++;
+      else throw new Error(`unexpected packGp ${e2.packGp}`);
+    }
+    expect(won).toBeGreaterThan(0);
+    expect(lost).toBeGreaterThan(0);
+    // Declining is always free.
+    exp.event = { kind: 'gamble', prompt: 'test dice' };
+    const before = exp.packGp;
+    ok(state, id, { type: 'choose', accept: false });
+    expect(exp.packGp).toBe(before);
+  });
+
+  it('advance rolls non-combat encounters too (cache/trap/event seen across seeds)', () => {
+    let cache = 0;
+    let trap = 0;
+    let event = 0;
+    let monster = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const { state, id } = fixture(seed);
+      const agent = state.agents[id]!;
+      ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+      ok(state, id, { type: 'advance' });
+      const exp = agent.expedition;
+      if (!exp) trap++; // a lethal trap on a naked 50hp run can't happen (max 6) — but stay safe
+      else if (exp.combat) monster++;
+      else if (exp.event) event++;
+      else if ((exp.journal ?? []).some((l) => l.includes('cache'))) cache++;
+      else if ((exp.journal ?? []).some((l) => l.includes('snare'))) trap++;
+    }
+    expect(monster).toBeGreaterThan(0);
+    expect(cache + trap + event).toBeGreaterThan(0); // the dark holds more than monsters
+  });
+
   it('fleeing ends the encounter without kill credit; market RNG is untouched', () => {
     const { state, id } = fixture(11);
     const agent = state.agents[id]!;
     const marketCursor = state.rngState;
     ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: { shark: 2 } });
-    ok(state, id, { type: 'advance' });
     let guard = 0;
-    while (agent.expedition?.combat && guard++ < 50) {
+    while (agent.expedition && !agent.expedition.combat && guard++ < 30) {
+      if (agent.expedition.event) ok(state, id, { type: 'choose', accept: false });
+      else ok(state, id, { type: 'advance' });
+    }
+    while (agent.expedition?.combat && guard++ < 80) {
       ok(state, id, { type: 'fleeCombat' });
       if (agent.expedition && !agent.expedition.combat) break;
     }

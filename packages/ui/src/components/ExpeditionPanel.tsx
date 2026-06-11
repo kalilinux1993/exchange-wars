@@ -163,6 +163,18 @@ export function ExpeditionPanel({
             ))}
           </div>
         </>
+      ) : exp.event ? (
+        <>
+          <p className="small">⚖ {exp.event.prompt}</p>
+          <div className="controls">
+            <button className="chip" onClick={() => onCommand({ type: 'choose', accept: true })}>
+              {exp.event.kind === 'shrine' ? 'pay the tithe' : 'roll the dice'}
+            </button>
+            <button className="chip" onClick={() => onCommand({ type: 'choose', accept: false })}>
+              walk on
+            </button>
+          </div>
+        </>
       ) : (
         <div className="controls">
           <button className="chip" onClick={() => onCommand({ type: 'advance' })}>
@@ -183,6 +195,15 @@ export function ExpeditionPanel({
             extract (keep everything)
           </button>
         </div>
+      )}
+      {!exp.combat && (exp.journal?.length ?? 0) > 0 && (
+        <ul className="rows small combatlog">
+          {exp.journal!.slice(-4).map((line, i) => (
+            <li key={`${exp.journal!.length}-${i}`} className="dim">
+              {line}
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   );

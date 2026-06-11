@@ -99,6 +99,23 @@ export function expeditionSeed(worldSeed: number, expeditionId: number): number 
   return ((worldSeed ^ 0x9e3779b9) + Math.imul(expeditionId, 0x85ebca6b)) >>> 0;
 }
 
+/** A pending choice event — resolved by the `choose` command. */
+export interface EventState {
+  kind: 'shrine' | 'gamble';
+  prompt: string;
+}
+
+/** Encounter odds per advance (cumulative roll on the expedition RNG). */
+export const ENCOUNTERS = {
+  monster: 0.6,
+  cache: 0.15,
+  trap: 0.1,
+  // remainder: a choice event (shrine/gamble, 50/50)
+} as const;
+
+export const SHRINE_MIN_COST = 50;
+export const GAMBLE_STAKE = 100;
+
 /** An expedition in progress — plain JSON, lives on the agent. */
 export interface ExpeditionState {
   regionId: string;
@@ -112,6 +129,10 @@ export interface ExpeditionState {
   /** Encounters won this trip. */
   cleared: number;
   combat: CombatState | null;
+  /** A pending choice event (mutually exclusive with combat). */
+  event?: EventState | null;
+  /** Field journal — what happened between fights (UI narration). */
+  journal?: string[];
 }
 
 export interface FighterStats {

@@ -217,6 +217,14 @@ function regionIndex(id) {
 function expeditionSeed(worldSeed, expeditionId) {
   return (worldSeed ^ 2654435769) + Math.imul(expeditionId, 2246822507) >>> 0;
 }
+var ENCOUNTERS = {
+  monster: 0.6,
+  cache: 0.15,
+  trap: 0.1
+  // remainder: a choice event (shrine/gamble, 50/50)
+};
+var SHRINE_MIN_COST = 50;
+var GAMBLE_STAKE = 100;
 function deriveStats(pack) {
   const best = {};
   for (const [itemId, qty] of Object.entries(pack)) {
@@ -369,6 +377,21 @@ var PROGRESSION = {
     autoFlip: { costs: [5e4, 15e4, 4e5] }
   }
 };
+function expeditionDeath(state, agent, exp) {
+  const units = [];
+  for (const [itemId, qty] of Object.entries(exp.pack)) {
+    const cost = itemDef(state, itemId)?.baseCost ?? 0;
+    for (let i = 0; i < qty; i++) units.push({ itemId, cost });
+  }
+  units.sort((a, b) => b.cost - a.cost || (a.itemId < b.itemId ? -1 : 1));
+  for (let i = 0; i < units.length; i++) {
+    const u = units[i];
+    if (i < 3) agent.inventory[u.itemId] = (agent.inventory[u.itemId] ?? 0) + 1;
+    else state.ledger.itemsBurned[u.itemId] = (state.ledger.itemsBurned[u.itemId] ?? 0) + 1;
+  }
+  state.ledger.gpBurned += exp.packGp;
+  delete agent.expedition;
+}
 function playerOf(state, playerId) {
   const agent = state.agents[playerId];
   if (!agent || agent.id !== playerId || agent.kind !== "player") return null;
@@ -504,6 +527,7 @@ function applyCommand(state, playerId, cmd) {
       }
       const expId = state.nextExpeditionId ?? 1;
       state.nextExpeditionId = expId + 1;
+      state.stats.deepestRegion = Math.max(state.stats.deepestRegion ?? 0, idx);
       agent.expedition = {
         regionId: cmd.regionId,
         rngState: expeditionSeed(state.seed, expId),
@@ -519,9 +543,66 @@ function applyCommand(state, playerId, cmd) {
       const exp = agent.expedition;
       if (!exp) return { ok: false, reason: "not-out", trades: [] };
       if (exp.combat) return { ok: false, reason: "in-combat", trades: [] };
+      if (exp.event) return { ok: false, reason: "in-event", trades: [] };
       const region = REGIONS[regionIndex(exp.regionId)];
       const rng = createRng(exp.rngState);
-      exp.combat = newCombat(rng.pick(region.monsters), exp.hp);
+      const roll = rng.next();
+      const journal = exp.journal ??= [];
+      if (roll < ENCOUNTERS.monster) {
+        exp.combat = newCombat(rng.pick(region.monsters), exp.hp);
+      } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache) {
+        const found = rng.int(20, 60 + 40 * regionIndex(exp.regionId));
+        state.ledger.gpMinted += found;
+        exp.packGp += found;
+        journal.push(`you pry open a forgotten cache: +${found} gp`);
+      } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache + ENCOUNTERS.trap) {
+        const dmg = rng.int(3, 6 + 3 * regionIndex(exp.regionId));
+        exp.hp -= dmg;
+        journal.push(`a snare bites \u2014 ${dmg} hp`);
+        if (exp.hp <= 0) {
+          journal.push("the trap was the last thing you never saw");
+          expeditionDeath(state, agent, exp);
+        }
+      } else if (rng.chance(0.5)) {
+        exp.event = { kind: "shrine", prompt: "a shrine hums in the dark \u2014 tithe a quarter of your loot gp for full healing?" };
+      } else {
+        exp.event = { kind: "gamble", prompt: `a goblin rattles a cup of dice \u2014 stake ${GAMBLE_STAKE} loot gp, double or nothing?` };
+      }
+      exp.rngState = rng.state();
+      return { ok: true, trades: [] };
+    }
+    case "choose": {
+      const exp = agent.expedition;
+      if (!exp || !exp.event) return { ok: false, reason: "no-event", trades: [] };
+      const ev = exp.event;
+      const rng = createRng(exp.rngState);
+      const journal = exp.journal ??= [];
+      if (!cmd.accept) {
+        journal.push("you walk on");
+      } else if (ev.kind === "shrine") {
+        const cost = Math.max(SHRINE_MIN_COST, Math.floor(exp.packGp / 4));
+        if (exp.packGp < cost) {
+          journal.push("the shrine finds your offering wanting");
+        } else {
+          exp.packGp -= cost;
+          state.ledger.gpBurned += cost;
+          exp.hp = PLAYER_BASE.maxHp;
+          journal.push(`the shrine takes ${cost} gp and knits your wounds`);
+        }
+      } else {
+        if (exp.packGp < GAMBLE_STAKE) {
+          journal.push("the goblin counts your purse and laughs");
+        } else if (rng.chance(0.5)) {
+          state.ledger.gpMinted += GAMBLE_STAKE;
+          exp.packGp += GAMBLE_STAKE;
+          journal.push(`the dice land your way: +${GAMBLE_STAKE} gp`);
+        } else {
+          exp.packGp -= GAMBLE_STAKE;
+          state.ledger.gpBurned += GAMBLE_STAKE;
+          journal.push(`the goblin scoops your ${GAMBLE_STAKE} gp, cackling`);
+        }
+      }
+      exp.event = null;
       exp.rngState = rng.state();
       return { ok: true, trades: [] };
     }
@@ -553,25 +634,14 @@ function applyCommand(state, playerId, cmd) {
         }
         exp.cleared += 1;
         exp.hp = c.playerHp;
+        state.stats.monstersSlain = (state.stats.monstersSlain ?? 0) + 1;
         const idx = regionIndex(exp.regionId);
         if (exp.cleared >= REGION_CLEAR_KILLS && idx === (agent.questProgress ?? 0) && idx < REGIONS.length - 1) {
           agent.questProgress = idx + 1;
         }
         exp.combat = null;
       } else if (c.outcome === "dead") {
-        const units = [];
-        for (const [itemId, qty] of Object.entries(exp.pack)) {
-          const cost = itemDef(state, itemId)?.baseCost ?? 0;
-          for (let i = 0; i < qty; i++) units.push({ itemId, cost });
-        }
-        units.sort((a, b) => b.cost - a.cost || (a.itemId < b.itemId ? -1 : 1));
-        for (let i = 0; i < units.length; i++) {
-          const u = units[i];
-          if (i < 3) agent.inventory[u.itemId] = (agent.inventory[u.itemId] ?? 0) + 1;
-          else state.ledger.itemsBurned[u.itemId] = (state.ledger.itemsBurned[u.itemId] ?? 0) + 1;
-        }
-        state.ledger.gpBurned += exp.packGp;
-        delete agent.expedition;
+        expeditionDeath(state, agent, exp);
       } else if (c.outcome === "fled") {
         exp.hp = c.playerHp;
         exp.combat = null;

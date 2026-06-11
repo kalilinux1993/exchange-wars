@@ -549,16 +549,19 @@ describe('UI shell', () => {
     const agent = game.world.agents[game.playerId]!;
     expect(agent.expedition).toBeTruthy();
     expect(screen.getByText('venture deeper')).toBeTruthy();
-    fireEvent.click(screen.getByText('venture deeper'));
-    expect(agent.expedition!.combat).toBeTruthy();
+    // Drive until a combat happens, declining choice events — real engine.
+    for (let i = 0; i < 30 && agent.expedition && !agent.expedition.combat; i++) {
+      if (agent.expedition.event) fireEvent.click(screen.getByText('walk on'));
+      else fireEvent.click(screen.getByText('venture deeper'));
+    }
+    expect(agent.expedition?.combat).toBeTruthy();
     expect(screen.getByRole('button', { name: 'fight' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'flee' })).toBeTruthy();
-    // Fight until the encounter resolves one way or another — real engine.
     for (let i = 0; i < 60 && agent.expedition?.combat; i++) {
       fireEvent.click(screen.getByRole('button', { name: 'fight' }));
     }
     if (agent.expedition) {
-      // survived: extract brings everything home
+      while (agent.expedition?.event) fireEvent.click(screen.getByText('walk on'));
       fireEvent.click(screen.getByText(/extract/));
       expect(agent.expedition).toBeUndefined();
     }
