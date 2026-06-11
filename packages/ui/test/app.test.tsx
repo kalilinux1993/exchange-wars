@@ -2,7 +2,7 @@
 // Catalog-agnostic: everything derives from DEFAULT_ITEMS so `npm run
 // gen:catalog` regens never break these tests.
 import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, playerView, SPRINT_TICKS, tickWorld, xpForLevel } from '@exchange-wars/engine';
-import type { AgentState } from '@exchange-wars/engine';
+import type { AgentState, SimStats } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ItemDef, PlayerView } from '@exchange-wars/engine';
@@ -12,6 +12,7 @@ import { Icon, itemIcon } from '../src/components/Icon';
 import { MoversPanel } from '../src/components/MoversPanel';
 import { CharacterPanel, equipped, lockedUpgrades } from '../src/components/CharacterPanel';
 import { TopFlips, rankFlips } from '../src/components/TopFlips';
+import { RecordsPanel, recordRows } from '../src/components/RecordsPanel';
 import { LeaderboardPanel } from '../src/components/LeaderboardPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { ghostWorthAt } from '../src/components/WorthChart';
@@ -519,6 +520,31 @@ describe('UI shell', () => {
     ];
     render(<App initial={game} />);
     expect(screen.getByText(/\+600 gp\/min/)).toBeTruthy();
+  });
+
+  describe('recordRows', () => {
+    it('reads stats with zero defaults and hides sellsword rows until used', () => {
+      const rows = recordRows({ contractsFilled: 3, bountiesClaimed: 5 } as unknown as SimStats);
+      const byLabel = Object.fromEntries(rows.map((r) => [r.label, r.value]));
+      expect(byLabel['Bounties claimed']).toBe('5');
+      expect(byLabel['Contracts filled']).toBe('3');
+      expect(byLabel['Monsters slain']).toBe('0'); // absent → 0
+      expect(rows.some((r) => r.label.startsWith('Sellsword'))).toBe(false);
+    });
+    it('appends compacted sellsword rows once the hireling has banked gp', () => {
+      const rows = recordRows({ sellswordKills: 4, sellswordBanked: 1_234_567 } as unknown as SimStats);
+      const banked = rows.find((r) => r.label === 'Sellsword gp banked')!;
+      expect(banked.value).toBe('1.23M'); // compacted
+      expect(banked.title).toBe('1,234,567 gp'); // exact in the tooltip
+      expect(rows.find((r) => r.label === 'Sellsword kills')!.value).toBe('4');
+    });
+  });
+
+  it('RecordsPanel renders the adventurer record in the hall', () => {
+    render(<RecordsPanel game={newGame(42)} />);
+    expect(screen.getByText(/Adventurer.s Record/)).toBeTruthy();
+    expect(screen.getByText('Bounties claimed')).toBeTruthy();
+    expect(screen.getByText('Bestiary met')).toBeTruthy();
   });
 
   it('CharacterPanel renders the "train to unlock" hints for gated gear', () => {

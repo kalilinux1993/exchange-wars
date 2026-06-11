@@ -16,6 +16,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { MarketTable } from './components/MarketTable';
 import { TopFlips } from './components/TopFlips';
 import { MilestonesPanel } from './components/MilestonesPanel';
+import { RecordsPanel } from './components/RecordsPanel';
 import type { TicketPrefill } from './components/TradeTicket';
 import { PlayerPanel } from './components/PlayerPanel';
 import { TradeFeed } from './components/TradeFeed';
@@ -792,6 +793,7 @@ export function App({ initial }: { initial?: Game }) {
       <main className={room === 'hall' ? 'board' : 'board tabhidden'}>
         <section className="middle">
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
+          <RecordsPanel game={game} />
           <AlmanacPanel game={game} />
         </section>
         <section className="middle">
