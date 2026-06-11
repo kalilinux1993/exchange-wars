@@ -606,12 +606,30 @@ export function importSaveString(raw: string): Game | null {
   }
 }
 
+/** Where an unreadable save is quarantined so a fresh start can't destroy it. */
+export const CORRUPT_SAVE_KEY = `${SAVE_KEY}-corrupt`;
+
 export function loadGame(): Game | null {
   const raw = localStorage.getItem(SAVE_KEY);
   if (raw === null) return null;
   try {
-    return normalizeGame(JSON.parse(raw) as Game);
-  } catch {
+    const parsed = JSON.parse(raw) as unknown;
+    // Same shape gate as importSaveString — a parseable-but-wrong object would
+    // otherwise normalize into a half-baked Game that crashes later in render.
+    if (!parsed || typeof parsed !== 'object' || !(parsed as Game).world || typeof (parsed as Game).playerId !== 'number') {
+      throw new Error('save shape invalid');
+    }
+    return normalizeGame(parsed as Game);
+  } catch (e) {
+    // Don't silently destroy a save we couldn't read — the first autosave of
+    // a fresh game is about to overwrite SAVE_KEY. Quarantine the original so
+    // it's recoverable (export/import) instead of lost forever.
+    try {
+      localStorage.setItem(CORRUPT_SAVE_KEY, raw);
+    } catch {
+      /* quota — nothing more we can do */
+    }
+    console.error('Exchange Wars: unreadable save quarantined to', CORRUPT_SAVE_KEY, e);
     return null;
   }
 }

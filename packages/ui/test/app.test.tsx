@@ -20,6 +20,7 @@ import {
   ghostForRestart,
   HUMAN_START_GP,
   importSaveString,
+  loadGame,
   newGame,
   normalizeGame,
   OFFLINE_CAP_TICKS,
@@ -601,6 +602,21 @@ describe('UI shell', () => {
       expect(agent.expedition.cleared).toBeGreaterThanOrEqual(1); // settled by victory
     }
     // (no expedition at all = died fighting — also a settled fight)
+  });
+
+  it('a corrupt save is quarantined, not silently destroyed, and boot starts fresh', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // Unparseable garbage.
+    localStorage.setItem('exchange-wars-save-v1', 'not json {{{');
+    expect(loadGame()).toBeNull(); // fresh start, not a crash
+    expect(localStorage.getItem('exchange-wars-save-v1-corrupt')).toBe('not json {{{'); // preserved
+    // Parseable but wrong shape (e.g. a future/foreign format) — also quarantined.
+    localStorage.setItem('exchange-wars-save-v1', '{"foo":1}');
+    expect(loadGame()).toBeNull();
+    expect(localStorage.getItem('exchange-wars-save-v1-corrupt')).toBe('{"foo":1}');
+    localStorage.removeItem('exchange-wars-save-v1');
+    localStorage.removeItem('exchange-wars-save-v1-corrupt');
+    spy.mockRestore();
   });
 
   it('the error boundary catches a render crash and offers recovery (save untouched)', () => {
