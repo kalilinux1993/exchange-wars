@@ -3,7 +3,7 @@
 ## Phase 1 leftovers (minor, non-blocking)
 - [ ] Hard cap on resting orders per agent/book (spam-test finding: books are soft-bounded by agent cancel discipline only)
 - [ ] Trades window: switch `shift()` to ring buffer if window grows beyond 512
-- [ ] Consider `fast-check` property tests over many random seeds (architect's 1000-seed gate; currently 5 fixed seeds + 3 market seeds)
+- [x] ~~Property tests over many random seeds~~ DONE phase 6r: manyseed.test.ts — 64 derived seeds × conservation + snapshot-resume hash equality, ~30s (no fast-check dependency needed)
 - [ ] Determinism gate at 100k ticks in a slow/CI-only suite (current: 1.5k–6k ticks in the fast suite)
 
 ## Phase 2 — DONE 2026-06-10 (command protocol, slots, offline accrual)

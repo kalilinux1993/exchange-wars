@@ -1,5 +1,9 @@
 # Dev Guide
 
+## Phase 6r — Many-Seed Robustness Gate (2026-06-10)
+
+- **New gate** (packages/engine/test/manyseed.test.ts): 64 seeds derived deterministically from master seed `0xc0ffee` (zero flakiness), each run 1k ticks → checkInvariants → JSON snapshot → both run 500 more ticks → `hashState` must match → invariants again. Catches seed-specific conservation/determinism violations the 5 fixed seeds can't. ~30s at 100 items — affordable only because of the 6p perf pass. Closes the Phase-1 "property tests" leftover without a fast-check dependency.
+
 ## Phase 6q — Catalog 100 (2026-06-10)
 
 - **Catalog 100** (68 staples + 32 exotics; exotic ladder tops at Dragon metal sheet). The re-roll broke tier 2 (competitive seed 11) — routine two-leg sweep relocked it at cad 8 / vol 0.12 (min +3,306); tiers 1/3 held. The whole sweep ran as ONE ~2.5-min command post-6p — re-rolls are now cheap maintenance.
