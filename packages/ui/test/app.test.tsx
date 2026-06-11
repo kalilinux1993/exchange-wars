@@ -680,6 +680,11 @@ describe('UI shell', () => {
     const scene = document.querySelector('.combatscene') as SVGElement;
     expect(scene).toBeTruthy();
     expect(scene.getAttribute('aria-label')).toContain('Goblin');
+    // Regression (9r): the bob animation must NOT clobber the monster's
+    // positioning transform — the animated group is nested inside an outer
+    // group that carries the translate to the right side of the scene.
+    const monster = scene.querySelector('.monster') as SVGElement;
+    expect(monster.parentElement?.getAttribute('transform')).toContain('translate(160');
     // Land a blow: monster hp drops, a fresh log entry → a splat appears.
     agent.expedition.combat!.monsterHp = 4;
     agent.expedition.combat!.log.push('you strike the Goblin for 8');

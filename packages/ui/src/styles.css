@@ -1045,9 +1045,9 @@ th.num {
   fill: var(--gold-bright);
   font-size: 12px;
 }
+/* Bob lives on an INNER group nested inside the positioning transform, so
+ * this CSS transform composes with (rather than clobbers) the placement. */
 .combatscene .monster {
-  transform-box: fill-box;
-  transform-origin: center;
   animation: monster-bob 2.4s ease-in-out infinite;
 }
 @keyframes monster-bob {

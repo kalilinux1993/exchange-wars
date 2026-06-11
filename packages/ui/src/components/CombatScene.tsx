@@ -64,25 +64,30 @@ export function CombatScene({
         <rect x={20} y={50} width={6} height={20} rx={2} className={geared ? 'doll-slot weapon on' : 'doll-slot weapon'} />
       </g>
 
-      {/* the monster (right), generated from its id + flags */}
-      <g className="monster" transform={`translate(160 ${52 - (big - 1) * 20}) scale(${big})`}>
-        <ellipse cx={0} cy={0} rx={16} ry={18} style={{ fill: `hsl(${hue} 45% 32%)`, stroke: `hsl(${hue} 55% 50%)`, strokeWidth: 1.5 }} />
-        <circle cx={-6} cy={-4} r={2.6} className="eye" />
-        <circle cx={6} cy={-4} r={2.6} className="eye" />
-        {m.dragonfire && (
-          <>
-            <polygon points="-12,-14 -7,-22 -4,-13" style={{ fill: '#e8643c' }} />
-            <polygon points="12,-14 7,-22 4,-13" style={{ fill: '#e8643c' }} />
-          </>
-        )}
-        {(m.leech ?? 0) > 0 && (
-          <>
-            <line x1={-14} y1={10} x2={-22} y2={18} className="tendril" />
-            <line x1={14} y1={10} x2={22} y2={18} className="tendril" />
-            <line x1={0} y1={16} x2={0} y2={26} className="tendril" />
-          </>
-        )}
-        {m.elite && <text x={0} y={-22} textAnchor="middle" className="crown">★</text>}
+      {/* the monster (right), generated from its id + flags. The positioning
+          transform lives on the OUTER <g> as an attribute; the bob animation
+          on the INNER <g> — a CSS transform would otherwise CLOBBER the
+          attribute transform and snap the monster to (0,0). */}
+      <g transform={`translate(160 ${52 - (big - 1) * 20}) scale(${big})`}>
+        <g className="monster">
+          <ellipse cx={0} cy={0} rx={16} ry={18} style={{ fill: `hsl(${hue} 45% 32%)`, stroke: `hsl(${hue} 55% 50%)`, strokeWidth: 1.5 }} />
+          <circle cx={-6} cy={-4} r={2.6} className="eye" />
+          <circle cx={6} cy={-4} r={2.6} className="eye" />
+          {m.dragonfire && (
+            <>
+              <polygon points="-12,-14 -7,-22 -4,-13" style={{ fill: '#e8643c' }} />
+              <polygon points="12,-14 7,-22 4,-13" style={{ fill: '#e8643c' }} />
+            </>
+          )}
+          {(m.leech ?? 0) > 0 && (
+            <>
+              <line x1={-14} y1={10} x2={-22} y2={18} className="tendril" />
+              <line x1={14} y1={10} x2={22} y2={18} className="tendril" />
+              <line x1={0} y1={16} x2={0} y2={26} className="tendril" />
+            </>
+          )}
+          {m.elite && <text x={0} y={-22} textAnchor="middle" className="crown">★</text>}
+        </g>
       </g>
 
       {/* hit splats — keyed by log length so each round replays the float */}
