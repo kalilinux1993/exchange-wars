@@ -31,22 +31,19 @@ import {
   clearSave,
   exportSaveString,
   importSaveString,
-  loadAlerts,
   loadGame,
-  loadWatch,
   newGame,
   recordFills,
   playerWorth,
   recordWorth,
-  saveAlerts,
   saveGame,
-  saveWatch,
   updateNews,
   type Game,
   type Milestone,
   type OfflinePlan,
   type OfflineResult,
 } from './game';
+import { usePref } from './usePref';
 
 const SPEEDS = [0, 1, 5, 20] as const;
 // Offline catch-ups at or under this run synchronously (sub-second); bigger
@@ -88,24 +85,17 @@ export function App({ initial }: { initial?: Game }) {
     setRoom(r);
     localStorage.setItem('ew-room', r);
   };
-  const [watch, setWatch] = useState<string[]>(loadWatch);
+  const [watch, setWatch] = usePref<string[]>('ew-watch', []);
   const toggleWatch = (id: string): void => {
-    setWatch((w) => {
-      const next = w.includes(id) ? w.filter((x) => x !== id) : [...w, id];
-      saveWatch(next);
-      return next;
-    });
+    setWatch(watch.includes(id) ? watch.filter((x) => x !== id) : [...watch, id]);
   };
-  const [alerts, setAlerts] = useState<Record<string, number>>(loadAlerts);
+  const [alerts, setAlerts] = usePref<Record<string, number>>('ew-alerts', {});
   const alertFired = useRef<Set<string>>(new Set());
   const setAlert = (id: string, price: number | null): void => {
-    setAlerts((a) => {
-      const next = { ...a };
-      if (price === null || !Number.isFinite(price) || price <= 0) delete next[id];
-      else next[id] = price;
-      saveAlerts(next);
-      return next;
-    });
+    const next = { ...alerts };
+    if (price === null || !Number.isFinite(price) || price <= 0) delete next[id];
+    else next[id] = price;
+    setAlerts(next);
     alertFired.current.delete(id); // re-arm on edit
   };
   const closeHelp = (): void => {

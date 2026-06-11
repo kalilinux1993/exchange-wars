@@ -9,7 +9,7 @@ Through brick 49 (9w): RPG layer (8 regions, stats/xp, brews, bounties, sellswor
 - **POPULATE ART**: drop game-icons.net (CC BY) / CC0 SVGs into `packages/ui/src/assets/icons/` (naming in the folder README), credit in CREDITS.md; route monster/item/region glyphs through `<Icon>`. Auto-fetch is impossible (WebFetch strips SVG paths) — Jesse-drop or hand-author originals.
 - **HUD depth**: richer paperdoll (per-item silhouettes); ~~monster shape variety~~ DONE 9y; ~~equip discoverability~~ DONE 9z (Pack & Equip rename + ⚔ equip best button + Ledger pointer); inventory/equipment grid; OSRS-style icon sub-tabs if a room crowds.
 - **Trading**: ~~market-breadth line~~ DONE 10a; ~~price alerts~~ DONE 10b (buy-below threshold, latched toast, 🔔 row); sparkline in market-table rows.
-- **Code health**: a `usePref` helper to dedupe the 5 localStorage UI-prefs (ew-room/title/loadouts/watch/alerts) — now overdue.
+- **Code health**: ~~usePref helper~~ DONE 10c (loadouts/watch/alerts via usePref; title/room stay bespoke — raw-string / validated-enum).
 - **Robustness**: UI to restore/export a quarantined save on next boot; guard monsterById/itemDef at UI read sites; 100k-tick determinism gate in a CI-only suite.
 - **RPG content**: more event faces (each bends a system no other does, FINDINGS #64); a 9th region (needs a NEW resource to extort); an attack/strength brew (needs a clean attack-flavored catalog potion — none in the current snapshot); encounter depletion (only if an audit shows the TAS tail needs bounding).
 - **Jesse-gated**: prestige/rebirth loop; a deeper art-direction steering pass.

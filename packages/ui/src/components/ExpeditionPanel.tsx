@@ -12,7 +12,8 @@ import {
 } from '@exchange-wars/engine';
 import type { PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { deathRecap, loadLoadouts, MILESTONES, saveLoadouts, type Game } from '../game';
+import { deathRecap, MILESTONES, type Game } from '../game';
+import { usePref } from '../usePref';
 import { CharacterPanel } from './CharacterPanel';
 import { CombatScene } from './CombatScene';
 import { RegionMap } from './RegionMap';
@@ -40,7 +41,7 @@ export function ExpeditionPanel({
   const trainedMax = maxHpFor(lvls.hp);
   const [regionId, setRegionId] = useState(REGIONS[0]!.id);
   const [draft, setDraft] = useState<Record<string, number>>({});
-  const [loadouts, setLoadouts] = useState<Record<string, number>[]>(loadLoadouts);
+  const [loadouts, setLoadouts] = usePref<Record<string, number>[]>('ew-loadouts', []);
 
   // Death detection: an expedition that vanishes mid-combat wasn't extracted.
   // The last-render snapshot lets the toast tell the SPECIFIC story — the
@@ -209,14 +210,10 @@ export function ExpeditionPanel({
             const pack: Record<string, number> = {};
             for (const [id, q] of Object.entries(draft)) if (q > 0) pack[id] = q;
             if (Object.keys(pack).length === 0) return;
-            const next = [pack, ...loadouts].slice(0, 4);
-            setLoadouts(next);
-            saveLoadouts(next);
+            setLoadouts([pack, ...loadouts].slice(0, 4));
           };
           const removeLoadout = (idx: number): void => {
-            const next = loadouts.filter((_, j) => j !== idx);
-            setLoadouts(next);
-            saveLoadouts(next);
+            setLoadouts(loadouts.filter((_, j) => j !== idx));
           };
           if (loadouts.length === 0 && draftUnits === 0) return null;
           return (
