@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 8z — Three Rooms (2026-06-11, Jesse-directed)
+
+60. **Mounted-but-hidden is the cheap path to tabs in a tested app.** Jesse asked for pages ("tab for exchange, tab for adventuring, and other tabs as you see fit") — three rooms shipped: Exchange, Adventure (with a live ● pip while an expedition is out), Hall (clerk/fortune/board). The implementation choice that made it a one-firing brick: every room stays MOUNTED and inactive ones hide via a CSS class, so (a) panel state survives switching (region picker, ticket prefill), (b) the entire 176-test jsdom suite passed with ZERO edits (queries don't care about display), and (c) only Playwright — which enforces real visibility — needed updates (tab clicks where specs cross rooms, plus a reload-persistence spec). Two traps dodged by prior FINDINGS: the `hidden` attribute loses to author display rules (used a class), and room names were checked against existing exact-match locators before pushing (8w's collision lesson). The world stays one — the header clock/purse are global and the guide now says so.
+
 ## Phase 8y — Fight It Out (2026-06-11)
 
 59. **The audit harness's combat policy was secretly a UX prototype.** Auto-resolve ("fight it out") is the grinder's fight loop distilled into a button: antifire against breath, eat below 40%, fight otherwise — with one deliberate difference: where the harness flees, the button STOPS and hands back control (below 25% max hp with no food). A bot may gamble with simulated lives; a convenience feature must never decide death-risk for the player. Because it issues ordinary logged commands, replay/leaderboard correctness needed zero thought — the command protocol keeps absorbing features for free. Process note: 8w's e2e failure (exact-name 'sell' collision) was applied proactively — the button name avoids the 'fight' locator, and e2e ran locally BEFORE the push this time.

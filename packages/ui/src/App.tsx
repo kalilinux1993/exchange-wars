@@ -71,6 +71,15 @@ export function App({ initial }: { initial?: Game }) {
   const [lastSync, setLastSync] = useState<number | null>(null);
   const [prefill, setPrefill] = useState<TicketPrefill | null>(null);
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_SEEN_KEY) === null);
+  type Room = 'exchange' | 'adventure' | 'hall';
+  const [room, setRoom] = useState<Room>(() => {
+    const saved = localStorage.getItem('ew-room');
+    return saved === 'adventure' || saved === 'hall' ? saved : 'exchange';
+  });
+  const pickRoom = (r: Room): void => {
+    setRoom(r);
+    localStorage.setItem('ew-room', r);
+  };
   const closeHelp = (): void => {
     localStorage.setItem(HELP_SEEN_KEY, '1');
     setHelpOpen(false);
@@ -519,7 +528,20 @@ export function App({ initial }: { initial?: Game }) {
           </button>
         </div>
       )}
-      <main className="board">
+      <nav className="tabs" role="tablist" aria-label="rooms">
+        <button role="tab" aria-selected={room === 'exchange'} className={room === 'exchange' ? 'tab active' : 'tab'} onClick={() => pickRoom('exchange')}>
+          🪙 Exchange
+        </button>
+        <button role="tab" aria-selected={room === 'adventure'} className={room === 'adventure' ? 'tab active' : 'tab'} onClick={() => pickRoom('adventure')}>
+          ⚔ Adventure{game.world.agents[game.playerId]?.expedition ? ' ●' : ''}
+        </button>
+        <button role="tab" aria-selected={room === 'hall'} className={room === 'hall' ? 'tab active' : 'tab'} onClick={() => pickRoom('hall')}>
+          🏰 Hall
+        </button>
+      </nav>
+      {/* Every room stays MOUNTED (state survives switching; tests see all),
+          inactive ones hide via .tabhidden — display rules beat `hidden`. */}
+      <main className={room === 'exchange' ? 'board' : 'board tabhidden'}>
         <section className="middle">
           <MarketTable
             view={view}
@@ -555,7 +577,36 @@ export function App({ initial }: { initial?: Game }) {
             })()}
           />
           <BookLadder book={game.world.books[selected]} playerId={game.playerId} onLevel={onLevel} />
+        </section>
+        <section className="middle">
+          <PlayerPanel game={game} view={view} items={game.world.items} onCommand={command} />
+          <TradeFeed
+            trades={game.world.trades}
+            fills={game.fills}
+            items={game.world.items}
+            playerId={game.playerId}
+          />
+          <ContractsBoard view={view} items={game.world.items} tick={game.world.tick} onCommand={command} />
+        </section>
+      </main>
+      <main className={room === 'adventure' ? 'board' : 'board tabhidden'}>
+        <section className="middle wide">
+          <ExpeditionPanel
+            game={game}
+            view={view}
+            onCommand={command}
+            onToast={(name, flavor) => setToast({ id: 'expedition', name, flavor, achieved: () => false })}
+          />
+        </section>
+        <section className="middle">
+          <MilestonesPanel unlocked={game.milestones} game={game} view={view} worth={playerWorth(game)} />
+        </section>
+      </main>
+      <main className={room === 'hall' ? 'board' : 'board tabhidden'}>
+        <section className="middle">
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
+        </section>
+        <section className="middle">
           <WorthChart
             history={game.worthHistory}
             startGp={game.startGp}
@@ -563,21 +614,6 @@ export function App({ initial }: { initial?: Game }) {
           />
         </section>
         <section className="middle">
-          <PlayerPanel game={game} view={view} items={game.world.items} onCommand={command} />
-          <ContractsBoard view={view} items={game.world.items} tick={game.world.tick} onCommand={command} />
-          <TradeFeed
-            trades={game.world.trades}
-            fills={game.fills}
-            items={game.world.items}
-            playerId={game.playerId}
-          />
-          <MilestonesPanel unlocked={game.milestones} game={game} view={view} worth={playerWorth(game)} />
-          <ExpeditionPanel
-            game={game}
-            view={view}
-            onCommand={command}
-            onToast={(name, flavor) => setToast({ id: 'expedition', name, flavor, achieved: () => false })}
-          />
           <LeaderboardPanel
             game={game}
             session={session}

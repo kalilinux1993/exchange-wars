@@ -797,6 +797,47 @@ th.num {
   text-align: center;
 }
 
+/* ── rooms (tabbed layout, 8z) ────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0 2px;
+}
+
+.tab {
+  font: inherit;
+  font-size: 0.92rem;
+  letter-spacing: 0.04em;
+  color: var(--parchment-dim);
+  background: var(--ink);
+  border: 1px solid var(--hairline);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  padding: 7px 18px 6px;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--parchment);
+  border-color: var(--gold);
+}
+
+.tab.active {
+  color: var(--gold-bright);
+  border-color: var(--gold);
+  background: linear-gradient(180deg, rgba(212, 169, 55, 0.16), rgba(212, 169, 55, 0.02));
+}
+
+/* Inactive rooms stay mounted (state survives switching) but render nothing.
+ * A class, not the `hidden` attribute — author display rules would beat it. */
+.board.tabhidden {
+  display: none !important;
+}
+
+.middle.wide {
+  flex: 2;
+}
+
 /* ── phone-sized screens ──────────────────────────────── */
 @media (max-width: 640px) {
   :root {

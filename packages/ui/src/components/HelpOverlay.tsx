@@ -13,6 +13,11 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             high — the exchange takes <b>2% tax</b> on every sale.
           </li>
           <li>
+            Three rooms: <b>🪙 Exchange</b> to trade, <b>⚔ Adventure</b> to delve, <b>🏰 Hall</b> for your
+            clerk, your fortune, and the sprint board. The world is one — time spent anywhere passes
+            everywhere.
+          </li>
+          <li>
             Click a market row to load it, then click prices in the <b>Depth</b> ladder: lift an ask to buy,
             hit a bid to sell. Offers rest on the books until someone takes them. The <b>sell @ bid</b>{' '}
             chips in your Ledger dump a stack into the resting bids instantly — loot to gp, one click.

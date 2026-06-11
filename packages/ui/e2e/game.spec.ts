@@ -19,16 +19,33 @@ test('boots a fresh seed-42 world with the first-run guide, paused, full market'
   await expect(page.locator('.masthead h1')).toHaveText('Exchange Wars');
   await expect(page.locator('.clock .value').first()).toHaveText('0');
   await expect(page.locator('.purse .gold')).toHaveText('55,000');
-  expect(await page.locator('.market tbody tr').count()).toBeGreaterThanOrEqual(40);
   await expect(page.locator('.purse')).toContainText('net');
+  await expect(page.locator('.account')).toContainText('sign in');
+  // The Exchange room (default)
+  expect(await page.locator('.market tbody tr').count()).toBeGreaterThanOrEqual(40);
   await expect(page.locator('.player')).toContainText('empty satchel');
-  await expect(page.locator('.chart')).toContainText('Fortune');
   await expect(page.locator('.feed')).toContainText('no trades yet');
-  await expect(page.locator('.milestones')).toContainText('Deeds');
   await expect(page.locator('.ladder')).toContainText('spread');
   await expect(page.locator('.contracts')).toContainText('Quartermaster');
   await expect(page.locator('.chronicle')).toContainText('Chronicle');
-  await expect(page.locator('.account')).toContainText('sign in');
+  // The Adventure room
+  await page.getByRole('tab', { name: /Adventure/ }).click();
+  await expect(page.locator('.expedition')).toBeVisible();
+  await expect(page.locator('.milestones')).toContainText('Deeds');
+  // The Hall
+  await page.getByRole('tab', { name: /Hall/ }).click();
+  await expect(page.locator('.chart')).toContainText('Fortune');
+  await expect(page.locator('.shop')).toContainText("Clerk's Counter");
+  await expect(page.locator('.sprintboard')).toBeVisible();
+});
+
+test('the active room survives a reload', async ({ page }) => {
+  await dismissHelp(page);
+  await page.getByRole('tab', { name: /Adventure/ }).click();
+  await expect(page.locator('.expedition')).toBeVisible();
+  await page.reload();
+  await expect(page.locator('.expedition')).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Adventure/ })).toHaveAttribute('aria-selected', 'true');
 });
 
 test('full trade round-trip: instant buy fill, then instant sell', async ({ page }) => {
@@ -58,10 +75,12 @@ test('fast-forward advances the world and the save survives reload', async ({ pa
 test('slot purchase debits the purse and raises the cap', async ({ page }) => {
   await dismissHelp(page);
   await expect(page.locator('.ticket')).toContainText('0/3 offer slots used');
+  await page.getByRole('tab', { name: /Hall/ }).click(); // the shop lives in the Hall now
   await page.getByText('25,000 gp').click();
-  await expect(page.locator('.purse .gold')).toHaveText('30,000');
-  await expect(page.locator('.ticket')).toContainText('0/4 offer slots used');
+  await expect(page.locator('.purse .gold')).toHaveText('30,000'); // purse is global
   await expect(page.getByText('50,000 gp')).toBeDisabled();
+  await page.getByRole('tab', { name: /Exchange/ }).click();
+  await expect(page.locator('.ticket')).toContainText('0/4 offer slots used');
 });
 
 test('mobile viewport: full ticket flow works on a phone-sized screen', async ({ page }) => {
@@ -99,6 +118,7 @@ test('a #seed challenge link boots that exact world for fresh visitors', async (
 
 test('expeditions: embark fists-first and meet whatever the dark sends', async ({ page }) => {
   await dismissHelp(page);
+  await page.getByRole('tab', { name: /Adventure/ }).click();
   await expect(page.locator('.expedition')).toContainText('Expeditions');
   await page.getByText('embark').click();
   await page.getByText('venture deeper').click();
