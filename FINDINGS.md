@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 10n — The Offensive Brew (2026-06-11)
+
+100. **Completing a system is its own reward — and a one-line content add ripples through shared test fixtures.** Goading potion (+10 atk/dive) is the offensive counterpart to divine bastion (+10 def), so raiders now make a real pre-dive call: offence (faster kills → less attrition/leech) vs defence (survive deeper) — one CONSUMABLES line, the dive-long-flag machinery already there. But adding it to the shared test fixture (inventory + items) rippled: the combat-brew test's "persists" assertion was stale (goading refreshed the buff off bastion), AND the Death Ward test's total-units arithmetic shifted (an unpacked goading is one more home-stock unit: 12→13). Lesson re-learned: a shared fixture is coupling — every test that counts "total units" or asserts an exact buff is implicitly pinned to the fixture's contents, so additive fixture changes need a sweep of the arithmetic-dependent tests, not just the new test. The conservation gate + exact-count assertions caught both immediately. (FINDINGS hits #100.)
+
 ## Phase 10m — Fair Value Band (2026-06-11)
 
 99. **Two orthogonal trading reads: the spread says "is a flip profitable NOW", the band says "is this item cheap vs its own fundamentals".** The flip line (10j) answers the immediate trade; the fair-value band answers the position question — where lastPrice sits in [baseCost..consumeValue] (cheap <34% / fair / rich >67%), which tells an accumulator whether to load up or hold off independent of the current spread. Both derive from data the ItemDef + book already carry, no engine change. The pair completes the trader's two timescales: tactical (flip the spread) and positional (buy the dip vs sell the rip). Colour semantics chosen carefully — cheap green (accumulate), rich GOLD not red (a sell opportunity isn't bad), fair dim — same lesson as the death-ward sink: not every "high" is negative.

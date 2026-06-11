@@ -24,6 +24,7 @@ function fixture(seed = 1): { state: WorldState; id: number } {
       { id: 'superior_dragon_bones', name: 'Superior dragon bones', baseCost: 16737, consumeValue: 33474, volatility: 0.13 },
       { id: 'super_antifire_potion_4', name: 'Super antifire potion(4)', baseCost: 17250, consumeValue: 34500, volatility: 0.13 },
       { id: 'divine_bastion_potion_4', name: 'Divine bastion potion(4)', baseCost: 16048, consumeValue: 32096, volatility: 0.13 },
+      { id: 'goading_potion_4', name: 'Goading potion(4)', baseCost: 40634, consumeValue: 81268, volatility: 0.13 },
       { id: 'dragon_med_helm', name: 'Dragon med helm', baseCost: 43949, consumeValue: 87898, volatility: 0.13 },
       { id: 'rune_full_helm', name: 'Rune full helm', baseCost: 15464, consumeValue: 30929, volatility: 0.13 },
       { id: 'rune_battleaxe', name: 'Rune battleaxe', baseCost: 18643, consumeValue: 37286, volatility: 0.13 },
@@ -42,6 +43,7 @@ function fixture(seed = 1): { state: WorldState; id: number } {
     shark: 8,
     super_antifire_potion_4: 2,
     divine_bastion_potion_4: 1,
+    goading_potion_4: 1,
   });
   a.policy = 'idle';
   return { state, id: a.id };
@@ -157,11 +159,11 @@ describe('expeditions', () => {
       else ok(state, id, { type: 'advance' });
     }
     expect(agent.expedition).toBeUndefined(); // died
-    // Total = 7 home + exactly 5 kept carried = 12 (regardless of what loot
-    // joined the pack — death keeps the top 5 by value, period). Unwarded
-    // would be 7 + 3 = 10.
+    // Home stock left unpacked = shark 6 + antifire 1 + goading 1 = 8 units;
+    // death keeps exactly 5 carried (top 5 by value, whatever loot joined) →
+    // total 13. Unwarded would be 8 + 3 = 11.
     const totalUnits = Object.values(agent.inventory).reduce((a, b) => a + b, 0);
-    expect(totalUnits).toBe(12);
+    expect(totalUnits).toBe(13);
     checkInvariants(state);
   });
 
@@ -558,7 +560,7 @@ describe('expeditions', () => {
   it('a combat brew buffs your stats for the whole dive, conserved, refreshes not stacks', () => {
     const { state, id } = fixture(13);
     const agent = state.agents[id]!;
-    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: { divine_bastion_potion_4: 1, shark: 1 } });
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: { divine_bastion_potion_4: 1, goading_potion_4: 1, shark: 1 } });
     const exp = agent.expedition!;
     ok(state, id, { type: 'advance' }); // somewhere to be (camp or combat)
     // Drink at camp if no fight yet; else mid-combat — both apply the buff.
@@ -569,10 +571,13 @@ describe('expeditions', () => {
     } else ok(state, id, { type: 'eatFood', itemId: 'divine_bastion_potion_4' });
     expect(exp.boost).toEqual({ atk: 0, def: 10 }); // bastion = +10 def for the dive
     expect(state.ledger.itemsBurned['divine_bastion_potion_4']).toBe(1); // conserved
+    // The offensive brew refreshes the flag to +atk (deepest drink wins).
+    ok(state, id, { type: 'eatFood', itemId: 'goading_potion_4' });
+    expect(exp.boost).toEqual({ atk: 10, def: 0 }); // goading = +10 atk for the dive
     expect(exp.pack['divine_bastion_potion_4'] ?? 0).toBe(0);
-    // Persists across a later step (dive-long, like antifire).
+    // Persists across a later step (dive-long, like antifire) — goading stays.
     if (!exp.combat && !exp.event) ok(state, id, { type: 'advance' });
-    expect(agent.expedition?.boost).toEqual({ atk: 0, def: 10 });
+    expect(agent.expedition?.boost).toEqual({ atk: 10, def: 0 });
     checkInvariants(state);
   });
 

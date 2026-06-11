@@ -59,6 +59,9 @@ export const CONSUMABLES: Record<string, ConsumableDef> = {
   // A defensive brew: +10 def for the whole dive — a per-dive ~16k investment
   // like the antifire ticket, for pushing deep on defence (9v).
   divine_bastion_potion_4: { heal: 0, boostDef: 10 },
+  // The offensive counterpart (10n): +10 atk for the dive (faster kills = less
+  // attrition, less leech). Pricier (~40k) — offence pays for itself in loot.
+  goading_potion_4: { heal: 0, boostAtk: 10 },
 };
 
 export interface MonsterDef {
