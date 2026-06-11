@@ -242,6 +242,30 @@ describe('expeditions', () => {
     expect(itemFound).toBe(true); // 25% per cache across 120 seeds × 8 steps
   });
 
+  it('ambushes bring beasts from one region deeper (observed across seeds)', () => {
+    const plainsPool = new Set(REGIONS[0]!.monsters);
+    let ambushed = false;
+    for (let seed = 1; seed <= 150 && !ambushed; seed++) {
+      const { state, id } = fixture(seed);
+      const agent = state.agents[id]!;
+      ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+      for (let i = 0; i < 6 && agent.expedition; i++) {
+        const exp = agent.expedition;
+        if (exp.combat) {
+          if (!plainsPool.has(exp.combat.monsterId)) {
+            ambushed = true;
+            expect(REGIONS[1]!.monsters).toContain(exp.combat.monsterId); // from the sewers
+            expect(exp.combat.log[0]).toContain('AMBUSH');
+            break;
+          }
+          ok(state, id, { type: 'fleeCombat' });
+        } else if (exp.event) ok(state, id, { type: 'choose', accept: false });
+        else ok(state, id, { type: 'advance' });
+      }
+    }
+    expect(ambushed).toBe(true);
+  });
+
   it('fleeing ends the encounter without kill credit; market RNG is untouched', () => {
     const { state, id } = fixture(11);
     const agent = state.agents[id]!;

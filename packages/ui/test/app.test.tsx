@@ -524,6 +524,17 @@ describe('UI shell', () => {
     expect(screen.getByText(/craze active — ends in ~450 ticks/)).toBeTruthy(); // ticket (FIRST selected by default)
   });
 
+  it('the hunter tally renders once there is something to tell', () => {
+    const game = newGame(42);
+    game.world.stats.monstersSlain = 7;
+    game.world.stats.cacheFinds = 2;
+    game.world.stats.deepestRegion = 1;
+    render(<App initial={game} />);
+    const panel = document.querySelector('.expedition') as HTMLElement;
+    expect(within(panel).getByText(/7 slain · 2 caches/)).toBeTruthy();
+    expect(within(panel).getByText(/deepest Varrock Sewers/)).toBeTruthy();
+  });
+
   it('expedition deeds latch from stats and the dragon-bones ledger', () => {
     const game = newGame(42);
     const view = playerView(game.world, game.playerId)!;

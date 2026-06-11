@@ -4,11 +4,13 @@
 import { bestAsk, bestBid, cancelAgentOrders, placeOrder } from './exchange';
 import { itemDef } from './items';
 import {
+  AMBUSH_CHANCE,
   CACHE_ITEM_CHANCE,
   cachePool,
   CONSUMABLES,
   deriveStats,
   ENCOUNTERS,
+  monsterById,
   expeditionSeed,
   GAMBLE_STAKE,
   newCombat,
@@ -303,7 +305,14 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       const roll = rng.next();
       const journal = (exp.journal ??= []);
       if (roll < ENCOUNTERS.monster) {
-        exp.combat = newCombat(rng.pick(region.monsters), exp.hp);
+        const rIdx = regionIndex(exp.regionId);
+        if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
+          const deeper = REGIONS[rIdx + 1]!;
+          const beast = rng.pick(deeper.monsters);
+          exp.combat = newCombat(beast, exp.hp, `AMBUSH — a ${monsterById(beast).name} from ${deeper.name} crosses your path!`);
+        } else {
+          exp.combat = newCombat(rng.pick(region.monsters), exp.hp);
+        }
       } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache) {
         // A stash in the dark — coin, and sometimes goods (minted like drops).
         const rIdx = regionIndex(exp.regionId);

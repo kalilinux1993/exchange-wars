@@ -61,9 +61,18 @@ export function ExpeditionPanel({
   if (!exp) {
     const idx = regionIndex(regionId);
     const locked = idx > progress;
+    const st = game.world.stats;
+    const tally =
+      (st.monstersSlain ?? 0) > 0 || (st.cacheFinds ?? 0) > 0 || (st.diceWon ?? 0) > 0;
     return (
       <section className="panel expedition">
         <h2>Expeditions</h2>
+        {tally && (
+          <p className="dim small">
+            tally: {st.monstersSlain ?? 0} slain · {st.cacheFinds ?? 0} caches · {st.diceWon ?? 0} dice won ·
+            deepest {REGIONS[st.deepestRegion ?? 0]?.name ?? '—'}
+          </p>
+        )}
         <ul className="rows small regions">
           {REGIONS.map((r, i) => (
             <li

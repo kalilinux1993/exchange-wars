@@ -119,6 +119,10 @@ export const GAMBLE_STAKE = 100;
 /** Chance a cache holds an item on top of its coin. */
 export const CACHE_ITEM_CHANCE = 0.25;
 
+/** Chance a monster encounter is an AMBUSH from one region deeper —
+ * a harder fight whose naturally richer drops are the reward. */
+export const AMBUSH_CHANCE = 0.08;
+
 /** Region-tiered cache loot (indexed by min region; pools are cumulative-
  * exclusive — the deepest pool at or below your region applies). */
 export const CACHE_LOOT: { minRegion: number; items: string[] }[] = [
@@ -200,7 +204,7 @@ export function monsterById(id: string): MonsterDef {
   return m;
 }
 
-export function newCombat(monsterId: string, playerHp: number): CombatState {
+export function newCombat(monsterId: string, playerHp: number, intro?: string): CombatState {
   const m = monsterById(monsterId);
   return {
     monsterId,
@@ -210,7 +214,7 @@ export function newCombat(monsterId: string, playerHp: number): CombatState {
     outcome: 'fighting',
     lootGp: 0,
     lootItems: [],
-    log: [`a ${m.name} blocks the path`],
+    log: [intro ?? `a ${m.name} blocks the path`],
   };
 }
 

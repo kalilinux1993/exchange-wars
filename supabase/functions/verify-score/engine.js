@@ -226,6 +226,7 @@ var ENCOUNTERS = {
 var SHRINE_MIN_COST = 50;
 var GAMBLE_STAKE = 100;
 var CACHE_ITEM_CHANCE = 0.25;
+var AMBUSH_CHANCE = 0.08;
 var CACHE_LOOT = [
   { minRegion: 0, items: ["adamant_dart", "law_rune", "nature_rune"] },
   { minRegion: 2, items: ["death_rune", "blood_rune", "cooked_karambwan"] },
@@ -260,7 +261,7 @@ function monsterById(id) {
   if (!m) throw new Error(`unknown monster ${id}`);
   return m;
 }
-function newCombat(monsterId, playerHp) {
+function newCombat(monsterId, playerHp, intro) {
   const m = monsterById(monsterId);
   return {
     monsterId,
@@ -270,7 +271,7 @@ function newCombat(monsterId, playerHp) {
     outcome: "fighting",
     lootGp: 0,
     lootItems: [],
-    log: [`a ${m.name} blocks the path`]
+    log: [intro ?? `a ${m.name} blocks the path`]
   };
 }
 var FLEE_CHANCE = 0.6;
@@ -562,7 +563,14 @@ function applyCommand(state, playerId, cmd) {
       const roll = rng.next();
       const journal = exp.journal ??= [];
       if (roll < ENCOUNTERS.monster) {
-        exp.combat = newCombat(rng.pick(region.monsters), exp.hp);
+        const rIdx = regionIndex(exp.regionId);
+        if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
+          const deeper = REGIONS[rIdx + 1];
+          const beast = rng.pick(deeper.monsters);
+          exp.combat = newCombat(beast, exp.hp, `AMBUSH \u2014 a ${monsterById(beast).name} from ${deeper.name} crosses your path!`);
+        } else {
+          exp.combat = newCombat(rng.pick(region.monsters), exp.hp);
+        }
       } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache) {
         const rIdx = regionIndex(exp.regionId);
         const found = rng.int(20, 60 + 40 * rIdx);
