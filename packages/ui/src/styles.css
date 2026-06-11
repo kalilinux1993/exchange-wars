@@ -1025,6 +1025,14 @@ th.num {
   border: 1px solid var(--hairline);
   border-radius: 6px;
 }
+.combatscene .ground {
+  stroke: #4a3d22;
+  stroke-width: 1.5;
+}
+.combatscene .shadow {
+  fill: #000;
+  opacity: 0.28;
+}
 .scenehp-bg {
   fill: #2a2418;
 }

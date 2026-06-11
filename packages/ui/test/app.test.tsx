@@ -684,7 +684,7 @@ describe('UI shell', () => {
     // positioning transform — the animated group is nested inside an outer
     // group that carries the translate to the right side of the scene.
     const monster = scene.querySelector('.monster') as SVGElement;
-    expect(monster.parentElement?.getAttribute('transform')).toContain('translate(160');
+    expect(monster.parentElement?.getAttribute('transform')).toContain('translate(150');
     // Land a blow: monster hp drops, a fresh log entry → a splat appears.
     agent.expedition.combat!.monsterHp = 4;
     agent.expedition.combat!.log.push('you strike the Goblin for 8');
