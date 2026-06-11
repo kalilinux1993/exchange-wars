@@ -39,6 +39,10 @@ import type { AgentState, ItemId, Side, Trade, WorldState } from './types';
 /** Rolling GE buy-limit window — a command-layer mechanic (NPCs unaffected). */
 export const BUY_LIMIT_WINDOW_TICKS = 4_000;
 
+/** Region mastery (10i): first-clear combat-xp bounty = BASE + PER_REGION×idx. */
+export const MASTERY_BASE = 40;
+export const MASTERY_PER_REGION = 30;
+
 /** Remaining GE buy allowance for this item in the current window (null = unlimited). */
 function buyRemaining(state: WorldState, agent: AgentState, itemId: ItemId): number | null {
   const def = itemDef(state, itemId);
@@ -278,6 +282,15 @@ export function runCombatRound(
     const idx = regionIndex(exp.regionId);
     if (exp.cleared >= REGION_CLEAR_KILLS && idx === (agent.questProgress ?? 0) && idx < REGIONS.length - 1) {
       agent.questProgress = idx + 1; // the frontier moves
+      // Region mastery (10i): a one-time combat-xp bounty for the FIRST clear
+      // of a region (questProgress only advances once per region), scaling
+      // with depth — rewards pushing the frontier over farming one spot.
+      const masteryXp = MASTERY_BASE + MASTERY_PER_REGION * idx;
+      const mx = (agent.combatXp ??= { atk: 0, def: 0 });
+      mx.atk += masteryXp;
+      mx.def += masteryXp;
+      mx.hp = (mx.hp ?? 0) + Math.ceil(masteryXp / 3);
+      (exp.journal ??= []).push(`${REGIONS[idx]!.name} mastered — +${masteryXp} combat xp`);
     }
     exp.combat = null;
   } else if (c.outcome === 'dead') {

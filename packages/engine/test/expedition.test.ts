@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyCommand, type PlayerCommand } from '../src/commands';
+import { applyCommand, MASTERY_BASE, type PlayerCommand } from '../src/commands';
 import { hashState } from '../src/hash';
 import { checkInvariants } from '../src/invariants';
 import { levelsOf, maxHpFor, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS, SPAR_XP, TOLL_COST, xpForLevel } from '../src/quest';
@@ -89,6 +89,9 @@ describe('expeditions', () => {
     expect(agent.expedition, 'died on the PLAINS in full rune??').toBeTruthy();
     expect(agent.expedition!.cleared).toBe(REGION_CLEAR_KILLS);
     expect(agent.questProgress).toBe(1); // sewers unlocked
+    // Region mastery: first clear grants a one-time combat-xp bounty + journal.
+    expect(agent.expedition!.journal!.some((l) => l.includes('mastered'))).toBe(true);
+    expect(agent.combatXp!.atk).toBeGreaterThanOrEqual(xpForLevel(14) + MASTERY_BASE);
     expect(state.stats.monstersSlain).toBe(REGION_CLEAR_KILLS);
     // The bestiary tally agrees with the headline count, kill for kill.
     const tallied = Object.values(state.stats.killsByMonster ?? {}).reduce((a, b) => a + b, 0);

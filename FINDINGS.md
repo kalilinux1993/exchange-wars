@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 10i — Region Mastery (2026-06-11)
+
+95. **An existing state transition was already the perfect hook — no new tracking needed.** First-clear rewards usually want a "have I cleared region N?" set, but questProgress ALREADY advances exactly once per region (only when you clear your FRONTIER region) — so the frontier-advance branch IS the once-per-region event. Region mastery (one-time combat-xp bounty, BASE 40 + 30×depth, on first clear) is granted right there, zero new state. It rewards breadth (push the frontier) over farming one spot, and uses XP (not gp) so conservation/economy are untouched — the audit measures gp worth, so the balance table holds even though the grinder gets mastery too. Caveat logged: the last region (Abyss) never advances questProgress, so it grants no mastery — acceptable (a final-region flag could fix it later). Lesson: before adding a tracking structure for "first time X," check whether an existing monotonic field already marks it.
+
 ## Phase 10h — Consolidation #3 (2026-06-11)
 
 94. **Third consolidation, cadence locked.** Round-number brick (60): DEV_GUIDE gained a "9y–10g consolidated" map (the courier/death-ward engine adds, the matured combat scene, the trading cockpit, equip discoverability, usePref), NEXT_STEPS's per-brick DONE strikethroughs collapsed back to forward-looking buckets, state-of-play header bumped to brick 59. Three consolidations in (#67/#84/this), the rhythm is reliable: ~16 feature bricks then one librarian brick, detail delegated to .phases/+FINDINGS, the live docs a MAP. The deeper pattern holds across 60 bricks and a context compaction: the autonomous loop never breaks the code (every brick gated + deployed) — only the docs drift, and scheduled consolidation is the cure. No code change.

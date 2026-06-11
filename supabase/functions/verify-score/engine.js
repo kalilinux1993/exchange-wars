@@ -1095,6 +1095,8 @@ function tickWorld(state) {
 
 // packages/engine/src/commands.ts
 var BUY_LIMIT_WINDOW_TICKS = 4e3;
+var MASTERY_BASE = 40;
+var MASTERY_PER_REGION = 30;
 function buyRemaining(state, agent, itemId) {
   const def = itemDef(state, itemId);
   const limit = def?.buyLimit ?? 0;
@@ -1228,6 +1230,12 @@ function runCombatRound(state, agent, exp, action) {
     const idx = regionIndex(exp.regionId);
     if (exp.cleared >= REGION_CLEAR_KILLS && idx === (agent.questProgress ?? 0) && idx < REGIONS.length - 1) {
       agent.questProgress = idx + 1;
+      const masteryXp = MASTERY_BASE + MASTERY_PER_REGION * idx;
+      const mx = agent.combatXp ??= { atk: 0, def: 0 };
+      mx.atk += masteryXp;
+      mx.def += masteryXp;
+      mx.hp = (mx.hp ?? 0) + Math.ceil(masteryXp / 3);
+      (exp.journal ??= []).push(`${REGIONS[idx].name} mastered \u2014 +${masteryXp} combat xp`);
     }
     exp.combat = null;
   } else if (c.outcome === "dead") {
