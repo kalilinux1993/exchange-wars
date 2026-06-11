@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 9w — Watchlist (2026-06-11)
+
+83. **Movers and watchlist answer different questions, so both earn their space.** Movers = "what's hot right now" (the market tells you); watchlist = "how are MY shortlisted items doing" (you tell the market). Star toggle in the ticket header (aria-pressed for a11y + testability), a panel mirroring the movers row format, localStorage-backed (cross-run UI pref, never in the world). Shared state lifted to App so the ticket's star and the panel stay in sync. The fourth localStorage UI-pref now (room, title, loadouts, watch) — consistent shape (load/save with try/catch, cap the list), worth a future tiny `usePref` helper if a fifth appears. Round-number checkpoint next: brick 50 is consolidation per the standing loop rule (#67).
+
 ## Phase 9v — Combat Brews (2026-06-11)
 
 82. **The antifire flag was a reusable pattern, not a one-off.** Combat brews (divine bastion potion → +10 def for the whole dive) reused 8r's dive-long-flag machinery wholesale: a ConsumableDef gains optional boostAtk/boostDef, ExpeditionState gains `boost`, eaten (camp OR combat) it sets the flag, and runCombatRound adds it to derived stats before resolveRound — same lifecycle as antifire (refresh-not-stack, dies with the dive). A real ~16k/dive tactical buy slots beside the antifire ticket for deep defensive pushes, using a real catalog item already present. The boost is applied in the COMMAND layer (not deriveStats), because deriveStats also feeds the gear-only paperdoll/UI where a combat buff would be wrong — keep transient combat modifiers out of the pure gear→stats function. Replay-affecting (new command effect + state field) so verify-score rebuilt + redeployed; the sellsword/grinder don't drink it, so the balance table is untouched. Good architecture compounds: the third dive-long effect (antifire, now brews, future ones) costs almost nothing because the first one was built as a shape, not a special case.

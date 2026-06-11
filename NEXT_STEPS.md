@@ -16,7 +16,8 @@ Deploy: push to main → CI (typecheck + vitest + e2e) auto-deploys Pages. Verif
 ## Trading-side polish
 - 9t DONE: Market Movers panel (hot/cold vs EMA, click-to-load) in the Exchange room.
 - 9u DONE: price sparkline in the ticket (derived from state.trades, last 48).
-- Candidates: a market-breadth/index line; watchlist/price alerts; sparkline in the market-table rows.
+- 9w DONE: watchlist (star from ticket, panel in Exchange, localStorage).
+- Candidates: a market-breadth/index line; price alerts (notify when a watched item crosses a threshold); sparkline in the market-table rows. A `usePref` helper to dedupe the 4 localStorage UI-prefs (room/title/loadouts/watch).
 
 ## Queued (real candidates, in rough priority)
 - **Idle raiding ("the Sellsword")**: the clerk flips while you're away; nothing raids while you're away. A hireable companion running a fixed shallow-region policy inside tickWorld would complete the idle game's second half. BIG brick: engine automation + balance audit + offline interaction — bring full attention, measure with tools/audit-grind.ts before/after.

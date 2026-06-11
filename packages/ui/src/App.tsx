@@ -5,6 +5,7 @@ import { AccountBar } from './components/AccountBar';
 import { AlmanacPanel } from './components/AlmanacPanel';
 import { BountyBoard } from './components/BountyBoard';
 import { MoversPanel } from './components/MoversPanel';
+import { WatchlistPanel } from './components/WatchlistPanel';
 import { HELP_SEEN_KEY, HelpOverlay } from './components/HelpOverlay';
 import { ExpeditionPanel } from './components/ExpeditionPanel';
 import { LeaderboardPanel } from './components/LeaderboardPanel';
@@ -31,11 +32,13 @@ import {
   exportSaveString,
   importSaveString,
   loadGame,
+  loadWatch,
   newGame,
   recordFills,
   playerWorth,
   recordWorth,
   saveGame,
+  saveWatch,
   updateNews,
   type Game,
   type Milestone,
@@ -82,6 +85,14 @@ export function App({ initial }: { initial?: Game }) {
   const pickRoom = (r: Room): void => {
     setRoom(r);
     localStorage.setItem('ew-room', r);
+  };
+  const [watch, setWatch] = useState<string[]>(loadWatch);
+  const toggleWatch = (id: string): void => {
+    setWatch((w) => {
+      const next = w.includes(id) ? w.filter((x) => x !== id) : [...w, id];
+      saveWatch(next);
+      return next;
+    });
   };
   const closeHelp = (): void => {
     localStorage.setItem(HELP_SEEN_KEY, '1');
@@ -561,6 +572,13 @@ export function App({ initial }: { initial?: Game }) {
             }
           />
           <MoversPanel view={view} items={game.world.items} onSelect={setSelected} />
+          <WatchlistPanel
+            view={view}
+            items={game.world.items}
+            watch={watch}
+            onSelect={setSelected}
+            onRemove={toggleWatch}
+          />
           <NewsLog log={game.newsLog} />
         </section>
         <section className="middle">
@@ -572,6 +590,8 @@ export function App({ initial }: { initial?: Game }) {
             onCommand={command}
             lastResult={lastResult}
             recentPrices={game.world.trades.filter((t) => t.itemId === selected).map((t) => t.price).slice(-48)}
+            watched={watch.includes(selected)}
+            onToggleWatch={() => toggleWatch(selected)}
             eventNote={(() => {
               const e = (game.world.events ?? []).find(
                 (ev) => ev.itemId === selected && ev.startTick <= game.world.tick && ev.endTick > game.world.tick,

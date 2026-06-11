@@ -443,6 +443,25 @@ export function saveLoadouts(list: Record<string, number>[]): void {
   }
 }
 
+/** The trader's watchlist (9w) — item ids the player stars, localStorage only
+ * (a cross-run UI preference, never in the world/save). */
+const WATCH_KEY = 'ew-watch';
+export function loadWatch(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(WATCH_KEY) ?? '[]');
+    return Array.isArray(v) ? (v as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+export function saveWatch(ids: string[]): void {
+  try {
+    localStorage.setItem(WATCH_KEY, JSON.stringify(ids.slice(0, 30)));
+  } catch {
+    /* private mode — watchlist is a nicety */
+  }
+}
+
 /** What death keeps and what it takes — mirrors the engine's keep-3 rule
  * (units sorted by baseCost desc, ties by item id) so the recap toast tells
  * the truth. Display only; the engine already did the bookkeeping. */

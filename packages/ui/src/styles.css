@@ -1001,6 +1001,15 @@ th.num {
   height: 6px;
 }
 
+.watchstar {
+  background: none;
+  border: none;
+  color: var(--gold-bright);
+  cursor: pointer;
+  font-size: 1rem;
+  margin-left: 6px;
+  padding: 0 2px;
+}
 .sparkline {
   width: 100%;
   height: 28px;

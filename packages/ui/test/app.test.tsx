@@ -679,6 +679,24 @@ describe('UI shell', () => {
     }
   });
 
+  it('watchlist: star from the ticket, the item appears in the watch panel', () => {
+    localStorage.removeItem('ew-watch');
+    const game = newGame(42);
+    render(<App initial={game} />);
+    // Select the cheapest item, then star it from the ticket.
+    fireEvent.click(document.querySelectorAll('.market tbody tr')[0]!);
+    const star = document.querySelector('.watchstar') as HTMLButtonElement;
+    expect(star.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(star);
+    expect(star.getAttribute('aria-pressed')).toBe('true');
+    const watch = document.querySelector('.watchlist') as HTMLElement;
+    expect(watch.querySelectorAll('.mover').length).toBe(1); // now tracked
+    // Unstar from the panel removes it.
+    fireEvent.click(within(watch).getByTitle('unstar'));
+    expect(watch.querySelectorAll('.mover').length).toBe(0);
+    localStorage.removeItem('ew-watch');
+  });
+
   it('market movers list traded items by trend and click selects one', () => {
     const game = newGame(42);
     for (let t = 0; t < 400; t++) tickWorld(game.world); // give items volume + a wandering EMA

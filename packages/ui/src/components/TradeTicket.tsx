@@ -18,6 +18,8 @@ export function TradeTicket({
   lastResult,
   eventNote,
   recentPrices,
+  watched,
+  onToggleWatch,
 }: {
   view: PlayerView;
   selected: ItemId;
@@ -29,6 +31,8 @@ export function TradeTicket({
   eventNote: string | null;
   /** Recent trade prices for the selected item (oldest→newest), for the sparkline. */
   recentPrices: number[];
+  watched: boolean;
+  onToggleWatch: () => void;
 }) {
   const [side, setSide] = useState<Side>('buy');
   const [price, setPrice] = useState('');
@@ -69,7 +73,17 @@ export function TradeTicket({
 
   return (
     <section className="panel ticket">
-      <h2>Offer · {selected.replace(/_/g, ' ')}</h2>
+      <h2>
+        Offer · {selected.replace(/_/g, ' ')}
+        <button
+          className="watchstar"
+          aria-pressed={watched}
+          title={watched ? 'unstar — stop watching' : 'star — add to watchlist'}
+          onClick={onToggleWatch}
+        >
+          {watched ? '★' : '☆'}
+        </button>
+      </h2>
       {def?.wikiPrice !== undefined && (
         <p className="dim small">
           wiki snapshot {def.wikiPrice.toLocaleString('en-US')} gp
