@@ -1,6 +1,6 @@
 import { SPRINT_TICKS } from '@exchange-wars/engine';
 import { useEffect, useState } from 'react';
-import { fetchLeaderboard, submitSprint, type BoardRow, type Session } from '../cloud';
+import { fetchLeaderboard, sanitizeHandle, submitSprint, type BoardRow, type Session } from '../cloud';
 import type { Game } from '../game';
 
 const HANDLE_KEY = 'ew-handle';
@@ -41,7 +41,7 @@ export function LeaderboardPanel({
   const submit = (): void => {
     setBusy(true);
     const log = game.commandLog.filter((e) => e.tick < SPRINT_TICKS);
-    void submitSprint(handle.trim() || 'anonymous trader', seed, log).then((res) => {
+    void submitSprint(sanitizeHandle(handle), seed, log).then((res) => {
       setBusy(false);
       if (!res.ok) {
         onToast('Sprint rejected', res.error ?? 'verification failed');
@@ -77,7 +77,7 @@ export function LeaderboardPanel({
           <div className="submitrow">
             <input
               aria-label="handle"
-              placeholder="handle"
+              placeholder="handle (public — not your email)"
               maxLength={24}
               value={handle}
               onChange={(e) => {

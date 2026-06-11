@@ -74,6 +74,15 @@ export async function fetchLeaderboard(seed: number): Promise<BoardRow[] | null>
   }
 }
 
+/** Handles are PUBLIC. Anything email-shaped is trimmed to its local part
+ * (jesse@example.com → jesse); empty falls back to a neutral name. The
+ * verify-score function applies the same rule server-side. */
+export function sanitizeHandle(raw: string): string {
+  const t = raw.trim().slice(0, 24);
+  const cut = (t.includes('@') ? t.split('@')[0]! : t).trim();
+  return cut.length >= 1 ? cut : 'anonymous trader';
+}
+
 export interface SubmitResult {
   ok: boolean;
   worth?: number;

@@ -48,8 +48,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
   } catch {
     return json(400, { error: 'bad-json' });
   }
-  const handle = typeof body.handle === 'string' ? body.handle.trim().slice(0, 24) : '';
-  if (handle.length < 1) return json(400, { error: 'bad-handle' });
+  // Handles are PUBLIC: trim email-shaped input to its local part (defense
+  // in depth — the client sanitizes too); empty falls back to neutral.
+  const rawHandle = typeof body.handle === 'string' ? body.handle.trim().slice(0, 24) : '';
+  const localPart = (rawHandle.includes('@') ? rawHandle.split('@')[0]! : rawHandle).trim();
+  const handle = localPart.length >= 1 ? localPart : 'anonymous trader';
   const seed = typeof body.seed === 'number' ? body.seed : -1;
   const log = Array.isArray(body.log) ? body.log : null;
   if (!log || log.length > SPRINT_MAX_COMMANDS) return json(400, { error: 'bad-log' });
@@ -66,6 +69,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .eq('seed', seed)
     .maybeSingle();
   if (existing && existing.worth >= verdict.worth) {
+    // Not a new best, but resubmitting is how players RENAME — apply it.
+    await admin.from('leaderboard').update({ handle }).eq('user_id', user.id).eq('seed', seed);
     return json(200, { worth: verdict.worth, best: existing.worth, improved: false });
   }
   const { error } = await admin.from('leaderboard').upsert({

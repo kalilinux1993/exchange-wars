@@ -8,7 +8,7 @@ import { App } from '../src/App';
 import { LeaderboardPanel } from '../src/components/LeaderboardPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { ghostWorthAt } from '../src/components/WorthChart';
-import { chooseSave, type Session } from '../src/cloud';
+import { chooseSave, sanitizeHandle, type Session } from '../src/cloud';
 import {
   applyOfflineProgress,
   checkMilestones,
@@ -522,6 +522,14 @@ describe('UI shell', () => {
     fireEvent.click(screen.getByText('start trading'));
     expect(screen.getByText(/450 left/)).toBeTruthy(); // newsbar chip
     expect(screen.getByText(/craze active — ends in ~450 ticks/)).toBeTruthy(); // ticket (FIRST selected by default)
+  });
+
+  it('sanitizeHandle keeps emails off the public board', () => {
+    expect(sanitizeHandle('jesse')).toBe('jesse');
+    expect(sanitizeHandle('Jesse.is.back@gmail.com')).toBe('Jesse.is.back');
+    expect(sanitizeHandle('  @weird ')).toBe('anonymous trader');
+    expect(sanitizeHandle('')).toBe('anonymous trader');
+    expect(sanitizeHandle('a'.repeat(40))).toBe('a'.repeat(24));
   });
 
   it('the Sprint Board stays hidden while the leaderboard backend is absent', () => {
