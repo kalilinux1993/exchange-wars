@@ -524,12 +524,28 @@ describe('UI shell', () => {
     expect(screen.getByText(/craze active — ends in ~450 ticks/)).toBeTruthy(); // ticket (FIRST selected by default)
   });
 
+  it('expedition deeds latch from stats and the dragon-bones ledger', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    game.world.stats.monstersSlain = 1;
+    expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('first-blood');
+    game.world.stats.monstersSlain = 25;
+    game.world.stats.deepestRegion = 4;
+    const latched = checkMilestones(game, view, 0).map((m) => m.id);
+    expect(latched).toContain('slayer-25');
+    expect(latched).toContain('pioneer');
+    expect(latched).not.toContain('dragon-slayer');
+    game.world.ledger.itemsMinted['superior_dragon_bones'] = 1;
+    expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('dragon-slayer');
+  });
+
   it('expeditions: regions render with locks; an empty-pack embark works fists-first', () => {
     const game = freshApp();
-    expect(screen.getByText('Expeditions')).toBeTruthy();
-    expect(screen.getByText('Lumbridge Plains')).toBeTruthy();
-    expect(screen.getByText("The Dragon's Maw")).toBeTruthy(); // visible but locked
-    fireEvent.click(screen.getByText('embark'));
+    const panel = document.querySelector('.expedition') as HTMLElement;
+    expect(panel).toBeTruthy();
+    expect(within(panel).getByText('Lumbridge Plains')).toBeTruthy();
+    expect(within(panel).getByText("The Dragon's Maw")).toBeTruthy(); // visible but locked
+    fireEvent.click(within(panel).getByText('embark'));
     const agent = game.world.agents[game.playerId]!;
     expect(agent.expedition).toBeTruthy();
     expect(screen.getByText('venture deeper')).toBeTruthy();

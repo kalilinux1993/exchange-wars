@@ -104,6 +104,10 @@ export interface SimStats {
   npcBailouts: number;
   eventsSpawned: number;
   contractsFilled: number;
+  /** Expedition kills (absent in pre-quest saves). */
+  monstersSlain?: number;
+  /** Deepest region index ever entered (absent in pre-quest saves). */
+  deepestRegion?: number;
 }
 
 /** A standing NPC buy-order at a premium — the realm's quartermaster pays

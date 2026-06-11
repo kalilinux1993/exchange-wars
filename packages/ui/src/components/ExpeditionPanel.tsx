@@ -168,7 +168,18 @@ export function ExpeditionPanel({
           <button className="chip" onClick={() => onCommand({ type: 'advance' })}>
             venture deeper
           </button>
-          <button className="chip" onClick={() => onCommand({ type: 'extract' })}>
+          <button
+            className="chip"
+            onClick={() => {
+              const gp = exp.packGp;
+              const kills = exp.cleared;
+              onCommand({ type: 'extract' });
+              onToast(
+                'Back from the depths',
+                `${kills} kill${kills === 1 ? '' : 's'} · ${gp.toLocaleString('en-US')} loot gp — sell the spoils on the exchange`,
+              );
+            }}
+          >
             extract (keep everything)
           </button>
         </div>

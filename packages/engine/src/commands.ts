@@ -253,6 +253,7 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       }
       const expId = state.nextExpeditionId ?? 1;
       state.nextExpeditionId = expId + 1;
+      state.stats.deepestRegion = Math.max(state.stats.deepestRegion ?? 0, idx);
       agent.expedition = {
         regionId: cmd.regionId,
         rngState: expeditionSeed(state.seed, expId),
@@ -302,6 +303,7 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
         }
         exp.cleared += 1;
         exp.hp = c.playerHp;
+        state.stats.monstersSlain = (state.stats.monstersSlain ?? 0) + 1;
         const idx = regionIndex(exp.regionId);
         if (exp.cleared >= REGION_CLEAR_KILLS && idx === (agent.questProgress ?? 0) && idx < REGIONS.length - 1) {
           agent.questProgress = idx + 1; // the frontier moves

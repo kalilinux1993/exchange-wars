@@ -37,6 +37,11 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             entry is verified by replaying your actual run.
           </li>
           <li>
+            <b>Expeditions</b>: outfit an adventurer from your satchel — gear and food are real market
+            goods — and delve the regions. Loot mints straight into the economy; death keeps only your 3
+            most valuable carried items. Bring antifire for the Maw.
+          </li>
+          <li>
             <b>Sign in</b> with your email to sync your save across devices.
           </li>
         </ul>

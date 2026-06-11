@@ -284,6 +284,33 @@ export const MILESTONES: Milestone[] = [
       }),
   },
   {
+    id: 'first-blood',
+    name: 'Monster Slayer',
+    flavor: 'Your first kill in the depths.',
+    achieved: (g) => (g.world.stats.monstersSlain ?? 0) >= 1,
+  },
+  {
+    id: 'slayer-25',
+    name: 'Veteran of the Depths',
+    flavor: 'Twenty-five monsters down. The dark knows your name.',
+    achieved: (g) => (g.world.stats.monstersSlain ?? 0) >= 25,
+    progress: (g) => (g.world.stats.monstersSlain ?? 0) / 25,
+  },
+  {
+    id: 'pioneer',
+    name: 'Frontier Pioneer',
+    flavor: 'You walked into the Wilderness and meant it.',
+    // Region index 4 = Wilderness Ruins (entered, not just unlocked).
+    achieved: (g) => (g.world.stats.deepestRegion ?? 0) >= 4,
+  },
+  {
+    id: 'dragon-slayer',
+    name: 'Dragon Slayer',
+    flavor: 'The Maw is quieter now.',
+    // Only dragons mint superior dragon bones — the kill is in the ledger.
+    achieved: (g) => (g.world.ledger.itemsMinted['superior_dragon_bones'] ?? 0) > 0,
+  },
+  {
     id: 'storm-rider',
     name: 'Storm Trader',
     flavor: 'You traded into the storm and lived.',

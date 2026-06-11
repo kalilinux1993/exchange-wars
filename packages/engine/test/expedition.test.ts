@@ -78,6 +78,8 @@ describe('expeditions', () => {
     expect(agent.expedition, 'died on the PLAINS in full rune??').toBeTruthy();
     expect(agent.expedition!.cleared).toBe(REGION_CLEAR_KILLS);
     expect(agent.questProgress).toBe(1); // sewers unlocked
+    expect(state.stats.monstersSlain).toBe(REGION_CLEAR_KILLS);
+    expect(state.stats.deepestRegion).toBe(0); // never left the plains
     const gpBefore = agent.gp;
     const lootGp = agent.expedition!.packGp;
     expect(lootGp).toBeGreaterThan(0); // monsters carry coin
