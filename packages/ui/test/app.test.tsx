@@ -11,6 +11,7 @@ import {
   applyOfflineProgress,
   checkMilestones,
   exportSaveString,
+  ghostForRestart,
   HUMAN_START_GP,
   importSaveString,
   newGame,
@@ -221,6 +222,39 @@ describe('UI shell', () => {
     render(<App initial={game} />);
     expect(screen.getByText(/while you were away/i)).toBeTruthy();
     expect(game.world.tick).toBeGreaterThanOrEqual(600);
+  });
+
+  it('ghostForRestart keeps the best previous run on the SAME seed only', () => {
+    const prev = newGame(42);
+    prev.worthHistory = [
+      { tick: 0, worth: 55_000 },
+      { tick: 500, worth: 80_000 },
+    ];
+    expect(ghostForRestart(prev, 7)).toBeUndefined(); // different seed: no ghost
+    const g = ghostForRestart(prev, 42)!;
+    expect(g.seed).toBe(42);
+    expect(g.history[g.history.length - 1]!.worth).toBe(80_000);
+    // A weaker new run must NOT displace a stronger existing ghost.
+    prev.ghost = { seed: 42, history: [{ tick: 0, worth: 55_000 }, { tick: 800, worth: 200_000 }] };
+    expect(ghostForRestart(prev, 42)!.history[1]!.worth).toBe(200_000);
+    // A stronger new run takes over.
+    prev.worthHistory = [
+      { tick: 0, worth: 55_000 },
+      { tick: 900, worth: 500_000 },
+    ];
+    expect(ghostForRestart(prev, 42)!.history[1]!.worth).toBe(500_000);
+  });
+
+  it('restarting the same seed races your previous run as a chart ghost', () => {
+    freshApp();
+    fireEvent.click(screen.getByText('+1k')); // build some worth history
+    fireEvent.click(screen.getByText('new game'));
+    const seedInput = screen.getByLabelText('seed') as HTMLInputElement;
+    fireEvent.change(seedInput, { target: { value: '42' } }); // SAME seed
+    fireEvent.click(screen.getByText('start'));
+    fireEvent.click(screen.getByText('+1k')); // new run draws its own line
+    expect(screen.getByText(/your best run on this seed/)).toBeTruthy();
+    expect(document.querySelectorAll('.worth polyline').length).toBe(2);
   });
 
   it('big offline debts run chunked behind the catch-up overlay', async () => {

@@ -891,3 +891,8 @@ th.num {
   background: linear-gradient(90deg, var(--gold), var(--gold-bright));
   transition: width 120ms linear;
 }
+
+.worth polyline.ghost {
+  color: var(--parchment-dim);
+  opacity: 0.65;
+}

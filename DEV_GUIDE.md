@@ -1,5 +1,9 @@
 # Dev Guide
 
+## Phase 6u — Ghost Runs (2026-06-10)
+
+- **Race yourself on a seed.** `ghostForRestart` (game.ts): restarting the SAME seed stores the abandoned run's worthHistory as `Game.ghost` — best-by-final-worth against any ghost that run was itself racing, so your record run survives weaker attempts. WorthChart draws the ghost as a dim dashed polyline on shared scales with a "grey ghost = your best run on this seed" legend; App only passes a seed-matched ghost. The local, serverless half of the ghost-leaderboards idea — determinism is what makes the race fair.
+
 ## Phase 6t — Chunked Offline Catch-up (2026-06-10)
 
 - **The tab no longer freezes on reopen.** `applyOfflineProgress` split into `planOfflineProgress` (computes ticks owed, restamps lastSeenMs) + `finishOfflineProgress` (worth delta, recordWorth); the sync function remains as their composition for small debts and tests. In App, `beginOffline` routes debts ≤ 5k ticks through the sync path and bigger ones through a chunk-driver effect (1k ticks per setTimeout slice) behind a "The world turns…" scrim with a progress bar. Finalize latches news/fills/deeds earned while away, saves, schedules a cloud push, and hands off to the away banner. All three offline entry points (boot, cloud adopt, save import) share it.

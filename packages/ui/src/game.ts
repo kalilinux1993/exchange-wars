@@ -22,6 +22,32 @@ export interface Game {
   fills: Fill[];
   /** Trades-window scan cursor for fill latching. */
   fillScanTick: number;
+  /** Your best previous run on THIS seed — raced as a dim line on the
+   * Fortune chart. Determinism makes it a fair ghost. */
+  ghost?: GhostRun;
+}
+
+export interface GhostRun {
+  seed: number;
+  history: { tick: number; worth: number }[];
+}
+
+/**
+ * Restarting the SAME seed keeps your best previous run as a chart ghost
+ * (best = highest final worth, comparing the run being abandoned against any
+ * ghost it was itself racing). Different seed → no ghost.
+ */
+export function ghostForRestart(prev: Game, seed: number): GhostRun | undefined {
+  if (prev.world.seed !== seed) return undefined;
+  const candidates: GhostRun[] = [];
+  if (prev.worthHistory.length >= 2) candidates.push({ seed, history: prev.worthHistory });
+  if (prev.ghost && prev.ghost.seed === seed) candidates.push(prev.ghost);
+  if (candidates.length === 0) return undefined;
+  candidates.sort(
+    (a, b) =>
+      (b.history[b.history.length - 1]?.worth ?? 0) - (a.history[a.history.length - 1]?.worth ?? 0),
+  );
+  return candidates[0];
 }
 
 export interface Fill {

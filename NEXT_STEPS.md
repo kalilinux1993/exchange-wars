@@ -45,7 +45,7 @@ Design (account-light, static-site-friendly — Supabase):
 ## Next candidates
 - Quests/contracts: NPC buy-contracts at premium ("deliver 50 lobsters") — goal-directed trading (FINDINGS #28)
 - ~~Tier-3 clerk perk: "trades events too"~~ DROPPED: contradicts the human-territory design rule (FINDINGS #27/#35 — clerks farm neither events nor exotics)
-- ~~News history panel + event outcomes~~ DONE (Chronicle phase 6g; outcome % chips phase 6j); prestige/rebirth loop; ghost leaderboards (needs P5 server)
+- ~~News history panel + event outcomes~~ DONE (Chronicle phase 6g; outcome % chips phase 6j); prestige/rebirth loop; ghost leaderboards (LOCAL half done phase 6u — same-seed chart ghosts; shared ghosts need the P5 server)
 - ~~Offline-cap/payback design pass~~ CLOSED: cap 100k vs paybacks 43k–90k — tier 1 pays back in ~half a cap, by design
 - Offline-cap/payback design pass (cap 50k ticks vs tier paybacks 40k–97k — tier 1 pays back in ~one full offline cap; intentional?)
 - ~~CI actions deprecation~~ DONE phase 6l (checkout v6, setup-node v6, pages artifact v5, deploy-pages v5)

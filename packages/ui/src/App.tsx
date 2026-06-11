@@ -18,6 +18,7 @@ import { WorthChart } from './components/WorthChart';
 import {
   checkMilestones,
   finishOfflineProgress,
+  ghostForRestart,
   planOfflineProgress,
   clearSave,
   exportSaveString,
@@ -269,8 +270,10 @@ export function App({ initial }: { initial?: Game }) {
   };
 
   const restart = (seed: number): void => {
+    const ghost = gameRef.current ? ghostForRestart(gameRef.current, seed) : undefined;
     clearSave();
     gameRef.current = newGame(seed);
+    if (ghost) gameRef.current.ghost = ghost;
     setSelected(gameRef.current.world.items[0]?.id ?? '');
     setLastResult(null);
     setSpeed(0);
@@ -439,7 +442,11 @@ export function App({ initial }: { initial?: Game }) {
           />
           <BookLadder book={game.world.books[selected]} playerId={game.playerId} onLevel={onLevel} />
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
-          <WorthChart history={game.worthHistory} startGp={game.startGp} />
+          <WorthChart
+            history={game.worthHistory}
+            startGp={game.startGp}
+            ghost={game.ghost && game.ghost.seed === game.world.seed ? game.ghost.history : null}
+          />
         </section>
         <section className="middle">
           <PlayerPanel view={view} items={game.world.items} onCommand={command} />
