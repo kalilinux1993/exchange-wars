@@ -170,6 +170,54 @@ export function recordFills(game: Game): void {
   if (game.fills.length > FILLS_CAP) game.fills.splice(0, game.fills.length - FILLS_CAP);
 }
 
+export interface ItemPnL {
+  itemId: string;
+  /** Realized profit on completed round-trips, gp, after the sell tax. */
+  profit: number;
+  /** Units sold that had a matching buy in the window. */
+  soldUnits: number;
+}
+
+/**
+ * Recent *realized* profit per item: FIFO-match each sell fill against the
+ * player's earlier buy fills (within the rolling fills window), netting the GE
+ * tax on the sale side. Only completed round-trips count — an open position
+ * (bought, not yet sold) and a sell with no in-window cost basis are both
+ * excluded. Pure (tax rate passed in); sorted best profit first, id tie-break.
+ * Window-bounded by design (fills are capped) — this is "recent", not lifetime.
+ */
+export function realizedPnL(fills: Fill[], taxRate: number): ItemPnL[] {
+  const lots = new Map<string, { price: number; qty: number }[]>(); // FIFO buy queue / item
+  const acc = new Map<string, { profit: number; soldUnits: number }>();
+  for (const f of fills) {
+    // fills arrive in tick order, so the buy queue is naturally FIFO
+    if (f.side === 'buy') {
+      const q = lots.get(f.itemId) ?? [];
+      q.push({ price: f.price, qty: f.qty });
+      lots.set(f.itemId, q);
+      continue;
+    }
+    const proceeds = f.price - Math.floor(f.price * taxRate); // per-unit, after tax
+    const q = lots.get(f.itemId) ?? [];
+    const a = acc.get(f.itemId) ?? { profit: 0, soldUnits: 0 };
+    let remaining = f.qty;
+    while (remaining > 0 && q.length > 0) {
+      const lot = q[0]!;
+      const take = Math.min(remaining, lot.qty);
+      a.profit += (proceeds - lot.price) * take;
+      a.soldUnits += take;
+      lot.qty -= take;
+      remaining -= take;
+      if (lot.qty === 0) q.shift();
+    }
+    acc.set(f.itemId, a); // unmatched (no cost basis) units are simply not counted
+  }
+  return [...acc.entries()]
+    .filter(([, v]) => v.soldUnits > 0)
+    .map(([itemId, v]) => ({ itemId, profit: v.profit, soldUnits: v.soldUnits }))
+    .sort((a, b) => b.profit - a.profit || (a.itemId < b.itemId ? -1 : 1));
+}
+
 export interface NewsEntry {
   tick: number;
   text: string;

@@ -15,6 +15,7 @@ import { NewsLog } from './components/NewsLog';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { MarketTable } from './components/MarketTable';
 import { TopFlips } from './components/TopFlips';
+import { ProfitPanel } from './components/ProfitPanel';
 import { MilestonesPanel } from './components/MilestonesPanel';
 import { RecordsPanel } from './components/RecordsPanel';
 import type { TicketPrefill } from './components/TradeTicket';
@@ -752,6 +753,7 @@ export function App({ initial }: { initial?: Game }) {
           />
           <TopFlips view={view} items={game.world.items} onSelect={setSelected} />
           <MoversPanel view={view} items={game.world.items} onSelect={setSelected} />
+          <ProfitPanel game={game} items={game.world.items} onSelect={setSelected} />
           <WatchlistPanel
             view={view}
             items={game.world.items}

@@ -14,6 +14,7 @@ import { CharacterPanel, equipped, lockedUpgrades } from '../src/components/Char
 import { TopFlips, rankFlips } from '../src/components/TopFlips';
 import { RecordsPanel, recordRows } from '../src/components/RecordsPanel';
 import { resolveShortcut } from '../src/keyboard';
+import { ProfitPanel } from '../src/components/ProfitPanel';
 import { LeaderboardPanel } from '../src/components/LeaderboardPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { ghostWorthAt } from '../src/components/WorthChart';
@@ -38,9 +39,11 @@ import {
   normalizeGame,
   OFFLINE_CAP_TICKS,
   parseChallengeSeed,
+  realizedPnL,
   streakAtRisk,
   updateNews,
   worthRate,
+  type Fill,
   type Game,
 } from '../src/game';
 
@@ -539,6 +542,60 @@ describe('UI shell', () => {
       expect(banked.title).toBe('1,234,567 gp'); // exact in the tooltip
       expect(rows.find((r) => r.label === 'Sellsword kills')!.value).toBe('4');
     });
+  });
+
+  describe('realizedPnL', () => {
+    const TAX = 0.02;
+    const buy = (itemId: string, qty: number, price: number, tick = 0): Fill => ({ tick, itemId, side: 'buy', qty, price });
+    const sell = (itemId: string, qty: number, price: number, tick = 1): Fill => ({ tick, itemId, side: 'sell', qty, price });
+    it('matches a clean round-trip and nets the sell tax', () => {
+      // sell 120, tax floor(2.4)=2 → proceeds 118/unit; (118-100)*10 = 180
+      expect(realizedPnL([buy('rune', 10, 100), sell('rune', 10, 120)], TAX)).toEqual([
+        { itemId: 'rune', profit: 180, soldUnits: 10 },
+      ]);
+    });
+    it('FIFO-matches across buy lots and tolerates a loss leg', () => {
+      // proceeds 147; 5@100 → +235, 3@200 → -159; net 76 over 8 units
+      expect(realizedPnL([buy('x', 5, 100), buy('x', 5, 200), sell('x', 8, 150)], TAX)[0]).toEqual({
+        itemId: 'x',
+        profit: 76,
+        soldUnits: 8,
+      });
+    });
+    it('excludes open positions + cost-basis-less sells, sorts by profit', () => {
+      const r = realizedPnL(
+        [
+          buy('win', 1, 100),
+          sell('win', 1, 200), // 196-100 = +96
+          buy('lose', 1, 200),
+          sell('lose', 1, 100), // 98-200 = -102
+          buy('open', 5, 50), // never sold → excluded
+          sell('orphan', 3, 90), // no cost basis → excluded
+        ],
+        TAX,
+      );
+      expect(r.map((p) => p.itemId)).toEqual(['win', 'lose']); // profit-descending
+      expect(r.find((p) => p.itemId === 'win')!.profit).toBe(96);
+      expect(r.find((p) => p.itemId === 'lose')!.profit).toBe(-102);
+    });
+  });
+
+  it('ProfitPanel shows realized profit per item and selects on click', () => {
+    const game = newGame(42);
+    game.fills = [
+      { tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 },
+      { tick: 1, itemId: FIRST.id, side: 'sell', qty: 10, price: 120 },
+    ];
+    const onSelect = vi.fn();
+    render(<ProfitPanel game={game} items={DEFAULT_ITEMS} onSelect={onSelect} />);
+    expect(screen.getByText('+180')).toBeTruthy();
+    fireEvent.click(screen.getByText(FIRST.name));
+    expect(onSelect).toHaveBeenCalledWith(FIRST.id);
+  });
+
+  it('ProfitPanel shows the empty state before any completed flip', () => {
+    render(<ProfitPanel game={newGame(42)} items={DEFAULT_ITEMS} onSelect={() => {}} />);
+    expect(screen.getByText(/no completed flips yet/i)).toBeTruthy();
   });
 
   describe('resolveShortcut', () => {
