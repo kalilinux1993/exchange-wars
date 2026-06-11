@@ -38,7 +38,7 @@ export function PlayerPanel({
               </span>
               {walk && (
                 <button className="chip" title={`sell ${walk.qty} into the resting bids (fills instantly)`} onClick={() => dump(i.id)}>
-                  sell
+                  sell @ bid
                 </button>
               )}
             </li>

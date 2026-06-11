@@ -569,7 +569,7 @@ describe('UI shell', () => {
     const panel = document.querySelector('.player') as HTMLElement;
     expect(within(panel).getByText(/bids pay ≈3,700 gp/)).toBeTruthy(); // 5×500 + 3×400
     const gpBefore = player.gp;
-    fireEvent.click(within(panel).getByRole('button', { name: 'sell' }));
+    fireEvent.click(within(panel).getByRole('button', { name: 'sell @ bid' }));
     expect(player.inventory[FIRST.id] ?? 0).toBe(0); // the walk took the whole stack
     expect(player.gp).toBeGreaterThan(gpBefore); // instant fills (net of tax)
     expect(playerView(game.world, game.playerId)!.openOrders.length).toBe(0); // no resting residue
