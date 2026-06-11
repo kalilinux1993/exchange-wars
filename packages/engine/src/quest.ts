@@ -226,10 +226,19 @@ export function xpForLevel(level: number): number {
 export interface CombatLevels {
   atk: number;
   def: number;
+  /** Hitpoints level (optional so {atk, def} literals stay valid in tests). */
+  hp?: number;
 }
 
-export function levelsOf(xp?: { atk: number; def: number }): CombatLevels {
-  return { atk: levelFor(xp?.atk ?? 0), def: levelFor(xp?.def ?? 0) };
+export function levelsOf(xp?: { atk: number; def: number; hp?: number }): Required<CombatLevels> {
+  return { atk: levelFor(xp?.atk ?? 0), def: levelFor(xp?.def ?? 0), hp: levelFor(xp?.hp ?? 0) };
+}
+
+/** Each Hitpoints level past 1 adds this much max hp (50 base → 246 at 99). */
+export const HP_PER_LEVEL = 2;
+
+export function maxHpFor(hpLevel: number): number {
+  return PLAYER_BASE.maxHp + HP_PER_LEVEL * (hpLevel - 1);
 }
 
 /** Best USABLE gear per slot in the pack decides your stats — weapons demand
@@ -261,6 +270,8 @@ export interface CombatState {
   playerHp: number;
   /** Eaten an antifire this fight (halves dragonfire). */
   antifire: boolean;
+  /** Heal cap for this fighter (absent in pre-8s saves = PLAYER_BASE.maxHp). */
+  maxHp?: number;
   /** 'fighting' | 'won' | 'dead' | 'fled' */
   outcome: 'fighting' | 'won' | 'dead' | 'fled';
   /** Loot rolled on victory: gp + item ids (minted by the caller in 8b). */
@@ -276,7 +287,13 @@ export function monsterById(id: string): MonsterDef {
   return m;
 }
 
-export function newCombat(monsterId: string, playerHp: number, intro?: string, antifire = false): CombatState {
+export function newCombat(
+  monsterId: string,
+  playerHp: number,
+  intro?: string,
+  antifire = false,
+  maxHp = PLAYER_BASE.maxHp,
+): CombatState {
   const m = monsterById(monsterId);
   return {
     monsterId,
@@ -284,6 +301,8 @@ export function newCombat(monsterId: string, playerHp: number, intro?: string, a
     playerHp,
     // Seeded from the expedition: one potion covers the whole dive (8r).
     antifire,
+    // Trained Hitpoints raise the heal cap (8s). Absent in old saves' combats.
+    maxHp,
     outcome: 'fighting',
     lootGp: 0,
     lootItems: [],
@@ -331,7 +350,7 @@ export function resolveRound(
   } else if (action.kind === 'eat') {
     const c = CONSUMABLES[action.itemId];
     if (c) {
-      state.playerHp = Math.min(PLAYER_BASE.maxHp, state.playerHp + c.heal);
+      state.playerHp = Math.min(state.maxHp ?? PLAYER_BASE.maxHp, state.playerHp + c.heal);
       if (c.antifire) state.antifire = true;
       state.log.push(`you down the ${action.itemId.replace(/_/g, ' ')} (+${c.heal} hp)`);
     } else {

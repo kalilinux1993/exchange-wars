@@ -269,7 +269,11 @@ function levelFor(xp) {
   return Math.min(MAX_LEVEL, 1 + Math.floor(Math.sqrt(Math.max(0, xp) / XP_CURVE_K)));
 }
 function levelsOf(xp) {
-  return { atk: levelFor(xp?.atk ?? 0), def: levelFor(xp?.def ?? 0) };
+  return { atk: levelFor(xp?.atk ?? 0), def: levelFor(xp?.def ?? 0), hp: levelFor(xp?.hp ?? 0) };
+}
+var HP_PER_LEVEL = 2;
+function maxHpFor(hpLevel) {
+  return PLAYER_BASE.maxHp + HP_PER_LEVEL * (hpLevel - 1);
 }
 function deriveStats(pack, lvls = { atk: 1, def: 1 }) {
   const best = {};
@@ -294,7 +298,7 @@ function monsterById(id) {
   if (!m) throw new Error(`unknown monster ${id}`);
   return m;
 }
-function newCombat(monsterId, playerHp, intro, antifire = false) {
+function newCombat(monsterId, playerHp, intro, antifire = false, maxHp = PLAYER_BASE.maxHp) {
   const m = monsterById(monsterId);
   return {
     monsterId,
@@ -302,6 +306,8 @@ function newCombat(monsterId, playerHp, intro, antifire = false) {
     playerHp,
     // Seeded from the expedition: one potion covers the whole dive (8r).
     antifire,
+    // Trained Hitpoints raise the heal cap (8s). Absent in old saves' combats.
+    maxHp,
     outcome: "fighting",
     lootGp: 0,
     lootItems: [],
@@ -329,7 +335,7 @@ function resolveRound(state, stats, action, rng) {
   } else if (action.kind === "eat") {
     const c = CONSUMABLES[action.itemId];
     if (c) {
-      state.playerHp = Math.min(PLAYER_BASE.maxHp, state.playerHp + c.heal);
+      state.playerHp = Math.min(state.maxHp ?? PLAYER_BASE.maxHp, state.playerHp + c.heal);
       if (c.antifire) state.antifire = true;
       state.log.push(`you down the ${action.itemId.replace(/_/g, " ")} (+${c.heal} hp)`);
     } else {
@@ -1020,7 +1026,7 @@ function tickWorld(state) {
     for (const agent of state.agents) {
       if (agent.kind !== "player" || agent.hp === void 0 || agent.expedition) continue;
       agent.hp += 1;
-      if (agent.hp >= PLAYER_BASE.maxHp) delete agent.hp;
+      if (agent.hp >= maxHpFor(levelsOf(agent.combatXp).hp)) delete agent.hp;
     }
   }
   state.rngState = rng.state();
@@ -1202,8 +1208,8 @@ function applyCommand(state, playerId, cmd) {
         regionId: cmd.regionId,
         rngState: expeditionSeed(state.seed, expId),
         // Wounds persist: you set out with the hp you came home with (absent =
-        // full). Embarking hurt is allowed — that's the player's gamble.
-        hp: Math.min(PLAYER_BASE.maxHp, Math.max(1, agent.hp ?? PLAYER_BASE.maxHp)),
+        // full — full meaning your TRAINED max, 8s). Embarking hurt is allowed.
+        hp: Math.min(maxHpFor(levelsOf(agent.combatXp).hp), Math.max(1, agent.hp ?? maxHpFor(levelsOf(agent.combatXp).hp))),
         pack,
         packGp: 0,
         cleared: 0,
@@ -1224,14 +1230,15 @@ function applyCommand(state, playerId, cmd) {
       if (roll < ENCOUNTERS.monster) {
         const rIdx = regionIndex(exp.regionId);
         const af = exp.antifire ?? false;
+        const mhp = maxHpFor(levelsOf(agent.combatXp).hp);
         if (rIdx === REGIONS.length - 1 && rng.chance(ELITE_CHANCE)) {
-          exp.combat = newCombat("vorkanth", exp.hp, "the ground shakes \u2014 VORKANTH, ELDER OF THE MAW, descends!", af);
+          exp.combat = newCombat("vorkanth", exp.hp, "the ground shakes \u2014 VORKANTH, ELDER OF THE MAW, descends!", af, mhp);
         } else if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
           const deeper = REGIONS[rIdx + 1];
           const beast = rng.pick(deeper.monsters);
-          exp.combat = newCombat(beast, exp.hp, `AMBUSH \u2014 a ${monsterById(beast).name} from ${deeper.name} crosses your path!`, af);
+          exp.combat = newCombat(beast, exp.hp, `AMBUSH \u2014 a ${monsterById(beast).name} from ${deeper.name} crosses your path!`, af, mhp);
         } else {
-          exp.combat = newCombat(rng.pick(region.monsters), exp.hp, void 0, af);
+          exp.combat = newCombat(rng.pick(region.monsters), exp.hp, void 0, af, mhp);
         }
       } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache) {
         const rIdx = regionIndex(exp.regionId);
@@ -1278,7 +1285,7 @@ function applyCommand(state, playerId, cmd) {
         } else {
           exp.packGp -= cost;
           state.ledger.gpBurned += cost;
-          exp.hp = PLAYER_BASE.maxHp;
+          exp.hp = maxHpFor(levelsOf(agent.combatXp).hp);
           journal.push(`the shrine takes ${cost} gp and knits your wounds`);
         }
       } else {
@@ -1330,10 +1337,12 @@ function applyCommand(state, playerId, cmd) {
         const xp = agent.combatXp ??= { atk: 0, def: 0 };
         xp.atk += dealt;
         xp.def += taken;
+        if (dealt > 0) xp.hp = (xp.hp ?? 0) + Math.ceil(dealt / 3);
         const lv = levelsOf(xp);
         const journal = exp.journal ??= [];
         if (lv.atk > lvBefore.atk) journal.push(`your arm grows stronger \u2014 Attack ${lv.atk}`);
         if (lv.def > lvBefore.def) journal.push(`you learn to take a blow \u2014 Defence ${lv.def}`);
+        if (lv.hp > lvBefore.hp) journal.push(`your vitality surges \u2014 Hitpoints ${lv.hp} (max hp ${maxHpFor(lv.hp)})`);
       }
       if (c.outcome === "won") {
         state.ledger.gpMinted += c.lootGp;
@@ -1369,7 +1378,7 @@ function applyCommand(state, playerId, cmd) {
         if (qty > 0) agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) + qty;
       }
       agent.gp += exp.packGp;
-      if (exp.hp < PLAYER_BASE.maxHp) agent.hp = Math.max(1, exp.hp);
+      if (exp.hp < maxHpFor(levelsOf(agent.combatXp).hp)) agent.hp = Math.max(1, exp.hp);
       else delete agent.hp;
       delete agent.expedition;
       return { ok: true, trades: [] };

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyCommand, type PlayerCommand } from '../src/commands';
 import { hashState } from '../src/hash';
 import { checkInvariants } from '../src/invariants';
-import { levelsOf, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS, xpForLevel } from '../src/quest';
+import { levelsOf, maxHpFor, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS, xpForLevel } from '../src/quest';
 import { addAgent, createWorld, tickWorld } from '../src/sim';
 import type { WorldState } from '../src/types';
 
@@ -357,7 +357,20 @@ describe('expeditions', () => {
     expect(agent.combatXp).toBeTruthy();
     expect(agent.combatXp!.atk).toBeGreaterThan(0); // landed at least one blow
     expect(agent.combatXp!.def).toBeGreaterThan(0); // took at least one
+    expect(agent.combatXp!.hp ?? 0).toBeGreaterThan(0); // fighting hardens you (8s)
     expect(levelsOf(agent.combatXp).atk).toBeGreaterThanOrEqual(1);
+  });
+
+  it('rest mends to the TRAINED max, not the base 50', () => {
+    const { state, id } = fixture(19);
+    const agent = state.agents[id]!;
+    agent.combatXp = { atk: 0, def: 0, hp: xpForLevel(6) }; // hp level 6 → max 60
+    agent.hp = 55; // only wounded relative to the trained max
+    let guard = 0;
+    while (agent.hp !== undefined && guard++ < 60) tickWorld(state);
+    expect(agent.hp).toBeUndefined(); // mended to 60, canonical absent form
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    expect(agent.expedition!.hp).toBe(maxHpFor(6)); // embark at the trained max
   });
 
   it('wounds persist: extract carries hp home, re-embark carries it back in, rest mends it', () => {

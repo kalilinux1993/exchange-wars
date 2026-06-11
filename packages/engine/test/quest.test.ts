@@ -7,6 +7,7 @@ import {
   GEAR,
   levelFor,
   levelsOf,
+  maxHpFor,
   MONSTERS,
   monsterById,
   newCombat,
@@ -59,7 +60,7 @@ describe('expeditions combat core', () => {
     expect(levelFor(xpForLevel(14) - 1)).toBe(13);
     expect(levelFor(xpForLevel(14))).toBe(14);
     expect(levelFor(10_000_000)).toBe(99); // capped
-    expect(levelsOf(undefined)).toEqual({ atk: 1, def: 1 }); // pre-xp saves = level 1
+    expect(levelsOf(undefined)).toEqual({ atk: 1, def: 1, hp: 1 }); // pre-xp saves = level 1
     // Under-leveled gear is inert; the moment you qualify, it counts.
     const req = GEAR['rune_2h_sword']!.req;
     const below = deriveStats({ rune_2h_sword: 1 }, { atk: req - 1, def: 1 });
@@ -102,6 +103,17 @@ describe('expeditions combat core', () => {
     for (let i = 0; i < 100 && d.outcome === 'fighting'; i++) resolveRound(d, fists, { kind: 'fight' }, rng2);
     expect(d.outcome).toBe('dead');
     expect(d.playerHp).toBe(0);
+  });
+
+  it('trained Hitpoints raise the heal cap; old xp shapes mean level 1', () => {
+    expect(maxHpFor(1)).toBe(PLAYER_BASE.maxHp);
+    expect(maxHpFor(99)).toBe(PLAYER_BASE.maxHp + 2 * 98);
+    expect(levelsOf({ atk: 100, def: 100 }).hp).toBe(1); // pre-8s saves: no hp xp
+    // A 60-max fighter eats past the old 50 cap — and never past 60.
+    const c = newCombat('goblin', 50, undefined, false, 60);
+    resolveRound(c, deriveStats({}), { kind: 'eat', itemId: 'shark' }, createRng(1));
+    expect(c.playerHp).toBeGreaterThan(PLAYER_BASE.maxHp);
+    expect(c.playerHp).toBeLessThanOrEqual(60);
   });
 
   it('dragonfire is breath, not steel: armor cannot stop it — antifire negates it exactly', () => {

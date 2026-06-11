@@ -12,6 +12,7 @@ import {
   deriveStats,
   ENCOUNTERS,
   levelsOf,
+  maxHpFor,
   monsterById,
   expeditionSeed,
   GAMBLE_STAKE,
@@ -292,8 +293,8 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
         regionId: cmd.regionId,
         rngState: expeditionSeed(state.seed, expId),
         // Wounds persist: you set out with the hp you came home with (absent =
-        // full). Embarking hurt is allowed — that's the player's gamble.
-        hp: Math.min(PLAYER_BASE.maxHp, Math.max(1, agent.hp ?? PLAYER_BASE.maxHp)),
+        // full — full meaning your TRAINED max, 8s). Embarking hurt is allowed.
+        hp: Math.min(maxHpFor(levelsOf(agent.combatXp).hp), Math.max(1, agent.hp ?? maxHpFor(levelsOf(agent.combatXp).hp))),
         pack,
         packGp: 0,
         cleared: 0,
@@ -318,14 +319,15 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       if (roll < ENCOUNTERS.monster) {
         const rIdx = regionIndex(exp.regionId);
         const af = exp.antifire ?? false;
+        const mhp = maxHpFor(levelsOf(agent.combatXp).hp);
         if (rIdx === REGIONS.length - 1 && rng.chance(ELITE_CHANCE)) {
-          exp.combat = newCombat('vorkanth', exp.hp, 'the ground shakes — VORKANTH, ELDER OF THE MAW, descends!', af);
+          exp.combat = newCombat('vorkanth', exp.hp, 'the ground shakes — VORKANTH, ELDER OF THE MAW, descends!', af, mhp);
         } else if (rIdx < REGIONS.length - 1 && rng.chance(AMBUSH_CHANCE)) {
           const deeper = REGIONS[rIdx + 1]!;
           const beast = rng.pick(deeper.monsters);
-          exp.combat = newCombat(beast, exp.hp, `AMBUSH — a ${monsterById(beast).name} from ${deeper.name} crosses your path!`, af);
+          exp.combat = newCombat(beast, exp.hp, `AMBUSH — a ${monsterById(beast).name} from ${deeper.name} crosses your path!`, af, mhp);
         } else {
-          exp.combat = newCombat(rng.pick(region.monsters), exp.hp, undefined, af);
+          exp.combat = newCombat(rng.pick(region.monsters), exp.hp, undefined, af, mhp);
         }
       } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache) {
         // A stash in the dark — coin, and sometimes goods (minted like drops).
@@ -373,7 +375,7 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
         } else {
           exp.packGp -= cost;
           state.ledger.gpBurned += cost; // the gods bank elsewhere
-          exp.hp = PLAYER_BASE.maxHp;
+          exp.hp = maxHpFor(levelsOf(agent.combatXp).hp); // full = trained max
           journal.push(`the shrine takes ${cost} gp and knits your wounds`);
         }
       } else {
@@ -432,10 +434,13 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
         const xp = (agent.combatXp ??= { atk: 0, def: 0 });
         xp.atk += dealt;
         xp.def += taken;
+        // Fighting hardens you: a third of damage dealt trains Hitpoints (8s).
+        if (dealt > 0) xp.hp = (xp.hp ?? 0) + Math.ceil(dealt / 3);
         const lv = levelsOf(xp);
         const journal = (exp.journal ??= []);
         if (lv.atk > lvBefore.atk) journal.push(`your arm grows stronger — Attack ${lv.atk}`);
         if (lv.def > lvBefore.def) journal.push(`you learn to take a blow — Defence ${lv.def}`);
+        if (lv.hp > lvBefore.hp) journal.push(`your vitality surges — Hitpoints ${lv.hp} (max hp ${maxHpFor(lv.hp)})`);
       }
       if (c.outcome === 'won') {
         state.ledger.gpMinted += c.lootGp; // monster coin is freshly struck
@@ -471,9 +476,9 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
         if (qty > 0) agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) + qty;
       }
       agent.gp += exp.packGp; // already minted at each kill
-      // Wounds come home with you; full health drops the field (canonical
-      // absent-= -full form keeps never-hurt saves byte-identical).
-      if (exp.hp < PLAYER_BASE.maxHp) agent.hp = Math.max(1, exp.hp);
+      // Wounds come home with you; full health (= TRAINED max, 8s) drops the
+      // field (canonical absent-=-full form keeps never-hurt saves identical).
+      if (exp.hp < maxHpFor(levelsOf(agent.combatXp).hp)) agent.hp = Math.max(1, exp.hp);
       else delete agent.hp;
       delete agent.expedition;
       return { ok: true, trades: [] };

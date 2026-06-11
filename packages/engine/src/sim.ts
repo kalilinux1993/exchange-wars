@@ -2,7 +2,7 @@ import { actAgent, TUNING } from './agents';
 import { DEFAULT_ITEMS } from './catalog';
 import { PROGRESSION } from './commands';
 import { createBook } from './exchange';
-import { PLAYER_BASE, REST_REGEN_TICKS } from './quest';
+import { levelsOf, maxHpFor, REST_REGEN_TICKS } from './quest';
 import { createRng } from './rng';
 import type { AgentKind, AgentState, ItemDef, ItemId, WorldEvent, WorldState } from './types';
 
@@ -157,13 +157,13 @@ export function tickWorld(state: WorldState): void {
     actAgent(state, agent, rng);
   }
   // Out-of-field rest: wounded players (hp present = wounded) mend +1 hp every
-  // REST_REGEN_TICKS while NOT on expedition. No RNG; full health deletes the
-  // field, restoring the canonical absent-=-full form.
+  // REST_REGEN_TICKS while NOT on expedition. No RNG; full health (= TRAINED
+  // max, 8s) deletes the field, restoring the canonical absent-=-full form.
   if (state.tick % REST_REGEN_TICKS === 0) {
     for (const agent of state.agents) {
       if (agent.kind !== 'player' || agent.hp === undefined || agent.expedition) continue;
       agent.hp += 1;
-      if (agent.hp >= PLAYER_BASE.maxHp) delete agent.hp;
+      if (agent.hp >= maxHpFor(levelsOf(agent.combatXp).hp)) delete agent.hp;
     }
   }
   state.rngState = rng.state();

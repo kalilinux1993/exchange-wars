@@ -47,7 +47,8 @@ Design (account-light, static-site-friendly — Supabase):
 - ~~Bestiary & loot vs the honest economy~~ DONE phase 8q: ladder-climbing harness policy (the real fix), deep monsters pay goods-over-coin, market absorption caps the take. Table: naked +4–7k · geared −13k…+130k (deaths burn gear) · TAS tail 150–384k.
 - ~~Cache loot redesign~~ DONE phase 8p: supplies-only pools (gear comes from monsters); flee-route dead.
 - ~~Antifire as the dragon-farm key item~~ DONE phase 8r: armor-piercing breath, expedition-long coating, 17.3k ticket per dive; table healthy (naked +4–7k · geared +38–206k · tail ~260k).
-- Content ideas: 7th region beyond the Maw (for 99-track fighters); region-flavored events; gear durability as a market sink; Hitpoints as a third trained stat (maxHp growth).
+- ~~Hitpoints as a third trained stat~~ DONE phase 8s: xp = dealt/3, +2 maxHp/level, all five "full hp" sites honor the trained max; old saves = level 1 by construction.
+- Content ideas: 7th region beyond the Maw (for 99-track fighters); region-flavored events; gear durability as a market sink; hp-level deeds for the milestones panel.
 - ~~Liquidation-value scoring~~ DONE phase 8o: bid-walk mark excluding own bids; UI playerWorth = engine netWorth (display and arbiter agree); all gates held.
 - Hitpoints level (maxHp growth from xp) — natural third stat once Attack/Defence prove out.
 - ~~Geared-grind measurement~~ DONE phase 8m: capital loop validated (median geared +16.6k vs naked +1–3.9k, depth 4–5); bones faucet nerfed 1→0.15.

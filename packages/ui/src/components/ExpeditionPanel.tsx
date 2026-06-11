@@ -1,11 +1,11 @@
 import {
   CONSUMABLES,
   GEAR,
-  PLAYER_BASE,
   REGION_CLEAR_KILLS,
   REGIONS,
   deriveStats,
   levelsOf,
+  maxHpFor,
   monsterById,
   regionIndex,
   xpForLevel,
@@ -34,7 +34,8 @@ export function ExpeditionPanel({
   const exp = agent?.expedition;
   const progress = agent?.questProgress ?? 0;
   const lvls = levelsOf(agent?.combatXp);
-  const xpLine = (stat: 'atk' | 'def'): string => {
+  const trainedMax = maxHpFor(lvls.hp);
+  const xpLine = (stat: 'atk' | 'def' | 'hp'): string => {
     const lvl = lvls[stat];
     if (lvl >= 99) return `${lvl}`;
     const cur = agent?.combatXp?.[stat] ?? 0;
@@ -73,16 +74,16 @@ export function ExpeditionPanel({
     const st = game.world.stats;
     const tally =
       (st.monstersSlain ?? 0) > 0 || (st.cacheFinds ?? 0) > 0 || (st.diceWon ?? 0) > 0;
-    const resting = agent?.hp !== undefined && agent.hp < PLAYER_BASE.maxHp;
+    const resting = agent?.hp !== undefined && agent.hp < trainedMax;
     return (
       <section className="panel expedition">
         <h2>Expeditions</h2>
-        <p className="dim small" title="Attack trains as you deal damage and unlocks weapons; Defence trains as you take it and unlocks armor">
-          ⚔ Attack {xpLine('atk')} · 🛡 Defence {xpLine('def')}
+        <p className="dim small" title="Attack trains as you deal damage and unlocks weapons; Defence trains as you take it and unlocks armor; Hitpoints harden as you fight (+2 max hp per level)">
+          ⚔ Attack {xpLine('atk')} · 🛡 Defence {xpLine('def')} · ♥ Hitpoints {xpLine('hp')} ({trainedMax} max)
         </p>
         {resting && (
           <p className="warn small" title="wounds persist between expeditions — rest (or embark hurt, your gamble)">
-            ♥ recovering: {agent!.hp}/{PLAYER_BASE.maxHp} hp — mending as the market ticks
+            ♥ recovering: {agent!.hp}/{trainedMax} hp — mending as the market ticks
           </p>
         )}
         {tally && (
@@ -149,7 +150,7 @@ export function ExpeditionPanel({
 
   const region = REGIONS[regionIndex(exp.regionId)]!;
   const stats = deriveStats(exp.pack, lvls);
-  const hpPct = Math.round(((exp.combat ? exp.combat.playerHp : exp.hp) / PLAYER_BASE.maxHp) * 100);
+  const hpPct = Math.min(100, Math.round(((exp.combat ? exp.combat.playerHp : exp.hp) / trainedMax) * 100));
   const foods = Object.entries(exp.pack).filter(([id, qty]) => qty > 0 && CONSUMABLES[id] !== undefined);
 
   return (
