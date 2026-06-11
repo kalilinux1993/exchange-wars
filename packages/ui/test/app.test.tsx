@@ -4,10 +4,12 @@
 import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, playerView, SPRINT_TICKS, tickWorld } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { ItemDef, PlayerView } from '@exchange-wars/engine';
 import { App } from '../src/App';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { Icon, itemIcon } from '../src/components/Icon';
 import { MoversPanel } from '../src/components/MoversPanel';
+import { TopFlips, rankFlips } from '../src/components/TopFlips';
 import { LeaderboardPanel } from '../src/components/LeaderboardPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { ghostWorthAt } from '../src/components/WorthChart';
@@ -394,6 +396,46 @@ describe('UI shell', () => {
   it('shows no recovery banner when there is no quarantine', () => {
     render(<App initial={newGame(42)} />);
     expect(screen.queryByText(/preserved, not lost/i)).toBeNull();
+  });
+
+  describe('rankFlips', () => {
+    const TAX = 0.02;
+    const mk = (itemId: string, bestBid: number | null, bestAsk: number | null) => ({ itemId, bestBid, bestAsk });
+    it('ranks profitable two-sided books by net margin, excluding thin + one-sided', () => {
+      const picks = rankFlips(
+        [
+          mk('a', 100, 110), // buy 101, sell 109, tax 2 → margin 6
+          mk('b', 1000, 1100), // buy 1001, sell 1099, tax 21 → margin 77
+          mk('c', 50, 51), // buy 51, sell 50 → margin -2, excluded
+          mk('d', 200, null), // one-sided book → excluded
+        ],
+        TAX,
+      );
+      expect(picks.map((p) => p.id)).toEqual(['b', 'a']); // best margin first
+      expect(picks[0]).toMatchObject({ id: 'b', buy: 1001, sell: 1099, margin: 77 });
+      expect(picks[1]!.margin).toBe(6);
+    });
+    it('returns [] when no spread clears the tax, and respects the limit', () => {
+      expect(rankFlips([mk('c', 50, 51)], TAX)).toEqual([]);
+      const many = Array.from({ length: 6 }, (_, i) => mk(`i${i}`, 100, 200)); // all margin 95
+      expect(rankFlips(many, TAX, 4)).toHaveLength(4);
+    });
+  });
+
+  it('TopFlips renders profitable rows and selects on click', () => {
+    const onSelect = vi.fn();
+    const view = { markets: [{ itemId: 'gold_bar', bestBid: 1000, bestAsk: 1100 }] } as unknown as PlayerView;
+    const items = [{ id: 'gold_bar', name: 'Gold bar' }] as unknown as ItemDef[];
+    render(<TopFlips view={view} items={items} onSelect={onSelect} />);
+    expect(screen.getByText('+77')).toBeTruthy();
+    fireEvent.click(screen.getByText('Gold bar'));
+    expect(onSelect).toHaveBeenCalledWith('gold_bar');
+  });
+
+  it('TopFlips shows the empty state when nothing clears the tax', () => {
+    const view = { markets: [{ itemId: 'x', bestBid: 50, bestAsk: 51 }] } as unknown as PlayerView;
+    render(<TopFlips view={view} items={[] as unknown as ItemDef[]} onSelect={() => {}} />);
+    expect(screen.getByText(/no profitable flips right now/i)).toBeTruthy();
   });
 
   it('a #seed link starts fresh visitors on that seed directly', () => {

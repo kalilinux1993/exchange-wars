@@ -14,6 +14,7 @@ import { ContractsBoard } from './components/ContractsBoard';
 import { NewsLog } from './components/NewsLog';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { MarketTable } from './components/MarketTable';
+import { TopFlips } from './components/TopFlips';
 import { MilestonesPanel } from './components/MilestonesPanel';
 import type { TicketPrefill } from './components/TradeTicket';
 import { PlayerPanel } from './components/PlayerPanel';
@@ -703,6 +704,7 @@ export function App({ initial }: { initial?: Game }) {
               )
             }
           />
+          <TopFlips view={view} items={game.world.items} onSelect={setSelected} />
           <MoversPanel view={view} items={game.world.items} onSelect={setSelected} />
           <WatchlistPanel
             view={view}
