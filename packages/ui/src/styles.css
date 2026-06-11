@@ -995,6 +995,62 @@ th.num {
   color: var(--gold-bright);
 }
 
+/* ── combat scene (9l) ──────────────────────────────────── */
+.combatscene {
+  width: 100%;
+  height: auto;
+  margin: 4px 0;
+  background: radial-gradient(circle at 70% 40%, #2a1416, var(--ink) 72%);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+}
+.scenehp-bg {
+  fill: #2a2418;
+}
+.scenehp.you {
+  fill: #4f7a45;
+}
+.scenehp.foe {
+  fill: #a23b2f;
+}
+.combatscene .eye {
+  fill: var(--gold-bright);
+}
+.combatscene .tendril {
+  stroke: #7b4f9e;
+  stroke-width: 2;
+}
+.combatscene .crown {
+  fill: var(--gold-bright);
+  font-size: 12px;
+}
+.combatscene .monster {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: monster-bob 2.4s ease-in-out infinite;
+}
+@keyframes monster-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.splat {
+  font-size: 13px;
+  font-weight: 700;
+  fill: #ff6b5a;
+  animation: splat-rise 0.7s ease-out forwards;
+}
+.splat.foe {
+  fill: #ffe08a;
+}
+.splat.heal {
+  fill: #7fd66f;
+}
+@keyframes splat-rise {
+  0% { opacity: 0; transform: translateY(4px); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-12px); }
+}
+
 /* ── phone-sized screens ──────────────────────────────── */
 @media (max-width: 640px) {
   :root {

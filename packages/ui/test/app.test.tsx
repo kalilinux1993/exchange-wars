@@ -601,6 +601,30 @@ describe('UI shell', () => {
     // (no expedition at all = died fighting — also a settled fight)
   });
 
+  it('the combat scene renders the foe and animates a hit splat per round', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.expedition = {
+      regionId: 'lumbridge_plains',
+      rngState: 1,
+      hp: 50,
+      pack: {},
+      packGp: 0,
+      cleared: 0,
+      combat: { monsterId: 'goblin', monsterHp: 12, playerHp: 50, antifire: false, maxHp: 50, outcome: 'fighting', lootGp: 0, lootItems: [], log: ['a goblin blocks the path'] },
+    };
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const scene = document.querySelector('.combatscene') as SVGElement;
+    expect(scene).toBeTruthy();
+    expect(scene.getAttribute('aria-label')).toContain('Goblin');
+    // Land a blow: monster hp drops, a fresh log entry → a splat appears.
+    agent.expedition.combat!.monsterHp = 4;
+    agent.expedition.combat!.log.push('you strike the Goblin for 8');
+    fireEvent.click(screen.getByRole('button', { name: 'fight' })); // forces a re-render
+    expect(document.querySelector('.combatscene .splat')).toBeTruthy();
+  });
+
   it('expedition loadouts: save a kit, refill from it clamped to what you hold', () => {
     localStorage.removeItem('ew-loadouts');
     const game = newGame(42);

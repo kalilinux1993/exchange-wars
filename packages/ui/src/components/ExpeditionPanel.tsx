@@ -14,6 +14,7 @@ import type { PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { deathRecap, loadLoadouts, saveLoadouts, type Game } from '../game';
 import { CharacterPanel } from './CharacterPanel';
+import { CombatScene } from './CombatScene';
 import { RegionMap } from './RegionMap';
 
 /**
@@ -263,22 +264,29 @@ export function ExpeditionPanel({
         {exp.packGp.toLocaleString('en-US')} gp
         {exp.antifire ? ' · 🛡🔥 antifire holds for this dive' : ''}
       </p>
-      <div className="hpbar" title="your hp">
-        <div className="hpfill" style={{ width: `${hpPct}%` }} />
-      </div>
+      {!exp.combat && (
+        <div className="hpbar" title="your hp">
+          <div className="hpfill" style={{ width: `${hpPct}%` }} />
+        </div>
+      )}
       {exp.combat ? (
         <>
           {(() => {
             const m = monsterById(exp.combat!.monsterId);
-            const mPct = Math.round((Math.max(0, exp.combat!.monsterHp) / m.hp) * 100);
             return (
               <>
+                <CombatScene
+                  monsterId={exp.combat!.monsterId}
+                  monsterHp={exp.combat!.monsterHp}
+                  playerHp={exp.combat!.playerHp}
+                  playerMaxHp={exp.combat!.maxHp ?? trainedMax}
+                  logLen={exp.combat!.log.length}
+                  geared={Object.keys(exp.pack).some((id) => GEAR[id] !== undefined && (exp.pack[id] ?? 0) > 0)}
+                />
                 <p className="small">
-                  <b>{m.name}</b> — {Math.max(0, exp.combat!.monsterHp)}/{m.hp} hp
+                  <b>{m.name}</b> — {Math.max(0, exp.combat!.monsterHp)}/{m.hp} hp · you{' '}
+                  {Math.max(0, exp.combat!.playerHp)}/{exp.combat!.maxHp ?? trainedMax}
                 </p>
-                <div className="hpbar foe" title={`${m.name} hp`}>
-                  <div className="hpfill" style={{ width: `${mPct}%` }} />
-                </div>
               </>
             );
           })()}

@@ -5,7 +5,8 @@ Deploy: push to main → CI (typecheck + vitest + e2e) auto-deploys Pages. Verif
 
 ## OSRS HUD arc (Jesse-directed 2026-06-11, started 9k)
 - 9k DONE: SVG region map, paperdoll + skills strip, compact deed badge grid.
-- **Next steps**: animate combat (hit splats / hp tween); a richer paperdoll (per-item silhouettes, not just lit plates); OSRS-style icon tabs WITHIN rooms if panels crowd; an inventory/equipment grid view; sound-free juice on level-up & kill. Raster sprites would need real art assets — SVG is the deterministic, dependency-free path; keep going SVG unless Jesse supplies art.
+- 9l DONE: combat scene — figure vs generated monster, hp bars, hit-splats (render-diff animation, no engine timers).
+- **Next steps**: richer paperdoll (per-item silhouettes, not just lit plates); OSRS-style icon tabs WITHIN rooms if panels crowd; an inventory/equipment grid view; level-up flash on the skills strip; monster variety in the scene (more shapes, not just hue). Raster sprites would need real art assets — SVG is the deterministic, dependency-free path; keep going SVG unless Jesse supplies art.
 - Jesse-gate check-in: confirm the SVG direction matches his mental image before investing in deeper art.
 
 ## Queued (real candidates, in rough priority)
