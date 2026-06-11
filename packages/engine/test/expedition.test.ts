@@ -219,6 +219,29 @@ describe('expeditions', () => {
     expect(cache + trap + event).toBeGreaterThan(0); // the dark holds more than monsters
   });
 
+  it('caches sometimes hold items — minted into the pack, fully conserved', () => {
+    let itemFound = false;
+    for (let seed = 1; seed <= 120 && !itemFound; seed++) {
+      const { state, id } = fixture(seed);
+      const agent = state.agents[id]!;
+      ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+      for (let i = 0; i < 8 && agent.expedition; i++) {
+        const exp = agent.expedition;
+        if (exp.combat) ok(state, id, { type: 'fleeCombat' });
+        else if (exp.event) ok(state, id, { type: 'choose', accept: false });
+        else ok(state, id, { type: 'advance' });
+        if (agent.expedition && (agent.expedition.journal ?? []).some((l) => l.includes('and a '))) {
+          itemFound = true;
+          const packItems = Object.values(agent.expedition.pack).reduce((a, b) => a + b, 0);
+          expect(packItems).toBeGreaterThan(0); // the find is IN the pack
+          expect(state.stats.cacheFinds ?? 0).toBeGreaterThan(0);
+          break;
+        }
+      }
+    }
+    expect(itemFound).toBe(true); // 25% per cache across 120 seeds × 8 steps
+  });
+
   it('fleeing ends the encounter without kill credit; market RNG is untouched', () => {
     const { state, id } = fixture(11);
     const agent = state.agents[id]!;

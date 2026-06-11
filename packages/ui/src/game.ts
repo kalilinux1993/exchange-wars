@@ -311,6 +311,19 @@ export const MILESTONES: Milestone[] = [
     achieved: (g) => (g.world.ledger.itemsMinted['superior_dragon_bones'] ?? 0) > 0,
   },
   {
+    id: 'lucky-find',
+    name: 'Lucky Find',
+    flavor: 'The cache held more than coin.',
+    achieved: (g) => (g.world.stats.cacheFinds ?? 0) >= 1,
+  },
+  {
+    id: 'high-roller',
+    name: 'High Roller',
+    flavor: 'The goblin hates you now.',
+    achieved: (g) => (g.world.stats.diceWon ?? 0) >= 3,
+    progress: (g) => (g.world.stats.diceWon ?? 0) / 3,
+  },
+  {
     id: 'storm-rider',
     name: 'Storm Trader',
     flavor: 'You traded into the storm and lived.',

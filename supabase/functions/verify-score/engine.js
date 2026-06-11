@@ -225,6 +225,19 @@ var ENCOUNTERS = {
 };
 var SHRINE_MIN_COST = 50;
 var GAMBLE_STAKE = 100;
+var CACHE_ITEM_CHANCE = 0.25;
+var CACHE_LOOT = [
+  { minRegion: 0, items: ["adamant_dart", "law_rune", "nature_rune"] },
+  { minRegion: 2, items: ["death_rune", "blood_rune", "cooked_karambwan"] },
+  { minRegion: 4, items: ["rune_full_helm", "rune_battleaxe", "shark"] }
+];
+function cachePool(regionIdx) {
+  let pool = CACHE_LOOT[0].items;
+  for (const tier of CACHE_LOOT) {
+    if (regionIdx >= tier.minRegion) pool = tier.items;
+  }
+  return pool;
+}
 function deriveStats(pack) {
   const best = {};
   for (const [itemId, qty] of Object.entries(pack)) {
@@ -551,10 +564,19 @@ function applyCommand(state, playerId, cmd) {
       if (roll < ENCOUNTERS.monster) {
         exp.combat = newCombat(rng.pick(region.monsters), exp.hp);
       } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache) {
-        const found = rng.int(20, 60 + 40 * regionIndex(exp.regionId));
+        const rIdx = regionIndex(exp.regionId);
+        const found = rng.int(20, 60 + 40 * rIdx);
         state.ledger.gpMinted += found;
         exp.packGp += found;
-        journal.push(`you pry open a forgotten cache: +${found} gp`);
+        state.stats.cacheFinds = (state.stats.cacheFinds ?? 0) + 1;
+        if (rng.chance(CACHE_ITEM_CHANCE)) {
+          const itemId = rng.pick(cachePool(rIdx));
+          state.ledger.itemsMinted[itemId] = (state.ledger.itemsMinted[itemId] ?? 0) + 1;
+          exp.pack[itemId] = (exp.pack[itemId] ?? 0) + 1;
+          journal.push(`you pry open a forgotten cache: +${found} gp and a ${itemId.replace(/_/g, " ")}`);
+        } else {
+          journal.push(`you pry open a forgotten cache: +${found} gp`);
+        }
       } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache + ENCOUNTERS.trap) {
         const dmg = rng.int(3, 6 + 3 * regionIndex(exp.regionId));
         exp.hp -= dmg;
@@ -595,6 +617,7 @@ function applyCommand(state, playerId, cmd) {
         } else if (rng.chance(0.5)) {
           state.ledger.gpMinted += GAMBLE_STAKE;
           exp.packGp += GAMBLE_STAKE;
+          state.stats.diceWon = (state.stats.diceWon ?? 0) + 1;
           journal.push(`the dice land your way: +${GAMBLE_STAKE} gp`);
         } else {
           exp.packGp -= GAMBLE_STAKE;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_ITEMS } from '../src/catalog';
 import {
+  CACHE_LOOT,
   CONSUMABLES,
   deriveStats,
   GEAR,
@@ -13,7 +14,7 @@ import {
 import { createRng } from '../src/rng';
 
 describe('expeditions combat core', () => {
-  it('every gear, consumable, and loot id is a REAL catalog item', () => {
+  it('every gear, consumable, loot, and cache id is a REAL catalog item', () => {
     const ids = new Set(DEFAULT_ITEMS.map((i) => i.id));
     for (const id of [...Object.keys(GEAR), ...Object.keys(CONSUMABLES)]) {
       expect(ids.has(id), `${id} missing from catalog`).toBe(true);
@@ -21,6 +22,9 @@ describe('expeditions combat core', () => {
     for (const m of MONSTERS) {
       for (const d of m.drops) expect(ids.has(d.itemId), `${m.id} drops unknown ${d.itemId}`).toBe(true);
       expect(m.gp[0]).toBeLessThanOrEqual(m.gp[1]);
+    }
+    for (const tier of CACHE_LOOT) {
+      for (const id of tier.items) expect(ids.has(id), `cache loot unknown ${id}`).toBe(true);
     }
   });
 

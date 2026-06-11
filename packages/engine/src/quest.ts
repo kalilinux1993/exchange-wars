@@ -116,6 +116,25 @@ export const ENCOUNTERS = {
 export const SHRINE_MIN_COST = 50;
 export const GAMBLE_STAKE = 100;
 
+/** Chance a cache holds an item on top of its coin. */
+export const CACHE_ITEM_CHANCE = 0.25;
+
+/** Region-tiered cache loot (indexed by min region; pools are cumulative-
+ * exclusive — the deepest pool at or below your region applies). */
+export const CACHE_LOOT: { minRegion: number; items: string[] }[] = [
+  { minRegion: 0, items: ['adamant_dart', 'law_rune', 'nature_rune'] },
+  { minRegion: 2, items: ['death_rune', 'blood_rune', 'cooked_karambwan'] },
+  { minRegion: 4, items: ['rune_full_helm', 'rune_battleaxe', 'shark'] },
+];
+
+export function cachePool(regionIdx: number): string[] {
+  let pool = CACHE_LOOT[0]!.items;
+  for (const tier of CACHE_LOOT) {
+    if (regionIdx >= tier.minRegion) pool = tier.items;
+  }
+  return pool;
+}
+
 /** An expedition in progress — plain JSON, lives on the agent. */
 export interface ExpeditionState {
   regionId: string;

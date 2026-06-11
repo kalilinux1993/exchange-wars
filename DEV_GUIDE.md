@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 8g — Richer Spoils (2026-06-11, Expeditions brick 7)
+
+- **Cache item drops** (quest.ts CACHE_LOOT + cachePool, CACHE_ITEM_CHANCE 25%): region-tiered pools (surface: darts/law/nature → mid: death/blood/karambwan → deep: rune helm/battleaxe/shark), minted into the pack in the advance cache branch; integrity gate covers the pools.
+- Stats: cacheFinds, diceWon. Deeds (22): `lucky-find`, `high-roller` (3 dice wins, progress).
+- verify-score redeployed in sync.
+
 ## Phase 8f — Dual-Metric Sprint Board (2026-06-11, Expeditions brick 6)
 
 - **One replay, two verified metrics**: expeditions execute between ticks, so the existing 2k-sprint replay already proves any dungeon runs inside it — `ReplayResult`/`SprintVerdict` now carry `deepest` (world stats.deepestRegion), verify-score stores it (table gained `deepest int default 0` via live management SQL; leaderboard.sql updated), and board rows show a ⛏N depth badge (region name in the tooltip). Worth stays the ranking; depth is displayed glory.

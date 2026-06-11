@@ -108,6 +108,10 @@ export interface SimStats {
   monstersSlain?: number;
   /** Deepest region index ever entered (absent in pre-quest saves). */
   deepestRegion?: number;
+  /** Forgotten caches pried open. */
+  cacheFinds?: number;
+  /** Goblin dice games won. */
+  diceWon?: number;
 }
 
 /** A standing NPC buy-order at a premium — the realm's quartermaster pays

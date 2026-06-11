@@ -4,6 +4,8 @@
 import { bestAsk, bestBid, cancelAgentOrders, placeOrder } from './exchange';
 import { itemDef } from './items';
 import {
+  CACHE_ITEM_CHANCE,
+  cachePool,
   CONSUMABLES,
   deriveStats,
   ENCOUNTERS,
@@ -303,11 +305,20 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       if (roll < ENCOUNTERS.monster) {
         exp.combat = newCombat(rng.pick(region.monsters), exp.hp);
       } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache) {
-        // A stash in the dark — free loot gp (minted, like monster coin).
-        const found = rng.int(20, 60 + 40 * regionIndex(exp.regionId));
+        // A stash in the dark — coin, and sometimes goods (minted like drops).
+        const rIdx = regionIndex(exp.regionId);
+        const found = rng.int(20, 60 + 40 * rIdx);
         state.ledger.gpMinted += found;
         exp.packGp += found;
-        journal.push(`you pry open a forgotten cache: +${found} gp`);
+        state.stats.cacheFinds = (state.stats.cacheFinds ?? 0) + 1;
+        if (rng.chance(CACHE_ITEM_CHANCE)) {
+          const itemId = rng.pick(cachePool(rIdx));
+          state.ledger.itemsMinted[itemId] = (state.ledger.itemsMinted[itemId] ?? 0) + 1;
+          exp.pack[itemId] = (exp.pack[itemId] ?? 0) + 1;
+          journal.push(`you pry open a forgotten cache: +${found} gp and a ${itemId.replace(/_/g, ' ')}`);
+        } else {
+          journal.push(`you pry open a forgotten cache: +${found} gp`);
+        }
       } else if (roll < ENCOUNTERS.monster + ENCOUNTERS.cache + ENCOUNTERS.trap) {
         const dmg = rng.int(3, 6 + 3 * regionIndex(exp.regionId));
         exp.hp -= dmg;
@@ -348,6 +359,7 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
         } else if (rng.chance(0.5)) {
           state.ledger.gpMinted += GAMBLE_STAKE;
           exp.packGp += GAMBLE_STAKE;
+          state.stats.diceWon = (state.stats.diceWon ?? 0) + 1;
           journal.push(`the dice land your way: +${GAMBLE_STAKE} gp`);
         } else {
           exp.packGp -= GAMBLE_STAKE;
