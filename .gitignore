@@ -8,3 +8,4 @@ coverage/
 packages/ui/dist/
 test-results/
 playwright-report/
+supabase/.temp/
