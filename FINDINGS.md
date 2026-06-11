@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 8w — Sell the Spoils (2026-06-11)
+
+57. **The honest mark turned out to be a UX spec.** "What would the bids pay right now" (FINDINGS #49) became a button: bidWalk computes the walkable quantity against resting bids (excluding your own), and a sell placed at the WALK'S FLOOR price fills the entire walkable stack instantly — no resting residue, no slot consumed, gp in hand. One chip per satchel row plus a "sell the spoils" sweep, each sale a normal logged place command (replayable, leaderboard-legal). The satchel's value line switched from lastPrice fantasy to bids-pay reality, so the inventory panel, the purse, and the verifier now all speak the same number. Bonus: Monster Scholar deed (every bestiary page written). The general lesson pairs with #56: once scoring is honest, the honest computation IS the feature — valuation, the sell price, and the displayed number are one function viewed three ways.
+
 ## Phase 8v — The Bestiary (2026-06-11)
 
 56. **Recognition features are nearly free once the engine narrates everything it does.** The Bestiary (per-monster kill codex with discovery reveal — unmet monsters render as ???, met ones show kill counts, gp ranges, and full drop tables) needed exactly ONE engine line: a killsByMonster tally next to monstersSlain in the win branch. Everything else was already true: MONSTERS is the render source, drops/gp are public data the player has earned the right to see by killing, elites get a ★, dragonfire a 🔥. The native <details> element carried the whole disclosure UX without a line of state. Same story for the three stat deeds (Swordhand/Bulwark/Iron Constitution at level 10) — levelsOf was already exported, the milestone framework already took progress functions. The pattern worth naming: deterministic engines that BOOK every fact (ledger, stats, journals) make any future "show me what happened" feature a pure-UI brick; the expensive part was paid once, at the architecture.

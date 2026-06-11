@@ -1,15 +1,27 @@
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
+import { bidWalk, type Game } from '../game';
 
 export function PlayerPanel({
+  game,
   view,
   items,
   onCommand,
 }: {
+  game: Game;
   view: PlayerView;
   items: ItemDef[];
   onCommand: (cmd: PlayerCommand) => void;
 }) {
   const held = items.filter((i) => (view.inventory[i.id] ?? 0) > 0);
+  // Selling at the walk's floor fills the whole walkable qty instantly —
+  // realize exactly what the honest mark says the bids would pay (8w).
+  const sellable = held
+    .map((i) => ({ item: i, walk: bidWalk(game, i.id, view.inventory[i.id] ?? 0) }))
+    .filter((s) => s.walk !== null);
+  const dump = (itemId: string): void => {
+    const walk = bidWalk(game, itemId, view.inventory[itemId] ?? 0);
+    if (walk) onCommand({ type: 'place', itemId, side: 'sell', price: walk.floor, qty: walk.qty });
+  };
   return (
     <section className="panel player">
       <h2>Ledger</h2>
@@ -17,30 +29,43 @@ export function PlayerPanel({
       <ul className="rows">
         {held.map((i) => {
           const qty = view.inventory[i.id] ?? 0;
-          const last = view.markets.find((m) => m.itemId === i.id)?.lastPrice ?? 0;
+          const walk = bidWalk(game, i.id, qty);
           return (
             <li key={i.id}>
               <span>{i.name}</span>
               <span className="num">
-                {qty.toLocaleString('en-US')} · ≈{(qty * last).toLocaleString('en-US')} gp
+                {qty.toLocaleString('en-US')} · bids pay ≈{(walk?.gp ?? 0).toLocaleString('en-US')} gp
               </span>
+              {walk && (
+                <button className="chip" title={`sell ${walk.qty} into the resting bids (fills instantly)`} onClick={() => dump(i.id)}>
+                  sell
+                </button>
+              )}
             </li>
           );
         })}
         {held.length === 0 && <li className="dim">empty satchel</li>}
         {held.length > 0 && (
           <li>
-            <span className="dim">satchel value</span>
+            <span className="dim">satchel, as the bids see it</span>
             <span className="num">
               ≈
               {held
-                .reduce((total, i) => {
-                  const last = view.markets.find((m) => m.itemId === i.id)?.lastPrice ?? 0;
-                  return total + (view.inventory[i.id] ?? 0) * last;
-                }, 0)
+                .reduce((total, i) => total + (bidWalk(game, i.id, view.inventory[i.id] ?? 0)?.gp ?? 0), 0)
                 .toLocaleString('en-US')}{' '}
               gp
             </span>
+            {sellable.length > 1 && (
+              <button
+                className="chip"
+                title="sell every stack into the resting bids — one fill-only order per item"
+                onClick={() => {
+                  for (const s of sellable) dump(s.item.id);
+                }}
+              >
+                sell the spoils
+              </button>
+            )}
           </li>
         )}
       </ul>

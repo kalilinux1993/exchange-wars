@@ -563,7 +563,7 @@ export function App({ initial }: { initial?: Game }) {
           />
         </section>
         <section className="middle">
-          <PlayerPanel view={view} items={game.world.items} onCommand={command} />
+          <PlayerPanel game={game} view={view} items={game.world.items} onCommand={command} />
           <ContractsBoard view={view} items={game.world.items} tick={game.world.tick} onCommand={command} />
           <TradeFeed
             trades={game.world.trades}

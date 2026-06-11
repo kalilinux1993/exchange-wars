@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Catalog-agnostic: everything derives from DEFAULT_ITEMS so `npm run
 // gen:catalog` regens never break these tests.
-import { addAgent, createWorld, DEFAULT_ITEMS, playerView, SPRINT_TICKS } from '@exchange-wars/engine';
+import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, playerView, SPRINT_TICKS } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../src/App';
@@ -554,6 +554,25 @@ describe('UI shell', () => {
     expect(statDeeds).toContain('swordhand');
     expect(statDeeds).toContain('bulwark');
     expect(statDeeds).not.toContain('iron-constitution'); // one xp short
+  });
+
+  it('sell the spoils: one click realizes what the resting bids would pay', () => {
+    const game = newGame(42);
+    const player = game.world.agents[game.playerId]!;
+    // A second player rests real bids (5 @ 500, then 5 @ 400) on FIRST's book.
+    const buyer = addAgent(game.world, 'player', 50_000, {});
+    buyer.policy = 'idle';
+    expect(applyCommand(game.world, buyer.id, { type: 'place', itemId: FIRST.id, side: 'buy', price: 500, qty: 5 }).ok).toBe(true);
+    expect(applyCommand(game.world, buyer.id, { type: 'place', itemId: FIRST.id, side: 'buy', price: 400, qty: 5 }).ok).toBe(true);
+    player.inventory[FIRST.id] = 8; // spoils to dump: 5 fill at 500, 3 at 400
+    render(<App initial={game} />);
+    const panel = document.querySelector('.player') as HTMLElement;
+    expect(within(panel).getByText(/bids pay ≈3,700 gp/)).toBeTruthy(); // 5×500 + 3×400
+    const gpBefore = player.gp;
+    fireEvent.click(within(panel).getByRole('button', { name: 'sell' }));
+    expect(player.inventory[FIRST.id] ?? 0).toBe(0); // the walk took the whole stack
+    expect(player.gp).toBeGreaterThan(gpBefore); // instant fills (net of tax)
+    expect(playerView(game.world, game.playerId)!.openOrders.length).toBe(0); // no resting residue
   });
 
   it('the bestiary reveals monsters you have met and hides the rest', () => {

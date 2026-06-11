@@ -50,8 +50,8 @@ Design (account-light, static-site-friendly — Supabase):
 - ~~Hitpoints as a third trained stat~~ DONE phase 8s: xp = dealt/3, +2 maxHp/level, all five "full hp" sites honor the trained max; old saves = level 1 by construction.
 - ~~7th region~~ DONE phase 8t: the Inferno Gate (pyrefiend/lava dragon, elite Zukrath, all-dragonfire — the antifire ticket is mandatory; Hellwalker deed).
 - ~~Region-flavored events~~ DONE phase 8u: portal (depth tourism), imp (no-stake blood gamble), merchant (3× shark resupply) — depth-gated pool, conservation-clean.
-- ~~Bestiary + stat deeds~~ DONE phase 8v: per-monster kill codex with discovery reveal (??? until met); Swordhand/Bulwark/Iron Constitution deeds at level 10.
-- Content ideas: gear durability as a market sink; an 8th region someday (the chain auto-extends); more event faces (~30 lines each); bestiary completion deed ("met them all")?
+- ~~Bestiary + stat deeds~~ DONE phase 8v; ~~Sell the spoils + Monster Scholar deed~~ DONE phase 8w: bidWalk floor-price dumps (instant fills, no residue), satchel valued as the bids see it.
+- Content ideas: gear durability as a market sink; an 8th region someday (the chain auto-extends); more event faces (~30 lines each).
 - ~~Liquidation-value scoring~~ DONE phase 8o: bid-walk mark excluding own bids; UI playerWorth = engine netWorth (display and arbiter agree); all gates held.
 - Hitpoints level (maxHp growth from xp) — natural third stat once Attack/Defence prove out.
 - ~~Geared-grind measurement~~ DONE phase 8m: capital loop validated (median geared +16.6k vs naked +1–3.9k, depth 4–5); bones faucet nerfed 1→0.15.

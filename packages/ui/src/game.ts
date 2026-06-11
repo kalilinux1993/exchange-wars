@@ -1,6 +1,6 @@
 // Game bootstrap + persistence. The human is an idle-policy player agent:
 // engine-inert unless automation is purchased, acting only via UI commands.
-import { addAgent, createWorld, EVENT_LABELS, levelsOf, netWorth, playerView, runTicks } from '@exchange-wars/engine';
+import { addAgent, createWorld, EVENT_LABELS, levelsOf, MONSTERS, netWorth, playerView, runTicks } from '@exchange-wars/engine';
 import type { PlayerView, RunLogEntry, WorldEvent, WorldState } from '@exchange-wars/engine';
 
 export interface Game {
@@ -332,6 +332,13 @@ export const MILESTONES: Milestone[] = [
     progress: (g) => levelsOf(g.world.agents[g.playerId]?.combatXp).hp / 10,
   },
   {
+    id: 'monster-scholar',
+    name: 'Monster Scholar',
+    flavor: 'Every page of the bestiary, written in something other than ink.',
+    achieved: (g) => MONSTERS.every((m) => (g.world.stats.killsByMonster?.[m.id] ?? 0) > 0),
+    progress: (g) => MONSTERS.filter((m) => (g.world.stats.killsByMonster?.[m.id] ?? 0) > 0).length / MONSTERS.length,
+  },
+  {
     id: 'dragon-slayer',
     name: 'Dragon Slayer',
     flavor: 'The Maw is quieter now.',
@@ -393,6 +400,29 @@ export function checkMilestones(game: Game, view: PlayerView, worth: number): Mi
 export function playerWorth(game: Game): number {
   const agent = game.world.agents[game.playerId];
   return agent ? netWorth(game.world, agent) : 0;
+}
+
+/** What the resting bids (excluding the player's own) would pay for `qty` of
+ * an item right now: the walkable quantity, the FLOOR price of that walk, and
+ * the gross take. A sell placed at exactly the floor fills in full against
+ * those bids — instant gp, no resting residue, no slot consumed. Reads the
+ * world for display; the actual sale goes through the place command. */
+export function bidWalk(game: Game, itemId: string, qty: number): { qty: number; floor: number; gp: number } | null {
+  const book = game.world.books[itemId];
+  if (!book || qty <= 0) return null;
+  let remaining = qty;
+  let gp = 0;
+  let floor = 0;
+  for (const o of book.buys) {
+    if (remaining <= 0) break;
+    if (o.agentId === game.playerId) continue; // never sell to yourself
+    const take = Math.min(remaining, o.remaining);
+    gp += take * o.price;
+    floor = o.price;
+    remaining -= take;
+  }
+  const sold = qty - remaining;
+  return sold > 0 ? { qty: sold, floor, gp } : null;
 }
 
 const SAMPLE_EVERY_TICKS = 50;
