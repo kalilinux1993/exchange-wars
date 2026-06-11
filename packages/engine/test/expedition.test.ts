@@ -597,6 +597,39 @@ describe('expeditions', () => {
     expect(met).toBe(true); // 10% per Maw monster across 100 seeds × 6 steps
   });
 
+  it('Skarn stalks the Wilderness Ruins as the first elite, yields elite credit, conserved', () => {
+    expect(REGIONS[4]!.id).toBe('wilderness_ruins');
+    expect(REGIONS[4]!.elite).toBe('skarn');
+    let met = false;
+    for (let seed = 1; seed <= 100 && !met; seed++) {
+      const { state, id } = fixture(seed);
+      const agent = state.agents[id]!;
+      agent.questProgress = REGIONS.length - 1; // every region open
+      ok(state, id, { type: 'startExpedition', regionId: 'wilderness_ruins', pack: {} });
+      for (let i = 0; i < 6 && agent.expedition; i++) {
+        const exp = agent.expedition;
+        if (exp.combat) {
+          if (exp.combat.monsterId === 'skarn') {
+            met = true;
+            expect(exp.combat.log[0]).toContain('SKARN');
+            // Arm + qualify, put the Ruin-Walker at 1 hp so the first blow fells him.
+            agent.combatXp = { atk: xpForLevel(14), def: 0 };
+            exp.pack['rune_2h_sword'] = 1;
+            state.ledger.itemsMinted['rune_2h_sword'] = (state.ledger.itemsMinted['rune_2h_sword'] ?? 0) + 1;
+            exp.combat.monsterHp = 1;
+            for (let r = 0; r < 10 && agent.expedition?.combat; r++) ok(state, id, { type: 'fight' });
+            expect(state.stats.eliteSlain).toBe(1);
+            checkInvariants(state); // kill mints gp + drops through the ledger
+            break;
+          }
+          ok(state, id, { type: 'fleeCombat' });
+        } else if (exp.event) ok(state, id, { type: 'choose', accept: false });
+        else ok(state, id, { type: 'advance' });
+      }
+    }
+    expect(met).toBe(true); // 10% per Wilderness monster across 100 seeds × 6 steps
+  });
+
   it('a combat brew buffs your stats for the whole dive, conserved, refreshes not stacks', () => {
     const { state, id } = fixture(13);
     const agent = state.agents[id]!;

@@ -600,6 +600,10 @@ var MONSTERS = [
   { id: "abyssal_leech", name: "Abyssal leech", hp: 60, atk: 18, def: 10, gp: [100, 300], leech: 40, drops: [{ itemId: "blood_rune", chance: 0.35 }] },
   { id: "abyssal_demon", name: "Abyssal demon", hp: 130, atk: 30, def: 18, gp: [400, 1e3], leech: 80, drops: [{ itemId: "death_rune", chance: 0.6 }, { itemId: "dragon_dart", chance: 0.2 }] },
   // The named elites — never in a region pool; their region spawns them.
+  // Skarn (11g): the FIRST elite, stalking the Wilderness Ruins — gives mid-game
+  // raiders a jackpot before the deep three. Tier between fire_giant and Vorkanth;
+  // pays in Wilderness rune-gear, NOT the deep elites' 16.7k bone (no mid printer).
+  { id: "skarn", name: "Skarn, the Ruin-Walker", hp: 130, atk: 24, def: 13, gp: [800, 2200], elite: true, drops: [{ itemId: "blood_rune", chance: 0.6 }, { itemId: "rune_battleaxe", chance: 0.2 }, { itemId: "rune_platebody", chance: 0.1 }] },
   { id: "vorkanth", name: "Vorkanth, Elder of the Maw", hp: 180, atk: 30, def: 16, gp: [1500, 4e3], dragonfire: true, elite: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "dragon_med_helm", chance: 0.25 }, { itemId: "dragon_platelegs", chance: 0.15 }] },
   { id: "zukrath", name: "Zukrath, the Inferno Sovereign", hp: 260, atk: 36, def: 20, gp: [3e3, 8e3], dragonfire: true, elite: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "prayer_regeneration_potion_4", chance: 0.3 }, { itemId: "dragon_longsword", chance: 0.2 }] },
   // dragon_plateskirt (121k baseCost) lives ONLY here — the Abyss jackpot.
@@ -612,7 +616,7 @@ var REGIONS = [
   { id: "varrock_sewers", name: "Varrock Sewers", flavor: "it smells like XP down here", monsters: ["goblin", "skeleton"] },
   { id: "edgeville_dungeon", name: "Edgeville Dungeon", flavor: "the giants pay well", monsters: ["skeleton", "hill_giant"] },
   { id: "brimhaven_caverns", name: "Brimhaven Caverns", flavor: "moss, mould, and money", monsters: ["moss_giant", "hill_giant"] },
-  { id: "wilderness_ruins", name: "Wilderness Ruins", flavor: "demons hoard runes", monsters: ["lesser_demon", "fire_giant"] },
+  { id: "wilderness_ruins", name: "Wilderness Ruins", flavor: "demons hoard runes \u2014 and something worse walks here", monsters: ["lesser_demon", "fire_giant"], elite: "skarn" },
   { id: "dragons_maw", name: "The Dragon's Maw", flavor: "bring antifire or bring regrets", monsters: ["green_dragon", "fire_giant"], elite: "vorkanth" },
   // 8t: the 99-track. EVERYTHING here breathes fire — the antifire ticket is
   // not optional, and the fights are long enough that the trained stats from
