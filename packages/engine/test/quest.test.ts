@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_ITEMS } from '../src/catalog';
 import {
   CACHE_LOOT,
+  combatLevel,
   CONSUMABLES,
   deriveStats,
   GEAR,
@@ -51,6 +52,14 @@ describe('expeditions combat core', () => {
     expect(s.atk).toBe(PLAYER_BASE.atk + (LV.atk - 1) + GEAR['rune_2h_sword']!.atk);
     expect(s.def).toBe(PLAYER_BASE.def + (LV.def - 1) + GEAR['dragon_platelegs']!.def + GEAR['rune_platebody']!.def);
     expect(deriveStats({ rune_platebody: 0 })).toEqual(deriveStats({})); // qty 0 = not carried
+  });
+
+  it('combat level summarises the three skills (1 fresh, 99 maxed, monotonic)', () => {
+    expect(combatLevel(undefined)).toBe(1);
+    const a = combatLevel({ atk: xpForLevel(10), def: xpForLevel(10), hp: xpForLevel(10) });
+    const b = combatLevel({ atk: xpForLevel(20), def: xpForLevel(20), hp: xpForLevel(20) });
+    expect(b).toBeGreaterThan(a); // training raises it
+    expect(combatLevel({ atk: xpForLevel(99), def: xpForLevel(99), hp: xpForLevel(99) })).toBe(99);
   });
 
   it('training gates the arsenal: xp curve checkpoints and req enforcement', () => {

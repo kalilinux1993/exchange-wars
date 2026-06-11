@@ -270,6 +270,13 @@ export function levelsOf(xp?: { atk: number; def: number; hp?: number }): Requir
   return { atk: levelFor(xp?.atk ?? 0), def: levelFor(xp?.def ?? 0), hp: levelFor(xp?.hp ?? 0) };
 }
 
+/** A single OSRS-flavored combat level from the three skills (display/flavor):
+ * 1 at fresh (1/1/1), 99 at maxed (99/99/99). Pure function of xp — derived, never stored. */
+export function combatLevel(xp?: { atk: number; def: number; hp?: number }): number {
+  const l = levelsOf(xp);
+  return Math.floor((l.atk + l.def + l.hp) / 3);
+}
+
 /** Each Hitpoints level past 1 adds this much max hp (50 base → 246 at 99). */
 export const HP_PER_LEVEL = 2;
 

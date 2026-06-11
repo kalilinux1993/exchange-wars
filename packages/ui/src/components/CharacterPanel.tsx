@@ -1,7 +1,10 @@
-import { GEAR, levelsOf, maxHpFor, xpForLevel } from '@exchange-wars/engine';
+import { combatLevel, GEAR, levelsOf, maxHpFor, xpForLevel } from '@exchange-wars/engine';
 import type { GearSlot } from '@exchange-wars/engine';
 import type { AgentState } from '@exchange-wars/engine';
+import { useState } from 'react';
 import { Icon } from './Icon';
+
+const TITLE_KEY = 'ew-title';
 
 const SLOTS: { slot: GearSlot; label: string; x: number; y: number }[] = [
   { slot: 'helm', label: 'helm', x: 50, y: 16 },
@@ -36,11 +39,39 @@ function equipped(
  * The figure's armor plates light up for each equipped slot; the skills
  * show Attack/Defence/Hitpoints with level and xp-to-next. Pure display.
  */
-export function CharacterPanel({ agent, names }: { agent: AgentState | undefined; names: Map<string, string> }) {
+export function CharacterPanel({
+  agent,
+  names,
+  titles = [],
+}: {
+  agent: AgentState | undefined;
+  names: Map<string, string>;
+  /** Display names of earned deeds, offered as selectable titles. */
+  titles?: string[];
+}) {
   const lvls = levelsOf(agent?.combatXp);
   const trainedMax = maxHpFor(lvls.hp);
   const kit = equipped(agent?.inventory ?? {}, lvls);
   const hp = agent?.hp ?? trainedMax;
+  const cmb = combatLevel(agent?.combatXp);
+  const [title, setTitle] = useState<string>(() => {
+    try {
+      return localStorage.getItem(TITLE_KEY) ?? '';
+    } catch {
+      return '';
+    }
+  });
+  // A title sticks only while still earned (deeds never un-latch, so this is
+  // really just guarding a hand-edited localStorage).
+  const shownTitle = title && titles.includes(title) ? title : 'Adventurer';
+  const pickTitle = (t: string): void => {
+    setTitle(t);
+    try {
+      localStorage.setItem(TITLE_KEY, t);
+    } catch {
+      /* private mode — title is cosmetic */
+    }
+  };
   const skill = (key: 'atk' | 'def' | 'hp', glyph: string, name: string) => {
     const lvl = lvls[key];
     const cur = agent?.combatXp?.[key] ?? 0;
@@ -68,6 +99,21 @@ export function CharacterPanel({ agent, names }: { agent: AgentState | undefined
         <rect x={66} y={26} width={9} height={16} rx={2} className={`doll-slot shield${kit.shield ? ' on' : ''}`} />
       </svg>
       <div className="charside">
+        <div className="charhead">
+          <span className="cmblvl" title="combat level — grows with all three skills">⚔ Combat Lv {cmb}</span>
+          {titles.length > 0 ? (
+            <select className="titlesel" value={shownTitle === 'Adventurer' ? '' : shownTitle} onChange={(e) => pickTitle(e.target.value)} title="wear a title you've earned">
+              <option value="">Adventurer</option>
+              {titles.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="dim small">Adventurer</span>
+          )}
+        </div>
         <div className="equiplist">
           {SLOTS.map((s) => (
             <div key={s.slot} className={kit[s.slot] ? 'equip on' : 'equip'}>

@@ -6,6 +6,7 @@ Deploy: push to main → CI (typecheck + vitest + e2e) auto-deploys Pages. Verif
 ## OSRS HUD arc (Jesse-directed 2026-06-11, started 9k)
 - 9k DONE: SVG region map, paperdoll + skills strip, compact deed badge grid.
 - 9l DONE: combat scene — figure vs generated monster, hp bars, hit-splats (render-diff animation, no engine timers).
+- 9p DONE: combat level (derived 1→99) + worn titles (earned deeds) on the character panel.
 - 9m DONE: art pipeline — Icon loader (import.meta.glob auto-discovery, emoji fallback), CREDITS.md, assets README. Jesse chose game-icons.net (CC BY) + CC0 packs.
 - 9n DONE: original sword/shield/heart skill icons as the default set (WebFetch markdown-converts SVGs → can't auto-pull game-icons; originals are replaceable same-filename).
 - **POPULATE MORE ART**: route monster/item/region glyphs through `<Icon>` and author originals (or Jesse drops game-icons CC BY / CC0 files — same-name overrides the defaults, credit in CREDITS.md). game-icons auto-fetch is NOT possible with current tools (markdown conversion strips paths) — Jesse-drop or hand-author only.

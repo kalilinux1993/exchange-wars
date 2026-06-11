@@ -12,7 +12,7 @@ import {
 } from '@exchange-wars/engine';
 import type { PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { deathRecap, loadLoadouts, saveLoadouts, type Game } from '../game';
+import { deathRecap, loadLoadouts, MILESTONES, saveLoadouts, type Game } from '../game';
 import { CharacterPanel } from './CharacterPanel';
 import { CombatScene } from './CombatScene';
 import { RegionMap } from './RegionMap';
@@ -93,7 +93,11 @@ export function ExpeditionPanel({
     return (
       <section className="panel expedition">
         <h2>Expeditions</h2>
-        <CharacterPanel agent={agent} names={names} />
+        <CharacterPanel
+          agent={agent}
+          names={names}
+          titles={MILESTONES.filter((m) => game.milestones.includes(m.id)).map((m) => m.name)}
+        />
         {resting && (
           <p className="warn small" title="wounds persist between expeditions — rest (or embark hurt, your gamble)">
             ♥ recovering: {agent!.hp}/{trainedMax} hp — mending as the market ticks

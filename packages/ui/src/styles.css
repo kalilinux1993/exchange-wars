@@ -922,6 +922,27 @@ th.num {
   flex-direction: column;
   gap: 5px;
 }
+.charhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cmblvl {
+  color: var(--gold-bright);
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+.titlesel {
+  font: inherit;
+  font-size: 0.74rem;
+  color: var(--parchment);
+  background: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 1px 4px;
+  max-width: 55%;
+}
 .equiplist {
   display: grid;
   grid-template-columns: 1fr 1fr;

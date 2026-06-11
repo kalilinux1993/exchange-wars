@@ -636,6 +636,17 @@ describe('UI shell', () => {
     expect(container.textContent).toContain('✦');
   });
 
+  it('the character panel shows a combat level and offers earned deeds as titles', () => {
+    const game = newGame(42);
+    game.world.agents[game.playerId]!.combatXp = { atk: 324, def: 324, hp: 323 }; // ~lvl 10s
+    game.milestones = ['dragon-slayer']; // an earned deed → a wearable title
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const panel = document.querySelector('.expedition') as HTMLElement;
+    expect(within(panel).getByText(/Combat Lv \d+/)).toBeTruthy();
+    expect(within(panel).getByRole('option', { name: 'Dragon Slayer' })).toBeTruthy();
+  });
+
   it('the combat scene renders the foe and animates a hit splat per round', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;
