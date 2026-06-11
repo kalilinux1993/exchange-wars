@@ -45,7 +45,7 @@ describe('replay verifier', () => {
   it('verifySprint accepts a clean sprint and reports its worth', () => {
     const log: RunLogEntry[] = [
       { tick: 0, cmd: { type: 'buyUpgrade', upgradeId: 'autoFlip' } },
-      { tick: 4_000, cmd: { type: 'configureBot', capitalFraction: 0.4 } },
+      { tick: Math.floor(SPRINT_TICKS / 2), cmd: { type: 'configureBot', capitalFraction: 0.4 } },
     ];
     const v = verifySprint(42, 200_000, log);
     expect(v.ok).toBe(true);

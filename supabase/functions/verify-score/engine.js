@@ -1044,7 +1044,7 @@ function tickWorld(state) {
 }
 
 // packages/engine/src/replay.ts
-var SPRINT_TICKS = 1e4;
+var SPRINT_TICKS = 2e3;
 var SPRINT_MAX_COMMANDS = 5e3;
 function verifySprint(seed, startGp, log) {
   const bad = (reason) => ({ ok: false, reason, worth: 0, hash: "" });

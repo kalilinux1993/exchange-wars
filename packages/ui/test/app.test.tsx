@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Catalog-agnostic: everything derives from DEFAULT_ITEMS so `npm run
 // gen:catalog` regens never break these tests.
-import { addAgent, createWorld, DEFAULT_ITEMS, playerView } from '@exchange-wars/engine';
+import { addAgent, createWorld, DEFAULT_ITEMS, playerView, SPRINT_TICKS } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../src/App';
@@ -536,13 +536,13 @@ describe('UI shell', () => {
       return null;
     };
     const game = newGame(42);
-    game.world.tick = 10_000; // sprint horizon reached
+    game.world.tick = SPRINT_TICKS; // sprint horizon reached
     const onToast = vi.fn();
     render(<LeaderboardPanel game={game} session={{} as Session} onToast={onToast} />);
     await waitFor(() => expect(screen.getByText('Sprint Board')).toBeTruthy());
     expect(screen.getByText('gertrude')).toBeTruthy();
     expect(screen.getByText('77,777')).toBeTruthy();
-    fireEvent.click(screen.getByText('submit 10k sprint'));
+    fireEvent.click(screen.getByText(`submit ${SPRINT_TICKS / 1_000}k sprint`));
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Sprint verified — new best!', expect.stringContaining('123,456')),
     );
@@ -551,11 +551,11 @@ describe('UI shell', () => {
   it('unprovable runs (pre-recording saves) cannot submit', async () => {
     fetchRoutes = (url) => (url.includes('/rest/v1/leaderboard') ? jsonResponse([]) : null);
     const game = newGame(42);
-    game.world.tick = 10_000;
-    game.logSince = 5_000; // log incomplete — replay would misattribute
+    game.world.tick = SPRINT_TICKS;
+    game.logSince = 500; // log incomplete — replay would misattribute
     render(<LeaderboardPanel game={game} session={{} as Session} onToast={vi.fn()} />);
     await waitFor(() => expect(screen.getByText('Sprint Board')).toBeTruthy());
-    expect((screen.getByText('submit 10k sprint') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText(`submit ${SPRINT_TICKS / 1_000}k sprint`) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText(/predates command recording/)).toBeTruthy();
   });
 

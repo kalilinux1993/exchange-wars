@@ -86,7 +86,7 @@ export function LeaderboardPanel({
               }}
             />
             <button className="chip" disabled={!eligible} onClick={submit}>
-              {busy ? 'verifying…' : 'submit 10k sprint'}
+              {busy ? 'verifying…' : `submit ${SPRINT_TICKS / 1_000}k sprint`}
             </button>
           </div>
           {!reached && <p className="dim small">reach tick {SPRINT_TICKS.toLocaleString('en-US')} to submit</p>}

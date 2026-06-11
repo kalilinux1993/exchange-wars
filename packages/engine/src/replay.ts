@@ -21,8 +21,11 @@ export interface ReplayResult {
 
 /** The leaderboard race format: best worth at EXACTLY this tick. A bounded
  * horizon keeps server-side replay inside Edge Function CPU budgets AND
- * makes scores comparable — open-ended worth isn't a fair ranking. */
-export const SPRINT_TICKS = 10_000;
+ * makes scores comparable — open-ended worth isn't a fair ranking.
+ * 2k, found empirically: 10k AND 5k replays of the 120-item world tripped
+ * the free-tier worker's CPU limit (546 WORKER_RESOURCE_LIMIT). A tight
+ * sprint is also a better race — every early flip matters. */
+export const SPRINT_TICKS = 2_000;
 /** Sanity bound: ~1 command per 2 ticks is already inhuman. */
 export const SPRINT_MAX_COMMANDS = 5_000;
 
