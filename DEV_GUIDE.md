@@ -1,5 +1,10 @@
 # Dev Guide
 
+## Phase 7b — Staple Volatility Ladder (2026-06-10)
+
+- **genCatalog `tierVolatility`**: staples now ladder 0.08 (<100gp) / 0.09 (<1k) / 0.10 (<5k) / **0.12 (≥5k)**; exotics stay pinned at 0.13. The ladder doubles as the clerk-tier ladder (FINDINGS #41): tier 1 can't reach the dangerous pricey staples, tiers 2/3 own them, humans own exotics.
+- Ladder sweep locks: t1 cad 6/v0.10 (min +766), t2 cad 7/v0.12 (min +2,499, medians ~8-9.5k — the ceiling means something again), t3 cad 4→5 (min +6,665; cad 4 was too fast for 0.12 books).
+
 ## Phase 7a — Market Navigation at 120 Items (2026-06-10)
 
 - **Track chips** (MarketTable): all / staples / exotics beside the filter (exotic = vol ≥ 0.13, the generator's fixed exotic-track volatility); composes with the text filter and sorting; counter reflects the filtered set.

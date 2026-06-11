@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 7b (2026-06-10)
+
+41. **The volatility ladder IS the tier ladder.** Making ≥5k-gp staples vol 0.12 (genCatalog) turned three problems into one design: (a) tier 1 (ceiling 0.10) structurally cannot touch the items behind #40's −10k stale dumps — the holes are fenced off, not dodged by cadence luck; (b) tier 2/3's 0.12 ceiling stopped being decorative — their medians jumped 2-3× (~8-9.5k) with the pricey staples as exclusive territory; (c) the clerk upgrade path now has a real story: junior trades cheap-and-stable, senior trades big-and-swingy, only the human trades exotic. Sweep moved just ONE lock (tier 3 cadence 4→5 — its old speed was too fast for pricier books: min collapsed to +2,000 at cad 4 vs +6,665 at cad 5).
+
 ## Phase 6z (2026-06-10)
 
 40. **Catalog depth changes the LOSS scale, not just the re-roll.** The 120-item regen (80-deep staple track) broke tiers 1-2 with −10k-class holes — 3-5× deeper than any previous re-roll failure — because the staple track now reaches pricier items whose stale dumps cost thousands per flip. The fix was still config (t1 cad 6/vol 0.10 min +1,603; t2 cad 7 min +1,617; t3 untouched min +5,187), but the lesson scales: deeper catalogs raise the stakes of every bad cadence cell. Bonus discovery: vol ceilings 0.10 and 0.12 are IDENTICAL on this catalog (staples top out at 0.10, exotics sit at 0.13 — nothing lives between), so tier-2's ceiling is currently decorative; kept at 0.12 for identity against future catalogs.

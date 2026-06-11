@@ -64,19 +64,20 @@ export const TUNING = {
       // are for the 84-item catalog; per-tier numbers in the comments below.
       // Do NOT raise any clerk vol ceiling to 0.13+: that admits the
       // exotics, whose wide gp corridors print 130k+/8k ticks (FINDINGS #33).
-      // Tier 1 (120 items): cad 6 / vol 0.10 — min +1,603, medians
-      // 2,646/3,381; cad 7/0.10 hides a -10,943 isolated-seed-1337 hole
-      // (stale dumps on the 80-deep staple track's pricier items).
+      // Tier 1 (120 items, staple vol ladder): cad 6 / vol 0.10 — min +766,
+      // medians 1,757/2,297. The ladder (genCatalog) keeps ≥5k-gp staples
+      // at vol 0.12, OUT of tier 1's universe — that's where the -10k
+      // stale-dump holes lived (FINDINGS #40/#41).
       { cadence: 6, maxFlips: 1, maxQty: 6, capitalFraction: 0.25, maxVolatility: 0.1 },
-      // Tier 2 (120 items): cad 7 / vol 0.12 — min +1,617, medians
-      // 2,837/6,266. NOTE: vol 0.10 and 0.12 measured IDENTICAL here (no
-      // items in that vol band on this catalog); 0.12 kept for identity.
-      // cad 8 hides a -10,215 competitive-seed-7 hole.
+      // Tier 2 (120 items, staple vol ladder): cad 7 / vol 0.12 — min
+      // +2,499, medians 8,032/9,586. The 0.12 ceiling is REAL again: the
+      // ≥5k-gp staples are tier-2/3's exclusive hunting ground now.
       { cadence: 7, maxFlips: 2, maxQty: 8, capitalFraction: 0.25, maxVolatility: 0.12 },
       // Tier 3 vol ceiling is 0.12, NOT 1: exotics are HUMAN territory —
       // same design rule as events (FINDINGS #27/#33). Tier 3 = speed +
-      // size. 120-item re-verify: min +5,187, medians 6,233/7,203.
-      { cadence: 4, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 0.12 },
+      // size. Ladder sweep: cad 5 min +6,665, medians 9,250/8,342 (cad 4's
+      // min collapsed to +2,000 — too fast for the pricier 0.12 books).
+      { cadence: 5, maxFlips: 2, maxQty: 10, capitalFraction: 0.35, maxVolatility: 0.12 },
     ],
   },
 } as const;

@@ -39,12 +39,16 @@ function slug(name: string): string {
     .replace(/^_+|_+$/g, '');
 }
 
+// The staple volatility LADDER doubles as the clerk-tier ladder: tier 1's
+// 0.10 ceiling trades staples up to ~5k gp; pricier staples sit at 0.12
+// (tier-2/3 territory — their wide absolute spreads caused the -10k
+// stale-dump holes when tier 1 could touch them, FINDINGS #40); exotics
+// are pinned at 0.13, above every clerk (FINDINGS #33).
 function tierVolatility(price: number): number {
   if (price < 100) return 0.08;
   if (price < 1_000) return 0.09;
-  if (price < 10_000) return 0.1;
-  if (price < 100_000) return 0.08;
-  return 0.06;
+  if (price < 5_000) return 0.1;
+  return 0.12;
 }
 
 const mapping = await getJson<MapEntry[]>('https://prices.runescape.wiki/api/v1/osrs/mapping');
