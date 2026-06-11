@@ -601,6 +601,18 @@ describe('UI shell', () => {
     // (no expedition at all = died fighting — also a settled fight)
   });
 
+  it('the icon pipeline falls back to the emoji glyph until a real asset is dropped in', () => {
+    const game = newGame(42);
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const panel = document.querySelector('.expedition') as HTMLElement;
+    // No SVG files committed yet → skills strip shows the emoji glyphs.
+    const skills = panel.querySelector('.skills') as HTMLElement;
+    expect(skills.textContent).toContain('⚔');
+    expect(skills.textContent).toContain('🛡');
+    expect(skills.querySelector('img')).toBeNull(); // no asset → no <img>, just glyph
+  });
+
   it('the combat scene renders the foe and animates a hit splat per round', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;

@@ -69,6 +69,8 @@ Future packages slot in as siblings: `packages/ui` (Phase 4), `packages/server` 
 
 Item names, price scales, and icons are a **build-time snapshot** of real Old School RuneScape Grand Exchange data from the [OSRS Wiki prices API](https://prices.runescape.wiki) (regenerate with `npm run gen:catalog` — then re-run the balance sweep + gates). Icons and item data are from the OSRS Wiki; RuneScape is a trademark of Jagex Ltd. This is a free fan project, unaffiliated with Jagex. The simulation itself is fully deterministic — no live data flows into the engine.
 
+**Game art** (HUD icons, monster/skill art) is sourced under open-licensed terms only — see [CREDITS.md](CREDITS.md). Drop SVGs into `packages/ui/src/assets/icons/` (naming + license rules in that folder's README); the `Icon` loader auto-discovers them and falls back to emoji until then. No Jagex/OSRS sprites or CC BY-NC-SA Wiki art are used.
+
 ## Determinism rules (hard constraints)
 
 1. No `Date.now` / `Math.random` / `performance.now` / `new Date` / timers in `packages/engine/src` — gated by `packages/engine/test/purity.test.ts`.

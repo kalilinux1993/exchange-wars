@@ -1,6 +1,7 @@
 import { GEAR, levelsOf, maxHpFor, xpForLevel } from '@exchange-wars/engine';
 import type { GearSlot } from '@exchange-wars/engine';
 import type { AgentState } from '@exchange-wars/engine';
+import { Icon } from './Icon';
 
 const SLOTS: { slot: GearSlot; label: string; x: number; y: number }[] = [
   { slot: 'helm', label: 'helm', x: 50, y: 16 },
@@ -46,7 +47,7 @@ export function CharacterPanel({ agent, names }: { agent: AgentState | undefined
     const into = lvl >= 99 ? 1 : (cur - xpForLevel(lvl)) / (xpForLevel(lvl + 1) - xpForLevel(lvl));
     return (
       <div className="skillcell" title={`${name} ${lvl}`}>
-        <span className="skillglyph">{glyph}</span>
+        <Icon name={`skill-${name.toLowerCase()}`} glyph={glyph} size={14} className="skillglyph" />
         <span className="skilllvl">{lvl}</span>
         <span className="skillbar">
           <span style={{ width: `${Math.round(into * 100)}%` }} />
