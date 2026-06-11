@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 9u — Price Sparkline (2026-06-11)
+
+81. **The recent-trades window was an unused price-history source.** The ticket now shows a sparkline of the selected item's recent trade prices, derived live from `state.trades` (filtered by item, last 48) — no new storage, no engine change, colour by net direction. Same free-feature pattern again (#80). Accessibility gotcha that broke 4 tests: the svg's `aria-label="recent price trend"` matched `getByLabelText(/price/i)`, colliding with the price input — accessible labels share a namespace with form-control queries, so a decorative label containing a form word silently doubles a `getByLabel`. Renamed to "recent trend". Lesson: keep decorative aria-labels clear of words that name nearby inputs, or the test layer (and screen readers) conflate them.
+
 ## Phase 9t — Market Movers (2026-06-11)
 
 80. **The trading half had no "where's the action" glance — the engine already computed the signal.** Every book carries a slow EMA (alpha 0.05); the deviation lastPrice-vs-EMA IS a momentum signal, but nothing surfaced it — a player had to eyeball 120 rows. The Movers panel ranks traded items (volume>0) by (last−ema)/ema and shows top-3 hot / bottom-3 cold, click-to-load: the flipper's "buy the cold, sell the hot" at a glance, and it visibly reacts to events (a craze pushes its item hot, a glut cold). Pure derived display, no new state, no engine change — the same pattern as the Bestiary/Almanac (#56/#63): an engine that books everything makes the read-only feature free. Balanced the recent RPG/HUD-heavy bricks by feeding the trading side. Test taught a small lesson: don't cross-assert text between components whose labels differ by format (the ticket shows the id "blood rune", the mover shows the name "Blood rune") — test the component in isolation with a spy instead.

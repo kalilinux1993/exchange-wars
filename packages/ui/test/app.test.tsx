@@ -664,6 +664,21 @@ describe('UI shell', () => {
     expect(within(panel).getByRole('option', { name: 'Dragon Slayer' })).toBeTruthy();
   });
 
+  it('the ticket sparkline charts recent prices (and degrades gracefully)', () => {
+    const game = newGame(42);
+    for (let t = 0; t < 400; t++) tickWorld(game.world); // generate trade history
+    render(<App initial={game} />);
+    const ticket = document.querySelector('.ticket') as HTMLElement;
+    const spark = ticket.querySelector('.sparkline');
+    if (spark) {
+      // A drawn sparkline has a polyline with at least two points.
+      const pts = spark.querySelector('polyline')!.getAttribute('points')!;
+      expect(pts.trim().split(/\s+/).length).toBeGreaterThanOrEqual(2);
+    } else {
+      expect(ticket.textContent).toContain('no recent trades'); // <2 points fallback
+    }
+  });
+
   it('market movers list traded items by trend and click selects one', () => {
     const game = newGame(42);
     for (let t = 0; t < 400; t++) tickWorld(game.world); // give items volume + a wandering EMA

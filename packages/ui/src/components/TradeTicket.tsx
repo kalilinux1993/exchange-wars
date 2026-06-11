@@ -1,6 +1,7 @@
 import { GE_TAX_RATE } from '@exchange-wars/engine';
 import type { CommandResult, ItemDef, ItemId, PlayerCommand, PlayerView, Side } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
+import { Sparkline } from './Sparkline';
 
 export interface TicketPrefill {
   side: Side;
@@ -16,6 +17,7 @@ export function TradeTicket({
   onCommand,
   lastResult,
   eventNote,
+  recentPrices,
 }: {
   view: PlayerView;
   selected: ItemId;
@@ -25,6 +27,8 @@ export function TradeTicket({
   lastResult: CommandResult | null;
   /** Active-event line for the selected item (formatted by App), or null. */
   eventNote: string | null;
+  /** Recent trade prices for the selected item (oldest→newest), for the sparkline. */
+  recentPrices: number[];
 }) {
   const [side, setSide] = useState<Side>('buy');
   const [price, setPrice] = useState('');
@@ -81,6 +85,7 @@ export function TradeTicket({
         </p>
       )}
       {eventNote && <p className="warn small">{eventNote}</p>}
+      <Sparkline prices={recentPrices} />
       <div className="sides">
         <button className={side === 'buy' ? 'side buy active' : 'side buy'} onClick={() => setSide('buy')}>
           buy

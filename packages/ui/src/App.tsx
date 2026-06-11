@@ -571,6 +571,7 @@ export function App({ initial }: { initial?: Game }) {
             prefill={prefill}
             onCommand={command}
             lastResult={lastResult}
+            recentPrices={game.world.trades.filter((t) => t.itemId === selected).map((t) => t.price).slice(-48)}
             eventNote={(() => {
               const e = (game.world.events ?? []).find(
                 (ev) => ev.itemId === selected && ev.startTick <= game.world.tick && ev.endTick > game.world.tick,
