@@ -1,5 +1,10 @@
 # Findings
 
+## Phases 7f–7l — the leaderboards arc (2026-06-11)
+
+42. **The free-tier Edge worker's CPU budget DESIGNED the sprint format.** Replaying the 120-item world server-side hit 546 WORKER_RESOURCE_LIMIT at 10k ticks AND at 5k; 2k passes (cold 2.1s / warm 1.4s). The race horizon wasn't picked — it was measured. Corollary: future engine perf wins widen the safety margin but the horizon should stay put (comparability). Debug method worth keeping: mint a real test-user JWT via the admin API (service key fetched through the management API with Jesse's access token) and probe the function exactly as the browser would — curl alone misses CORS preflights (the FIRST failure) and gateway-vs-function distinctions.
+43. **Public boards leak what users type.** Jesse's email became his handle on a world-readable table within minutes of launch. Rule: anything user-typed that lands on a public surface gets sanitized on BOTH ends (client for UX, server for truth) — and self-service rename paths matter (the not-improved resubmit now updates the handle).
+
 ## Phase 7b (2026-06-10)
 
 41. **The volatility ladder IS the tier ladder.** Making ≥5k-gp staples vol 0.12 (genCatalog) turned three problems into one design: (a) tier 1 (ceiling 0.10) structurally cannot touch the items behind #40's −10k stale dumps — the holes are fenced off, not dodged by cadence luck; (b) tier 2/3's 0.12 ceiling stopped being decorative — their medians jumped 2-3× (~8-9.5k) with the pricey staples as exclusive territory; (c) the clerk upgrade path now has a real story: junior trades cheap-and-stable, senior trades big-and-swingy, only the human trades exotic. Sweep moved just ONE lock (tier 3 cadence 4→5 — its old speed was too fast for pricier books: min collapsed to +2,000 at cad 4 vs +6,665 at cad 5).
