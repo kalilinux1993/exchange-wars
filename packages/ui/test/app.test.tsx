@@ -37,6 +37,7 @@ import {
   parseChallengeSeed,
   streakAtRisk,
   updateNews,
+  worthRate,
   type Game,
 } from '../src/game';
 
@@ -458,6 +459,41 @@ describe('UI shell', () => {
       expect(lockedUpgrades(INV, { atk: 99, def: 99 }, worn)).toEqual({});
       expect(worn.weapon).toBe('dragon_longsword'); // now the best is actually worn
     });
+  });
+
+  describe('worthRate', () => {
+    it('needs ≥2 samples spanning real ticks', () => {
+      expect(worthRate([])).toBeNull();
+      expect(worthRate([{ tick: 0, worth: 55_000 }])).toBeNull();
+      // only the last sample falls inside the window → no measurable span
+      expect(worthRate([{ tick: 0, worth: 55_000 }, { tick: 1_000, worth: 56_000 }], 600)).toBeNull();
+    });
+    it('reports gp/min slope over the window (60 ticks = 1 min)', () => {
+      expect(worthRate([{ tick: 0, worth: 55_000 }, { tick: 600, worth: 61_000 }], 600)).toEqual({
+        perMin: 600, // +6000 over 600 ticks = +10/tick = +600/min
+        spanTicks: 600,
+      });
+      expect(worthRate([{ tick: 0, worth: 60_000 }, { tick: 300, worth: 57_000 }], 600)!.perMin).toBe(-600);
+    });
+    it('measures only samples within the window, ignoring older ones', () => {
+      const h = [
+        { tick: 0, worth: 50_000 }, // outside a 600-tick window ending at 1000
+        { tick: 500, worth: 50_000 },
+        { tick: 1_000, worth: 56_000 },
+      ];
+      expect(worthRate(h, 600)).toEqual({ perMin: 720, spanTicks: 500 }); // +6000 over 500 ticks
+    });
+  });
+
+  it('shows the earning-rate cue in the masthead from worth history', () => {
+    const game = newGame(42);
+    game.lastSeenMs = Date.now(); // no offline accrual to perturb the history
+    game.worthHistory = [
+      { tick: 0, worth: 55_000 },
+      { tick: 600, worth: 61_000 },
+    ];
+    render(<App initial={game} />);
+    expect(screen.getByText(/\+600 gp\/min/)).toBeTruthy();
   });
 
   it('CharacterPanel renders the "train to unlock" hints for gated gear', () => {

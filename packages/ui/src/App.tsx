@@ -44,6 +44,7 @@ import {
   saveGame,
   streakAtRisk,
   updateNews,
+  worthRate,
   type DailyStreak,
   type Game,
   type Milestone,
@@ -579,6 +580,23 @@ export function App({ initial }: { initial?: Game }) {
               <span className={delta >= 0 ? 'value up' : 'value down'}>
                 {delta >= 0 ? '+' : ''}
                 {delta.toLocaleString('en-US')}
+              </span>
+            );
+          })()}
+          {(() => {
+            // "Am I winning right now?" — recent net-worth slope, which the
+            // cumulative delta above (dominated by long-ago gains) can't show.
+            const rate = worthRate(game.worthHistory);
+            if (rate === null) return null;
+            return (
+              <span
+                className={`rate ${rate.perMin >= 0 ? 'up' : 'down'}`}
+                title={`net worth ${rate.perMin >= 0 ? 'rising' : 'falling'} over the last ~${fmtDuration(
+                  rate.spanTicks,
+                )} — your current setup's earning rate`}
+              >
+                {rate.perMin >= 0 ? '▲' : '▼'} {rate.perMin >= 0 ? '+' : ''}
+                {rate.perMin.toLocaleString('en-US')} gp/min
               </span>
             );
           })()}

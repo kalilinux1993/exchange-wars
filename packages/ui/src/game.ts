@@ -531,6 +531,30 @@ export function recordWorth(game: Game, worth: number): void {
   if (h.length > SAMPLE_CAP) h.splice(0, h.length - SAMPLE_CAP);
 }
 
+/**
+ * Recent net-worth slope as gp per minute (60 ticks = 1 min, matching
+ * fmtDuration), measured over the most recent `windowTicks` of throttled
+ * worth samples — the "am I winning right now?" signal that the cumulative
+ * net delta can't give. Pure; null when there isn't a measurable span yet
+ * (fewer than 2 samples, or all samples inside one sample-gap of each other).
+ */
+export function worthRate(
+  history: { tick: number; worth: number }[],
+  windowTicks = 600,
+): { perMin: number; spanTicks: number } | null {
+  if (history.length < 2) return null;
+  const last = history[history.length - 1]!;
+  const cutoff = last.tick - windowTicks;
+  let start = last;
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i]!.tick >= cutoff) start = history[i]!;
+    else break;
+  }
+  const dt = last.tick - start.tick;
+  if (dt <= 0) return null;
+  return { perMin: Math.round(((last.worth - start.worth) / dt) * 60), spanTicks: dt };
+}
+
 export const SAVE_KEY = 'exchange-wars-save-v1';
 export const HUMAN_START_GP = 55_000;
 
