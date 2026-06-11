@@ -410,6 +410,14 @@ export function App({ initial }: { initial?: Game }) {
           <span className="value">{game.world.tick.toLocaleString('en-US')}</span>
           <span className="label">seed</span>
           <span className="value">{game.world.seed}</span>
+          {game.world.seed === dailySeed() && (
+            <span
+              className="dailytag"
+              title="you're on today's daily — everyone racing the daily shares this exact world; your score lands on today's board"
+            >
+              🗓 today
+            </span>
+          )}
         </div>
         {(() => {
           // Market pulse: breadth (items above/below their EMA) + live events —

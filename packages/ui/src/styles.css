@@ -67,6 +67,36 @@ body {
   align-items: baseline;
 }
 
+/* "you're on today's daily" pill — lives next to the seed in the clock. */
+.dailytag {
+  align-self: center;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold) 70%);
+  border: 1px solid #8a6d1f;
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  cursor: default;
+  animation: dailytag-glow 2.6s ease-in-out infinite;
+}
+@keyframes dailytag-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 215, 94, 0);
+  }
+  50% {
+    box-shadow: 0 0 6px 1px rgba(255, 215, 94, 0.5);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dailytag {
+    animation: none;
+  }
+}
+
 .label {
   color: var(--parchment-dim);
   font-size: 0.72rem;

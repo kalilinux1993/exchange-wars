@@ -284,6 +284,14 @@ describe('UI shell', () => {
     expect(dailySeed(new Date(Date.UTC(2026, 5, 11, 23, 59, 59)))).toBe(20260611);
   });
 
+  it('shows the "today" daily badge only when the active seed is today\'s daily', () => {
+    const { unmount } = render(<App initial={newGame(dailySeed())} />);
+    expect(screen.getByText('🗓 today')).toBeTruthy();
+    unmount();
+    render(<App initial={newGame(42)} />); // a plain seed is never the 8-digit daily
+    expect(screen.queryByText('🗓 today')).toBeNull();
+  });
+
   it('a #seed link starts fresh visitors on that seed directly', () => {
     window.location.hash = '#seed=777';
     render(<App />); // no initial, no save
