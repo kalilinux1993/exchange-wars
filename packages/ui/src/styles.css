@@ -1021,6 +1021,15 @@ th.num {
 .mover.alerted {
   color: var(--gold-bright);
 }
+.valueband.cheap {
+  color: #7fd66f;
+}
+.valueband.rich {
+  color: var(--gold-bright);
+}
+.valueband.fair {
+  color: var(--parchment-dim);
+}
 .pulse {
   display: inline-flex;
   align-items: center;

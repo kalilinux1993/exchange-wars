@@ -58,6 +58,12 @@ export function TradeTicket({
   const shortGp = side === 'buy' && valid && total > view.gp;
   const shortItems = side === 'sell' && valid && q > held;
 
+  // Fair value: where lastPrice sits in the item's own [baseCost..consumeValue]
+  // band — cheap to accumulate vs rich to offload, which the spread can't say.
+  const band = def && def.consumeValue > def.baseCost ? (def.consumeValue - def.baseCost) : 0;
+  const valuePos = band > 0 && market ? Math.max(0, Math.min(1, (market.lastPrice - def!.baseCost) / band)) : null;
+  const valueLabel = valuePos === null ? null : valuePos < 0.34 ? 'cheap' : valuePos < 0.67 ? 'fair' : 'rich';
+
   // Suggested flip: undercut the spread one tick each way; margin nets the 2%
   // sell tax. The flipper's core sum, surfaced — green if a flip clears profit.
   const ema = Math.round(market?.ema ?? 0);
@@ -124,6 +130,14 @@ export function TradeTicket({
             {flipMargin >= 0 ? '+' : ''}
             {flipMargin.toLocaleString('en-US')}/ea
           </span>
+          {valueLabel && (
+            <span
+              className={`valueband ${valueLabel}`}
+              title="where the price sits in this item's cost→value band: cheap = good to accumulate, rich = good to offload"
+            >
+              {' '}· {valueLabel === 'cheap' ? '🟢 cheap' : valueLabel === 'rich' ? '🟡 rich' : '⚪ fair'}
+            </span>
+          )}
         </p>
       )}
       <div className="sides">

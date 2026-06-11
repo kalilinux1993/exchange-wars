@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 10m — Fair Value Band (2026-06-11)
+
+99. **Two orthogonal trading reads: the spread says "is a flip profitable NOW", the band says "is this item cheap vs its own fundamentals".** The flip line (10j) answers the immediate trade; the fair-value band answers the position question — where lastPrice sits in [baseCost..consumeValue] (cheap <34% / fair / rich >67%), which tells an accumulator whether to load up or hold off independent of the current spread. Both derive from data the ItemDef + book already carry, no engine change. The pair completes the trader's two timescales: tactical (flip the spread) and positional (buy the dip vs sell the rip). Colour semantics chosen carefully — cheap green (accumulate), rich GOLD not red (a sell opportunity isn't bad), fair dim — same lesson as the death-ward sink: not every "high" is negative.
+
 ## Phase 10l — Welcome Back, the Sellsword Worked (2026-06-11)
 
 98. **A counter is data; a delta across a session is a story.** 10k made sellsword kills/loot legible in the Almanac (cumulative); 10l makes the OFFLINE delta a homecoming line — the away-bar now reads "…net worth +Y · 🗡 sellsword: N kills, X gp banked" by snapshotting the counters in planOfflineProgress and differencing in finishOfflineProgress. Same data, but the framing (what happened WHILE YOU WERE GONE) is what makes idle progress feel earned — the idle-game dopamine is the return summary, not the absolute number. Pure UI (the engine counters shipped 10k), no redeploy. The offline plumbing already threaded worthBefore/After through plan→finish, so the sellsword deltas rode the exact same path — extending an existing snapshot-diff is far cheaper than inventing a new one.

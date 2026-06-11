@@ -695,6 +695,22 @@ describe('UI shell', () => {
     expect((within(ticket).getByLabelText(/price/i) as HTMLInputElement).value).toBe('101');
   });
 
+  it('the ticket shows a fair-value band (cheap/fair/rich) for the selected item', () => {
+    const game = newGame(42);
+    const item = game.world.items[0]!;
+    const book = game.world.books[item.id]!;
+    book.lastPrice = item.baseCost; // bottom of the band → cheap
+    render(<App initial={game} />);
+    fireEvent.click(document.querySelectorAll('.market tbody tr')[0]!);
+    const ticket = document.querySelector('.ticket') as HTMLElement;
+    expect(ticket.querySelector('.valueband.cheap')).toBeTruthy();
+    // Pushed to the top of the band, it reads rich.
+    book.lastPrice = item.consumeValue;
+    fireEvent.click(document.querySelectorAll('.market tbody tr')[1]!); // reselect to re-render
+    fireEvent.click(document.querySelectorAll('.market tbody tr')[0]!);
+    expect(ticket.querySelector('.valueband.rich')).toBeTruthy();
+  });
+
   it('the ticket sparkline charts recent prices (and degrades gracefully)', () => {
     const game = newGame(42);
     for (let t = 0; t < 400; t++) tickWorld(game.world); // generate trade history
