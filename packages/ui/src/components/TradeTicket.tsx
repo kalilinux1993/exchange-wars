@@ -58,6 +58,17 @@ export function TradeTicket({
   const shortGp = side === 'buy' && valid && total > view.gp;
   const shortItems = side === 'sell' && valid && q > held;
 
+  // Suggested flip: undercut the spread one tick each way; margin nets the 2%
+  // sell tax. The flipper's core sum, surfaced — green if a flip clears profit.
+  const ema = Math.round(market?.ema ?? 0);
+  const flipBuy = market?.bestBid != null ? market.bestBid + 1 : ema;
+  const flipSell = market?.bestAsk != null ? market.bestAsk - 1 : ema;
+  const flipMargin = flipSell > 0 && flipBuy > 0 ? flipSell - flipBuy - Math.floor(flipSell * GE_TAX_RATE) : 0;
+  const loadSide = (s: Side, price: number): void => {
+    setSide(s);
+    setPrice(String(Math.max(1, price)));
+  };
+
   const useMarketPrice = (): void => {
     if (!market) return;
     const ref =
@@ -100,6 +111,21 @@ export function TradeTicket({
       )}
       {eventNote && <p className="warn small">{eventNote}</p>}
       <Sparkline prices={recentPrices} />
+      {flipBuy > 0 && flipSell > 0 && (
+        <p className="dim small flipline" title="undercut the spread one tick each way; margin is per unit after the 2% sell tax">
+          flip:{' '}
+          <button className="chip" onClick={() => loadSide('buy', flipBuy)} title="load this buy price">
+            buy {flipBuy.toLocaleString('en-US')}
+          </button>{' '}
+          <button className="chip" onClick={() => loadSide('sell', flipSell)} title="load this sell price">
+            sell {flipSell.toLocaleString('en-US')}
+          </button>{' '}
+          <span className={flipMargin > 0 ? 'pct up' : 'pct down'}>
+            {flipMargin >= 0 ? '+' : ''}
+            {flipMargin.toLocaleString('en-US')}/ea
+          </span>
+        </p>
+      )}
       <div className="sides">
         <button className={side === 'buy' ? 'side buy active' : 'side buy'} onClick={() => setSide('buy')}>
           buy

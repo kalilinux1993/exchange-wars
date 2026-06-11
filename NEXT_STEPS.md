@@ -8,7 +8,7 @@ Through brick 59 (10g): RPG layer (8 regions, stats/xp, brews, bounties, sellswo
 ## Queued candidates (rough priority)
 - **POPULATE ART**: drop game-icons.net (CC BY) / CC0 SVGs into `packages/ui/src/assets/icons/` (naming in the folder README), credit in CREDITS.md; route monster/item/region glyphs through `<Icon>`. Auto-fetch is impossible (WebFetch strips SVG paths) — Jesse-drop or hand-author originals.
 - **HUD depth**: richer paperdoll (per-item silhouettes); inventory/equipment grid; OSRS-style icon sub-tabs if a room crowds.
-- **Trading**: sparkline in market-table rows; a "fair value" hint per item.
+- **Trading**: ~~suggested-flip margin line~~ DONE 10j (buy/sell/+margin chips in the ticket); sparkline in market-table rows.
 - **Robustness**: UI to restore/export a quarantined save on next boot; guard monsterById/itemDef at UI read sites; 100k-tick determinism gate in a CI-only suite.
 - **RPG content**: more event faces (each bends a still-untouched system — FINDINGS #64); a 9th region (needs a NEW resource to extort); an attack/strength brew (needs a clean attack-flavored catalog potion); encounter depletion (only if an audit shows the TAS tail needs bounding).
 - **Progression**: 10i added region-mastery xp (first clear). More: a final-region (Abyss) mastery hook; gp sinks that aid raiding (2nd ward tier? stat-respec? bank-space cap?).

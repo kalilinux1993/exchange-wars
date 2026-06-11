@@ -664,6 +664,25 @@ describe('UI shell', () => {
     expect(within(panel).getByRole('option', { name: 'Dragon Slayer' })).toBeTruthy();
   });
 
+  it('the ticket shows a suggested flip with margin, and the chips load a side', () => {
+    const game = newGame(42);
+    // Rest a bid and an ask on FIRST so the flip helper has a spread.
+    const other = addAgent(game.world, 'player', 80_000, { [FIRST.id]: 5 });
+    other.policy = 'idle';
+    applyCommand(game.world, other.id, { type: 'place', itemId: FIRST.id, side: 'buy', price: 100, qty: 2 });
+    applyCommand(game.world, other.id, { type: 'place', itemId: FIRST.id, side: 'sell', price: 200, qty: 2 });
+    render(<App initial={game} />);
+    fireEvent.click(document.querySelectorAll('.market tbody tr')[0]!); // select FIRST
+    const ticket = document.querySelector('.ticket') as HTMLElement;
+    const flip = ticket.querySelector('.flipline') as HTMLElement;
+    expect(flip).toBeTruthy();
+    expect(flip.textContent).toMatch(/buy 101/); // bestBid 100 + 1
+    expect(flip.textContent).toMatch(/sell 199/); // bestAsk 200 − 1
+    // Clicking the buy chip loads that price into the form.
+    fireEvent.click(within(flip).getByText(/buy 101/));
+    expect((within(ticket).getByLabelText(/price/i) as HTMLInputElement).value).toBe('101');
+  });
+
   it('the ticket sparkline charts recent prices (and degrades gracefully)', () => {
     const game = newGame(42);
     for (let t = 0; t < 400; t++) tickWorld(game.world); // generate trade history

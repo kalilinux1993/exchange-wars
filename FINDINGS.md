@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 10j — The Suggested Flip (2026-06-11)
+
+96. **The trading cockpit told you WHAT to trade, never the MARGIN.** Movers/watchlist/pulse/sparkline all answer "which item, which direction" — but the actual flipper's sum (undercut the spread a tick each way, net the 2% sell tax, is there profit?) lived only in the player's head. The ticket now surfaces it: `flip: buy bestBid+1 · sell bestAsk−1 · +N/ea` (green/red by sign), with the two prices as chips that load the form. Pure derived from the existing market view + GE_TAX_RATE, no engine change. This is the read that turns the cockpit from "information" into "decision" — the difference between showing a chart and showing whether the trade clears. Completes the trader toolset's core loop alongside abort-all (exit) and alerts (entry trigger).
+
 ## Phase 10i — Region Mastery (2026-06-11)
 
 95. **An existing state transition was already the perfect hook — no new tracking needed.** First-clear rewards usually want a "have I cleared region N?" set, but questProgress ALREADY advances exactly once per region (only when you clear your FRONTIER region) — so the frontier-advance branch IS the once-per-region event. Region mastery (one-time combat-xp bounty, BASE 40 + 30×depth, on first clear) is granted right there, zero new state. It rewards breadth (push the frontier) over farming one spot, and uses XP (not gp) so conservation/economy are untouched — the audit measures gp worth, so the balance table holds even though the grinder gets mastery too. Caveat logged: the last region (Abyss) never advances questProgress, so it grants no mastery — acceptable (a final-region flag could fix it later). Lesson: before adding a tracking structure for "first time X," check whether an existing monotonic field already marks it.
