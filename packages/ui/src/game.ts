@@ -339,6 +339,13 @@ export const MILESTONES: Milestone[] = [
     progress: (g) => levelsOf(g.world.agents[g.playerId]?.combatXp).hp / 10,
   },
   {
+    id: 'bounty-hunter',
+    name: 'Bounty Hunter',
+    flavor: 'Five kill orders, five payouts. The realm knows your name.',
+    achieved: (g) => (g.world.stats.bountiesClaimed ?? 0) >= 5,
+    progress: (g) => (g.world.stats.bountiesClaimed ?? 0) / 5,
+  },
+  {
     id: 'nine-lives',
     name: 'Nine Lives',
     flavor: 'Nine deaths. The depths are starting to feel like rent.',

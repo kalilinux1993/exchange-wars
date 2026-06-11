@@ -2,7 +2,12 @@ import { actAgent, TUNING } from './agents';
 import { DEFAULT_ITEMS } from './catalog';
 import { PROGRESSION } from './commands';
 import { createBook } from './exchange';
-import { levelsOf, maxHpFor, REST_REGEN_TICKS } from './quest';
+import { expeditionSeed, levelsOf, maxHpFor, MONSTERS, REST_REGEN_TICKS } from './quest';
+
+/** Bounty board cadence: a post attempt this often, capped at MAX_OPEN. */
+export const BOUNTY_CHECK_TICKS = 600;
+export const BOUNTY_MAX_OPEN = 2;
+export const BOUNTY_DURATION_TICKS = 2_400;
 import { createRng } from './rng';
 import type { AgentKind, AgentState, ItemDef, ItemId, WorldEvent, WorldState } from './types';
 
@@ -155,6 +160,30 @@ export function tickWorld(state: WorldState): void {
   }
   for (const agent of state.agents) {
     actAgent(state, agent, rng);
+  }
+  // The bounty board (9f): kill orders post on a fixed cadence from a DERIVED
+  // rng stream — a pure function of (seed, tick) that consumes ZERO draws
+  // from the world cursor, so adding bounties re-rolled no universe and no
+  // balance gate (the FINDINGS #29 trap, dodged by construction).
+  if (state.tick % BOUNTY_CHECK_TICKS === 0) {
+    state.bounties = (state.bounties ?? []).filter((b) => b.expiresTick > state.tick);
+    if (state.bounties.length < BOUNTY_MAX_OPEN) {
+      const brng = createRng(expeditionSeed(state.seed, 0x42000000 + state.tick));
+      const m = brng.pick(MONSTERS);
+      const qty = m.elite ? 1 : brng.int(3, 8);
+      const mid = Math.round((m.gp[0] + m.gp[1]) / 2);
+      state.bounties.push({
+        id: state.nextBountyId ?? 1,
+        monsterId: m.id,
+        qty,
+        // The realm pays roughly double the coin the corpses carry — the
+        // premium is for hunting on ITS schedule, not yours.
+        rewardGp: Math.max(50, qty * mid * 2),
+        expiresTick: state.tick + BOUNTY_DURATION_TICKS,
+        baseline: state.stats.killsByMonster?.[m.id] ?? 0,
+      });
+      state.nextBountyId = (state.nextBountyId ?? 1) + 1;
+    }
   }
   // Out-of-field rest: wounded players (hp present = wounded) mend +1 hp every
   // REST_REGEN_TICKS while NOT on expedition. No RNG; full health (= TRAINED

@@ -3,7 +3,7 @@ import { applyCommand, type PlayerCommand } from '../src/commands';
 import { hashState } from '../src/hash';
 import { checkInvariants } from '../src/invariants';
 import { levelsOf, maxHpFor, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS, SPAR_XP, TOLL_COST, xpForLevel } from '../src/quest';
-import { addAgent, createWorld, tickWorld } from '../src/sim';
+import { addAgent, BOUNTY_CHECK_TICKS, createWorld, tickWorld } from '../src/sim';
 import type { WorldState } from '../src/types';
 
 /** Tiny world (CI scaling rule) with a stocked adventurer. */
@@ -350,6 +350,32 @@ describe('expeditions', () => {
       }
     }
     expect(ambushed).toBe(true);
+  });
+
+  it('the bounty board: derived-stream postings, baseline honesty, claims mint', () => {
+    const { state, id } = fixture(11);
+    // Postings are a pure function of (seed, tick): two worlds, same bounties.
+    const twin = fixture(11).state;
+    for (let i = 0; i < BOUNTY_CHECK_TICKS + 1; i++) {
+      tickWorld(state);
+      tickWorld(twin);
+    }
+    expect(state.bounties!.length).toBeGreaterThan(0);
+    expect(JSON.stringify(state.bounties)).toBe(JSON.stringify(twin.bounties));
+    // Claim flow on a fixture bounty: old kills never count toward new paper.
+    state.stats.killsByMonster = { goblin: 7 };
+    state.bounties = [{ id: 99, monsterId: 'goblin', qty: 2, rewardGp: 500, expiresTick: state.tick + 1_000, baseline: 7 }];
+    expect(applyCommand(state, id, { type: 'claimBounty', bountyId: 99 }).reason).toBe('bounty-unfilled');
+    state.stats.killsByMonster['goblin'] = 9; // two fresh kills
+    const gpBefore = state.agents[id]!.gp;
+    const minted = state.ledger.gpMinted;
+    ok(state, id, { type: 'claimBounty', bountyId: 99 });
+    expect(state.agents[id]!.gp).toBe(gpBefore + 500);
+    expect(state.ledger.gpMinted).toBe(minted + 500); // fresh coin, booked
+    expect(state.stats.bountiesClaimed).toBe(1);
+    expect(state.bounties!.length).toBe(0);
+    expect(applyCommand(state, id, { type: 'claimBounty', bountyId: 99 }).reason).toBe('unknown-bounty');
+    checkInvariants(state);
   });
 
   it('the Abyss bleeds purses: leeches drain loot gp every round, capped at what you carry', () => {

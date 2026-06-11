@@ -1,4 +1,4 @@
-import { SPRINT_TICKS } from '@exchange-wars/engine';
+import { REGIONS, SPRINT_TICKS } from '@exchange-wars/engine';
 
 export const HELP_SEEN_KEY = 'ew-help-seen';
 
@@ -37,10 +37,11 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             market: acquire the goods, hit deliver.
           </li>
           <li>
-            <b>Expeditions</b>: delve seven regions, plains to the Inferno Gate. Every step and every combat
-            round costs a market tick — time raiding is time not trading. Loot mints straight into the
-            economy; death keeps only your 3 most valuable carried items, and <b>wounds persist</b> — you
-            mend slowly at home, or eat food in the field.
+            <b>Expeditions</b>: delve {REGIONS.length} regions, plains to {REGIONS[REGIONS.length - 1]!.name}.
+            Every step and every combat round costs a market tick — time raiding is time not trading. Loot
+            mints straight into the economy; death keeps only your 3 most valuable carried items, and{' '}
+            <b>wounds persist</b> — you mend slowly at home, or eat food in the field. The{' '}
+            <b>Bounty Board</b> posts kill orders that pay in fresh coin.
           </li>
           <li>
             <b>Train as you fight</b>: Attack grows from damage dealt (unlocks weapons), Defence from damage
@@ -48,9 +49,10 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             inert — climb the ladder: darts, staff, mystic, rune, dragon.
           </li>
           <li>
-            Past the Wilderness, everything <b>breathes fire</b> — armor won't stop it, a{' '}
-            <b>super antifire</b> will, and one potion coats a whole dive. Shrines, dice, imps, portals and
-            merchants wait in the dark; the <b>Bestiary</b> remembers everything you've slain.
+            Past the Wilderness the fire country <b>breathes flame</b> — armor won't stop it, a{' '}
+            <b>super antifire</b> will, one potion per dive — and deeper still, the Abyss <b>drains your
+            loot gp</b> every round a fight drags. Shrines, dice, imps, portals, merchants, swordmasters and
+            toll-keepers wait in the dark; the <b>Bestiary</b> remembers everything you've slain.
           </li>
           <li>
             <b>Race on fair ground</b>: the same seed is always the same world. Restart your seed to chase

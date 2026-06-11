@@ -923,6 +923,9 @@ var DEFAULT_ITEMS = [
 ];
 
 // packages/engine/src/sim.ts
+var BOUNTY_CHECK_TICKS = 600;
+var BOUNTY_MAX_OPEN = 2;
+var BOUNTY_DURATION_TICKS = 2400;
 function createWorld(cfg) {
   const items = cfg.items ?? DEFAULT_ITEMS;
   const state = {
@@ -1046,6 +1049,26 @@ function tickWorld(state) {
   }
   for (const agent of state.agents) {
     actAgent(state, agent, rng);
+  }
+  if (state.tick % BOUNTY_CHECK_TICKS === 0) {
+    state.bounties = (state.bounties ?? []).filter((b) => b.expiresTick > state.tick);
+    if (state.bounties.length < BOUNTY_MAX_OPEN) {
+      const brng = createRng(expeditionSeed(state.seed, 1107296256 + state.tick));
+      const m = brng.pick(MONSTERS);
+      const qty = m.elite ? 1 : brng.int(3, 8);
+      const mid = Math.round((m.gp[0] + m.gp[1]) / 2);
+      state.bounties.push({
+        id: state.nextBountyId ?? 1,
+        monsterId: m.id,
+        qty,
+        // The realm pays roughly double the coin the corpses carry — the
+        // premium is for hunting on ITS schedule, not yours.
+        rewardGp: Math.max(50, qty * mid * 2),
+        expiresTick: state.tick + BOUNTY_DURATION_TICKS,
+        baseline: state.stats.killsByMonster?.[m.id] ?? 0
+      });
+      state.nextBountyId = (state.nextBountyId ?? 1) + 1;
+    }
   }
   if (state.tick % REST_REGEN_TICKS === 0) {
     for (const agent of state.agents) {
@@ -1506,6 +1529,20 @@ function applyCommand(state, playerId, cmd) {
       if (exp.hp < maxHpFor(levelsOf(agent.combatXp).hp)) agent.hp = Math.max(1, exp.hp);
       else delete agent.hp;
       delete agent.expedition;
+      return { ok: true, trades: [] };
+    }
+    case "claimBounty": {
+      const bounties = state.bounties ?? [];
+      const idx = bounties.findIndex((b2) => b2.id === cmd.bountyId);
+      if (idx === -1) return { ok: false, reason: "unknown-bounty", trades: [] };
+      const b = bounties[idx];
+      if (b.expiresTick <= state.tick) return { ok: false, reason: "bounty-expired", trades: [] };
+      const kills = (state.stats.killsByMonster?.[b.monsterId] ?? 0) - b.baseline;
+      if (kills < b.qty) return { ok: false, reason: "bounty-unfilled", trades: [] };
+      state.ledger.gpMinted += b.rewardGp;
+      agent.gp += b.rewardGp;
+      state.stats.bountiesClaimed = (state.stats.bountiesClaimed ?? 0) + 1;
+      bounties.splice(idx, 1);
       return { ok: true, trades: [] };
     }
   }

@@ -126,6 +126,21 @@ export interface SimStats {
   killsByMonster?: Record<string, number>;
   /** Times the depths kept the body (absent = never). */
   deaths?: number;
+  /** Kill bounties claimed (absent = none). */
+  bountiesClaimed?: number;
+}
+
+/** A posted kill order: slay `qty` of a monster before `expiresTick` and the
+ * realm mints `rewardGp`. Progress = killsByMonster since `baseline` (the
+ * tally at posting), so old kills never count toward new paper. */
+export interface Bounty {
+  id: number;
+  monsterId: string;
+  qty: number;
+  rewardGp: number;
+  expiresTick: number;
+  /** killsByMonster[monsterId] at the moment of posting. */
+  baseline: number;
 }
 
 /** A standing NPC buy-order at a premium — the realm's quartermaster pays
@@ -171,6 +186,9 @@ export interface WorldState {
   /** Open quartermaster contracts. Absent in pre-contract saves. */
   contracts?: Contract[];
   nextContractId?: number;
+  /** Open kill bounties. Absent in pre-bounty saves. */
+  bounties?: Bounty[];
+  nextBountyId?: number;
   /** Expedition counter — seeds each expedition's private RNG stream.
    * Appears on first use (pre-quest saves stay byte-identical). */
   nextExpeditionId?: number;

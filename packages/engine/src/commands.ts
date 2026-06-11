@@ -72,7 +72,8 @@ export type PlayerCommand =
   | { type: 'fleeCombat' }
   | { type: 'eatFood'; itemId: ItemId }
   | { type: 'choose'; accept: boolean }
-  | { type: 'extract' };
+  | { type: 'extract' }
+  | { type: 'claimBounty'; bountyId: number };
 
 export interface CommandResult {
   ok: boolean;
@@ -611,6 +612,21 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       if (exp.hp < maxHpFor(levelsOf(agent.combatXp).hp)) agent.hp = Math.max(1, exp.hp);
       else delete agent.hp;
       delete agent.expedition;
+      return { ok: true, trades: [] };
+    }
+    case 'claimBounty': {
+      const bounties = state.bounties ?? [];
+      const idx = bounties.findIndex((b) => b.id === cmd.bountyId);
+      if (idx === -1) return { ok: false, reason: 'unknown-bounty', trades: [] };
+      const b = bounties[idx]!;
+      if (b.expiresTick <= state.tick) return { ok: false, reason: 'bounty-expired', trades: [] };
+      const kills = (state.stats.killsByMonster?.[b.monsterId] ?? 0) - b.baseline;
+      if (kills < b.qty) return { ok: false, reason: 'bounty-unfilled', trades: [] };
+      // The realm pays in freshly struck coin — booked like every faucet.
+      state.ledger.gpMinted += b.rewardGp;
+      agent.gp += b.rewardGp;
+      state.stats.bountiesClaimed = (state.stats.bountiesClaimed ?? 0) + 1;
+      bounties.splice(idx, 1);
       return { ok: true, trades: [] };
     }
   }

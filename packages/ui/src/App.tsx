@@ -3,6 +3,7 @@ import type { CommandResult, ItemId, PlayerCommand } from '@exchange-wars/engine
 import { chooseSave, getSupabase, loadCloudSave, pushCloudSave, type Session } from './cloud';
 import { AccountBar } from './components/AccountBar';
 import { AlmanacPanel } from './components/AlmanacPanel';
+import { BountyBoard } from './components/BountyBoard';
 import { HELP_SEEN_KEY, HelpOverlay } from './components/HelpOverlay';
 import { ExpeditionPanel } from './components/ExpeditionPanel';
 import { LeaderboardPanel } from './components/LeaderboardPanel';
@@ -600,6 +601,7 @@ export function App({ initial }: { initial?: Game }) {
           />
         </section>
         <section className="middle">
+          <BountyBoard game={game} onCommand={command} />
           <MilestonesPanel unlocked={game.milestones} game={game} view={view} worth={playerWorth(game)} />
         </section>
       </main>
