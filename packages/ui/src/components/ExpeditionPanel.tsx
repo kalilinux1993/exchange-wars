@@ -160,7 +160,35 @@ export function ExpeditionPanel({
         )}
         <RegionMap progress={progress} selected={regionId} onSelect={setRegionId} />
         <p className="dim small">{REGIONS[regionIndex(regionId)]?.flavor}</p>
-        <h3>Pack (from your satchel)</h3>
+        <h3>Pack &amp; Equip</h3>
+        <p className="dim small">
+          There's no separate equip slot — <b>gear you pack is worn automatically</b> (the best usable item per
+          slot fights for you). Tap <b>equip best</b> to auto-pack your strongest kit, or add items by hand
+          below. Gear above your level (🔒) is inert until you train.{' '}
+          <button
+            className="chip"
+            title="auto-pack the best usable weapon + armor you own (best per slot)"
+            onClick={() => {
+              const best: Record<string, { id: string; score: number }> = {};
+              for (const [id, qty] of Object.entries(view.inventory)) {
+                if (qty < 1) continue;
+                const g = GEAR[id];
+                if (!g) continue;
+                if ((g.slot === 'weapon' ? lvls.atk : lvls.def) < g.req) continue; // inert — skip
+                const score = g.atk + g.def;
+                if (!best[g.slot] || score > best[g.slot]!.score) best[g.slot] = { id, score };
+              }
+              setDraft((d) => {
+                const next: Record<string, number> = {};
+                for (const [id, q] of Object.entries(d)) if (!GEAR[id]) next[id] = q; // keep food/brews
+                for (const v of Object.values(best)) next[v.id] = 1; // wear best per slot
+                return next;
+              });
+            }}
+          >
+            ⚔ equip best
+          </button>
+        </p>
         {(() => {
           const draftUnits = Object.values(draft).reduce((a, b) => a + b, 0);
           const label = (lo: Record<string, number>): string => {

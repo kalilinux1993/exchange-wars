@@ -1,3 +1,4 @@
+import { GEAR } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { bidWalk, type Game } from '../game';
 
@@ -26,6 +27,9 @@ export function PlayerPanel({
     <section className="panel player">
       <h2>Ledger</h2>
       <h3>Inventory</h3>
+      {held.some((i) => GEAR[i.id] !== undefined) && (
+        <p className="dim small">⚔ to wear gear, take it on an expedition — the <b>⚔ Adventure</b> tab's pack auto-equips your best.</p>
+      )}
       <ul className="rows">
         {held.map((i) => {
           const qty = view.inventory[i.id] ?? 0;

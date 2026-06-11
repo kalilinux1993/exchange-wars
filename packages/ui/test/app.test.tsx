@@ -740,6 +740,23 @@ describe('UI shell', () => {
     expect(document.querySelector('.combatscene .splat')).toBeTruthy();
   });
 
+  it('equip best: one tap auto-packs your strongest usable gear per slot', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.combatXp = { atk: 700, def: 500, hp: 0 }; // Attack 14 / Defence 12 — qualifies for rune
+    agent.inventory['rune_2h_sword'] = 1; // a weapon worth wielding
+    agent.inventory['rune_platebody'] = 1; // body armor
+    agent.inventory['shark'] = 3;
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const panel = document.querySelector('.expedition') as HTMLElement;
+    fireEvent.click(within(panel).getByText('⚔ equip best'));
+    fireEvent.click(within(panel).getByText('embark'));
+    // The best usable weapon + body were auto-equipped (escrowed into the pack).
+    expect(agent.expedition!.pack['rune_2h_sword']).toBe(1);
+    expect(agent.expedition!.pack['rune_platebody']).toBe(1);
+  });
+
   it('expedition loadouts: save a kit, refill from it clamped to what you hold', () => {
     localStorage.removeItem('ew-loadouts');
     const game = newGame(42);
