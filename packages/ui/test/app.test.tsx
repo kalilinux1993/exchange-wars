@@ -13,6 +13,7 @@ import { MoversPanel } from '../src/components/MoversPanel';
 import { CharacterPanel, equipped, lockedUpgrades } from '../src/components/CharacterPanel';
 import { TopFlips, rankFlips } from '../src/components/TopFlips';
 import { RecordsPanel, recordRows } from '../src/components/RecordsPanel';
+import { resolveShortcut } from '../src/keyboard';
 import { LeaderboardPanel } from '../src/components/LeaderboardPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { ghostWorthAt } from '../src/components/WorthChart';
@@ -538,6 +539,37 @@ describe('UI shell', () => {
       expect(banked.title).toBe('1,234,567 gp'); // exact in the tooltip
       expect(rows.find((r) => r.label === 'Sellsword kills')!.value).toBe('4');
     });
+  });
+
+  describe('resolveShortcut', () => {
+    it('maps cockpit keys and ignores everything else', () => {
+      expect(resolveShortcut('1')).toEqual({ kind: 'room', room: 'exchange' });
+      expect(resolveShortcut('2')).toEqual({ kind: 'room', room: 'adventure' });
+      expect(resolveShortcut('3')).toEqual({ kind: 'room', room: 'hall' });
+      expect(resolveShortcut('p')).toEqual({ kind: 'pause' });
+      expect(resolveShortcut('?')).toEqual({ kind: 'help' });
+      expect(resolveShortcut(' ')).toBeNull(); // space stays for buttons
+      expect(resolveShortcut('x')).toBeNull();
+    });
+  });
+
+  it('keyboard 1/2/3 switch rooms, but not while typing in a field', () => {
+    freshApp();
+    fireEvent.keyDown(document.body, { key: '1' });
+    expect(screen.getByRole('tab', { name: /Exchange/ }).getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(document.body, { key: '2' });
+    expect(screen.getByRole('tab', { name: /Adventure/ }).getAttribute('aria-selected')).toBe('true');
+    // a digit typed into the market filter must NOT be hijacked as a room jump
+    fireEvent.keyDown(screen.getByPlaceholderText(/filter items/i), { key: '1' });
+    expect(screen.getByRole('tab', { name: /Adventure/ }).getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('keyboard p toggles pause/play', () => {
+    freshApp(); // world starts paused (❚❚ active)
+    fireEvent.keyDown(document.body, { key: 'p' });
+    expect(screen.getByText('1×').className).toContain('active'); // resumed to 1×
+    fireEvent.keyDown(document.body, { key: 'p' });
+    expect(screen.getByText('❚❚').className).toContain('active'); // paused again
   });
 
   it('RecordsPanel renders the adventurer record in the hall', () => {

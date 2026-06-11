@@ -701,6 +701,18 @@ th.num {
   animation: rise 360ms ease-out backwards;
 }
 
+/* keycap pills in the help guide */
+kbd {
+  font: inherit;
+  font-size: 0.82em;
+  padding: 0 5px;
+  margin: 0 1px;
+  color: var(--parchment);
+  background: var(--ink);
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+}
+
 /* corrupt-save recovery: a warning, not the neutral gold of the away bars. */
 .corruptbar {
   background: rgba(220, 80, 40, 0.1);

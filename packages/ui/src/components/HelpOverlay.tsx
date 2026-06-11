@@ -64,6 +64,10 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
           <li>
             <b>Sign in</b> with your email to sync your save across devices.
           </li>
+          <li>
+            <b>Keyboard</b>: <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> jump between rooms, <kbd>p</kbd> pauses or
+            resumes the world, <kbd>?</kbd> toggles this guide.
+          </li>
         </ul>
         <button className="submit buy" onClick={onClose}>
           start trading

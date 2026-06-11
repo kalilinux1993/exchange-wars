@@ -54,6 +54,7 @@ import {
   type OfflineResult,
 } from './game';
 import { usePref } from './usePref';
+import { resolveShortcut } from './keyboard';
 
 const SPEEDS = [0, 1, 5, 20] as const;
 // Offline catch-ups at or under this run synchronously (sub-second); bigger
@@ -218,6 +219,25 @@ export function App({ initial }: { initial?: Game }) {
     if (next !== streak) setStreak(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.world.seed]);
+
+  // Keyboard shortcuts: 1/2/3 rooms, p pause/play, ? help. Guarded so we never
+  // hijack a key while the player is typing in a field or holding a modifier.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || t?.isContentEditable) return;
+      const sc = resolveShortcut(e.key);
+      if (!sc) return;
+      if (sc.kind === 'room') pickRoom(sc.room);
+      else if (sc.kind === 'pause') setSpeed((s) => (s === 0 ? 1 : 0));
+      else setHelpOpen((h) => !h);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     void getSupabase()

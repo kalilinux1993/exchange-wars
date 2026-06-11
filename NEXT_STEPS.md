@@ -14,7 +14,8 @@ Through brick 59 (10g): RPG layer (8 regions, stats/xp, brews, bounties, sellswo
 - **RPG content**: more event faces (each bends a still-untouched system — FINDINGS #64); a 9th region (needs a NEW resource to extort); ~~attack brew~~ DONE 10n (goading → +10 atk/dive, the offensive counterpart to bastion); encounter depletion (only if an audit shows the TAS tail needs bounding).
 - **Progression**: 10i region-mastery xp; 10k sellsword haul counters; 10l offline sellsword summary in the away-bar; ~~lifetime records profile~~ DONE 10z (RecordsPanel in the Hall). More: final-region (Abyss) mastery hook; gp sinks that aid raiding.
 - **Social/retention** (daily loop CLOSED — ember + nudge share one "day" definition): ~~daily shared seed~~ 10q; ~~"today" badge~~ 10r; ~~streak counter~~ 10s; ~~streak-at-risk nudge~~ 10t. Leftover daily polish (low priority, pivot away for a few bricks): "today's board" framing on the leaderboard view; a "🏁 daily best" personal record per day. **Deliberately pausing the daily arc — 4 bricks deep; next bricks should hit other systems (RPG content / trading / robustness) for breadth.**
-- **Jesse-gated**: prestige/rebirth loop; a deeper art-direction steering pass.
+- **Input/UX**: ~~keyboard shortcuts (1/2/3 rooms, p pause, ? help)~~ DONE 11a. Next: market-row nav (j/k or ↑/↓) — needs MarketTable to expose its displayed order so nav matches what's on screen; quick-select digits for top market rows.
+- **Jesse-gated**: prestige/rebirth loop; a deeper art-direction steering pass. **Engine content (9th region, event faces, gp sinks) is blocked on `SUPABASE_ACCESS_TOKEN` to redeploy verify-score in the same phase — needs Jesse present.**
 
 ## Decided / dropped
 - **Gear durability — DROPPED** (FINDINGS, 9g): raiders already pay spread + death burns + tick cost + consumable tickets; a durability tax re-punishes the validated capital loop for no asked-for benefit.
