@@ -576,6 +576,13 @@ export function App({ initial }: { initial?: Game }) {
             {offlineRef.current.worthAfter - offlineRef.current.worthBefore >= 0 ? '+' : ''}
             {(offlineRef.current.worthAfter - offlineRef.current.worthBefore).toLocaleString('en-US')} gp
           </b>
+          {offlineRef.current.sellswordKills > 0 && (
+            <span>
+              {' '}
+              · 🗡 sellsword: {offlineRef.current.sellswordKills.toLocaleString('en-US')} kills,{' '}
+              {offlineRef.current.sellswordBanked.toLocaleString('en-US')} gp banked
+            </span>
+          )}
           <button className="chip" onClick={() => setAwayDismissed(true)}>
             ×
           </button>

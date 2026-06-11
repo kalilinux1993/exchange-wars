@@ -246,6 +246,18 @@ describe('UI shell', () => {
     expect(game.world.tick).toBe(600 + OFFLINE_CAP_TICKS);
   });
 
+  it('the offline summary reports what the sellsword hunted while away', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    applyCommand(game.world, game.playerId, { type: 'buyUpgrade', upgradeId: 'sellsword' });
+    applyCommand(game.world, game.playerId, { type: 'configureSellsword', active: true });
+    agent.questProgress = 4; // a fightable shallow frontier
+    game.lastSeenMs = 1_000;
+    const res = applyOfflineProgress(game, 1_000 + 5_000_000)!; // long enough to raid
+    expect(res.sellswordKills).toBeGreaterThan(0);
+    expect(res.sellswordBanked).toBeGreaterThanOrEqual(0);
+  });
+
   it('shows the away banner when reopening after time has passed', () => {
     const game = newGame(42);
     game.lastSeenMs = Date.now() - 600_000;

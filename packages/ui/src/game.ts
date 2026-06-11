@@ -507,11 +507,16 @@ export interface OfflineResult {
   ticks: number;
   worthBefore: number;
   worthAfter: number;
+  /** What the Sellsword hunted/banked while away (10l). */
+  sellswordKills: number;
+  sellswordBanked: number;
 }
 
 export interface OfflinePlan {
   ticks: number;
   worthBefore: number;
+  sellswordKills0: number;
+  sellswordBanked0: number;
 }
 
 /**
@@ -527,14 +532,25 @@ export function planOfflineProgress(game: Game, nowMs: number): OfflinePlan | nu
   if (ticks < OFFLINE_MIN_TICKS) return null;
   const before = playerView(game.world, game.playerId);
   if (!before) return null;
-  return { ticks, worthBefore: playerWorth(game) };
+  return {
+    ticks,
+    worthBefore: playerWorth(game),
+    sellswordKills0: game.world.stats.sellswordKills ?? 0,
+    sellswordBanked0: game.world.stats.sellswordBanked ?? 0,
+  };
 }
 
 /** Close out a plan after its ticks have run (however they were chunked). */
 export function finishOfflineProgress(game: Game, plan: OfflinePlan): OfflineResult {
   const worthAfter = playerWorth(game);
   recordWorth(game, worthAfter);
-  return { ticks: plan.ticks, worthBefore: plan.worthBefore, worthAfter };
+  return {
+    ticks: plan.ticks,
+    worthBefore: plan.worthBefore,
+    worthAfter,
+    sellswordKills: (game.world.stats.sellswordKills ?? 0) - plan.sellswordKills0,
+    sellswordBanked: (game.world.stats.sellswordBanked ?? 0) - plan.sellswordBanked0,
+  };
 }
 
 /**

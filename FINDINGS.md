@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 10l — Welcome Back, the Sellsword Worked (2026-06-11)
+
+98. **A counter is data; a delta across a session is a story.** 10k made sellsword kills/loot legible in the Almanac (cumulative); 10l makes the OFFLINE delta a homecoming line — the away-bar now reads "…net worth +Y · 🗡 sellsword: N kills, X gp banked" by snapshotting the counters in planOfflineProgress and differencing in finishOfflineProgress. Same data, but the framing (what happened WHILE YOU WERE GONE) is what makes idle progress feel earned — the idle-game dopamine is the return summary, not the absolute number. Pure UI (the engine counters shipped 10k), no redeploy. The offline plumbing already threaded worthBefore/After through plan→finish, so the sellsword deltas rode the exact same path — extending an existing snapshot-diff is far cheaper than inventing a new one.
+
 ## Phase 10k — The Sellsword's Haul (2026-06-11)
 
 97. **Invisible idle work feels like no work — attribute it.** The Sellsword (9h) raids inside tickWorld, so it works offline for free — but its kills/loot folded into the shared player stats, so the player had no sense it was earning anything; the idle-adventuring half felt dead. Two attributed counters (sellswordKills via a slain-delta around its runCombatRound call, sellswordBanked = exp.packGp captured before its finishExtract) and an Almanac line ("🗡 sellsword haul: N kills · X gp") make the hireling's contribution legible. Worth-neutral (counters don't touch gp/items/RNG), so the leaderboard is unaffected — but the engine bundle changed (new stats written in tickWorld), redeployed to keep current. Mirror of the clerk: automation that you can't SEE working reads as broken (cf #69 clerk cap, #14 idle-engine-side) — surface what the bots do, or players assume nothing happened.

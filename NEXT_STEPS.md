@@ -11,7 +11,7 @@ Through brick 59 (10g): RPG layer (8 regions, stats/xp, brews, bounties, sellswo
 - **Trading**: ~~suggested-flip margin line~~ DONE 10j (buy/sell/+margin chips in the ticket); sparkline in market-table rows.
 - **Robustness**: UI to restore/export a quarantined save on next boot; guard monsterById/itemDef at UI read sites; 100k-tick determinism gate in a CI-only suite.
 - **RPG content**: more event faces (each bends a still-untouched system — FINDINGS #64); a 9th region (needs a NEW resource to extort); an attack/strength brew (needs a clean attack-flavored catalog potion); encounter depletion (only if an audit shows the TAS tail needs bounding).
-- **Progression**: 10i region-mastery xp; 10k sellsword haul counters. More: final-region (Abyss) mastery hook; a sellsword return-toast on offline reopen (counters exist now); gp sinks that aid raiding.
+- **Progression**: 10i region-mastery xp; 10k sellsword haul counters; 10l offline sellsword summary in the away-bar. More: final-region (Abyss) mastery hook; gp sinks that aid raiding.
 - **Jesse-gated**: prestige/rebirth loop; a deeper art-direction steering pass.
 
 ## Decided / dropped
