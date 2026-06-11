@@ -28,6 +28,7 @@ import {
   normalizeGame,
   OFFLINE_CAP_TICKS,
   parseChallengeSeed,
+  streakAtRisk,
   updateNews,
   type Game,
 } from '../src/game';
@@ -335,6 +336,39 @@ describe('UI shell', () => {
   it('shows no streak ember off the daily', () => {
     render(<App initial={newGame(42)} />);
     expect(screen.queryByText(/🔥/)).toBeNull();
+  });
+
+  describe('streakAtRisk', () => {
+    it('is true only when last played exactly yesterday (span 1)', () => {
+      expect(streakAtRisk({ count: 3, lastDay: 20260610, best: 3 }, 20260611)).toBe(true);
+    });
+    it('is false when already played today (span 0)', () => {
+      expect(streakAtRisk({ count: 3, lastDay: 20260611, best: 3 }, 20260611)).toBe(false);
+    });
+    it('is false once the streak is already dead (gap >= 2)', () => {
+      expect(streakAtRisk({ count: 3, lastDay: 20260609, best: 3 }, 20260611)).toBe(false);
+    });
+    it('is false with no streak record', () => {
+      expect(streakAtRisk(null, 20260611)).toBe(false);
+    });
+  });
+
+  it('nudges to keep an at-risk streak when off the daily, pre-filling the daily seed', () => {
+    // exactly one UTC day ago — span 1 vs today's daily, so the streak is at risk
+    const yesterday = dailySeed(new Date(Date.now() - 86_400_000));
+    localStorage.setItem('ew-daily-streak', JSON.stringify({ count: 4, lastDay: yesterday, best: 4 }));
+    render(<App initial={newGame(42)} />); // a plain, non-daily world
+    const cta = screen.getByText(/keep your streak/i);
+    expect(cta).toBeTruthy();
+    fireEvent.click(cta); // soft-confirm: pre-fills the seed form, never nukes the run outright
+    expect((screen.getByLabelText('seed') as HTMLInputElement).value).toBe(String(dailySeed()));
+  });
+
+  it('shows no streak nudge when already on today\'s daily', () => {
+    const yesterday = dailySeed(new Date(Date.now() - 86_400_000));
+    localStorage.setItem('ew-daily-streak', JSON.stringify({ count: 4, lastDay: yesterday, best: 4 }));
+    render(<App initial={newGame(dailySeed())} />);
+    expect(screen.queryByText(/keep your streak/i)).toBeNull();
   });
 
   it('a #seed link starts fresh visitors on that seed directly', () => {

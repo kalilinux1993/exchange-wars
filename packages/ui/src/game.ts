@@ -103,6 +103,16 @@ export function bumpStreak(prev: DailyStreak | null, today: number): DailyStreak
 }
 
 /**
+ * True when a live streak is one day from breaking: last played *exactly*
+ * yesterday (span 1) and not yet continued `today`. Already-played-today
+ * (span 0) is safe; a 2+ day gap is already dead. Drives the "keep your
+ * streak" nudge — the FOMO half of the loop, shown when you're NOT on the daily.
+ */
+export function streakAtRisk(streak: DailyStreak | null, today: number): boolean {
+  return streak !== null && streakDaySpan(streak.lastDay, today) === 1;
+}
+
+/**
  * Restarting the SAME seed keeps your best previous run as a chart ghost
  * (best = highest final worth, comparing the run being abandoned against any
  * ghost it was itself racing). Different seed → no ghost.

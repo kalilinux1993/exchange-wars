@@ -39,6 +39,7 @@ import {
   playerWorth,
   recordWorth,
   saveGame,
+  streakAtRisk,
   updateNews,
   type DailyStreak,
   type Game,
@@ -464,6 +465,15 @@ export function App({ initial }: { initial?: Game }) {
             </div>
           );
         })()}
+        {streakAtRisk(streak, dailySeed()) && game.world.seed !== dailySeed() && (
+          <button
+            className="streaknudge"
+            title="your daily streak breaks if you skip a day — load today's daily to keep it going"
+            onClick={() => setSeedDraft(String(dailySeed()))}
+          >
+            🔥 keep your streak ({streak!.count})
+          </button>
+        )}
         <div className="controls">
           {SPEEDS.map((s) => (
             <button key={s} className={speed === s ? 'chip active' : 'chip'} onClick={() => setSpeed(s)}>
