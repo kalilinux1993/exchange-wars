@@ -1,5 +1,9 @@
 # Findings
 
+## Phase 10h — Consolidation #3 (2026-06-11)
+
+94. **Third consolidation, cadence locked.** Round-number brick (60): DEV_GUIDE gained a "9y–10g consolidated" map (the courier/death-ward engine adds, the matured combat scene, the trading cockpit, equip discoverability, usePref), NEXT_STEPS's per-brick DONE strikethroughs collapsed back to forward-looking buckets, state-of-play header bumped to brick 59. Three consolidations in (#67/#84/this), the rhythm is reliable: ~16 feature bricks then one librarian brick, detail delegated to .phases/+FINDINGS, the live docs a MAP. The deeper pattern holds across 60 bricks and a context compaction: the autonomous loop never breaks the code (every brick gated + deployed) — only the docs drift, and scheduled consolidation is the cure. No code change.
+
 ## Phase 10g — Abort All (2026-06-11)
 
 93. **Sometimes the feature already exists in the engine and only the UI is missing.** `cancel` with no itemId/side already cancels every resting order (cancelAgentOrders iterates all when unfiltered) — the engine had "abort all" since the command layer existed; the Ledger just never exposed it, so a player with a dozen offers cancelled them one chip at a time. A single button issuing `{type:'cancel'}` (shown only at >1 order) closes the gap. Zero engine change, escrow refunded by the existing path. Worth a periodic audit pass: "what can applyCommand do that no button calls?" — latent capabilities are the cheapest features.

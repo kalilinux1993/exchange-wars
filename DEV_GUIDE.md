@@ -1,5 +1,19 @@
 # Dev Guide
 
+## Phases 9y–10g consolidated — content, trading depth, polish (2026-06-11)
+
+Per-phase detail in `.phases/` and FINDINGS #85–#93; the ~9 bricks since the 9g–9w map.
+
+### Engine additions (all replay-affecting → verify-score redeployed in-phase)
+- **Combat brews** generalized the dive-long flag (already in 9v); **courier** event (10d) — the 8th event face, the first to bend RISK: ships `COURIER_FRACTION` (0.5) of loot gp to the death-safe `agent.gp` for a `COURIER_CUT` (0.2) burned. The 8 faces (shrine/gamble/imp/portal/merchant/spar/toll/courier) each bend a distinct system (FINDINGS #64/#90).
+- **Death Ward** (10e): `PROGRESSION.upgrades.deathWard` [100k] → `expeditionDeath` keeps `DEATH_KEEP_WARDED` (5) not 3. buyUpgrade is generic, so a new upgrade is ~3 lines. A deep gp sink that aids raiding, tying the halves.
+
+### UI (all SVG/CSS, no engine change)
+- **Combat scene maturity**: monster archetype silhouettes (10f's `FighterKit` per-slot figure too) — ooze/drake/brute/critter by leech/dragonfire/hp (9y); the fighter lights helm/body/legs/weapon/shield from the pack's usable gear, mirroring the paperdoll (10f). Positioning transform on OUTER `<g>`, bob on INNER (CSS clobbers SVG attr — #78).
+- **Trading cockpit**: MoversPanel + WatchlistPanel + **price alerts** (10b: latched buy-below threshold via a `fired` ref, detection in refreshProgress not render) + **market pulse** in the masthead (10a: breadth ▲/▼ + ⚡events) + Sparkline + **abort-all** offers (10g: latent `cancel`-with-no-args exposed).
+- **Equip discoverability** (9z): "Pack & Equip" + ⚔ equip-best button + Ledger pointer — the implicit "packed gear is auto-worn" mechanic made visible (recurring UX lesson with #69: implicit systems need a named verb + one sentence, never new mechanics).
+- **usePref** (10c): `usePref<T>(key, fallback)` hook collapses the JSON localStorage prefs (loadouts/watch/alerts); title (raw string) + room (validated enum) stay bespoke.
+
 ## Phases 9g–9w consolidated — the OSRS-HUD + trading-tools arc (2026-06-11)
 
 Per-phase detail in `.phases/` and FINDINGS #67–#83; this maps the ~17 bricks since the 8h–9f consolidation. Jesse steered mid-arc toward an OSRS interface (map, player model, shorter deeds) and open-licensed art.
