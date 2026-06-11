@@ -138,6 +138,30 @@ describe('expeditions', () => {
     checkInvariants(state);
   });
 
+  it('the Death Ward upgrade keeps 5 carried units on death, not 3', () => {
+    const { state, id } = fixture(5);
+    const agent = state.agents[id]!;
+    ok(state, id, { type: 'buyUpgrade', upgradeId: 'deathWard' }); // burns the fixture's 100k
+    expect(state.ledger.gpBurned).toBeGreaterThanOrEqual(100_000);
+    agent.questProgress = REGIONS.length - 1;
+    // Pack 6 carried units (all inert at level 1 → certain death in the Maw).
+    // Home stock that never moves: 8−2 shark + 2−1 antifire = 7 units.
+    ok(state, id, { type: 'startExpedition', regionId: 'dragons_maw', pack: { rune_2h_sword: 1, rune_platebody: 1, rune_kiteshield: 1, shark: 2, super_antifire_potion_4: 1, divine_bastion_potion_4: 1 } });
+    let guard = 0;
+    while (agent.expedition && guard++ < 300) {
+      if (agent.expedition.combat) ok(state, id, { type: 'fight' });
+      else if (agent.expedition.event) ok(state, id, { type: 'choose', accept: false });
+      else ok(state, id, { type: 'advance' });
+    }
+    expect(agent.expedition).toBeUndefined(); // died
+    // Total = 7 home + exactly 5 kept carried = 12 (regardless of what loot
+    // joined the pack — death keeps the top 5 by value, period). Unwarded
+    // would be 7 + 3 = 10.
+    const totalUnits = Object.values(agent.inventory).reduce((a, b) => a + b, 0);
+    expect(totalUnits).toBe(12);
+    checkInvariants(state);
+  });
+
   it('eating from the pack heals and burns the food through the ledger', () => {
     const { state, id } = fixture(9);
     const agent = state.agents[id]!;

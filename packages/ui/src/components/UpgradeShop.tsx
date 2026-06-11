@@ -89,6 +89,27 @@ export function UpgradeShop({
             : `${PROGRESSION.upgrades.sellsword.costs[view.upgrades['sellsword'] ?? 0]!.toLocaleString('en-US')} gp`}
         </button>
       </div>
+      <div className="upgrade">
+        <div>
+          <b>Death Ward</b>
+          <span className="dim">
+            {' '}
+            {(view.upgrades['deathWard'] ?? 0) > 0 ? 'active — keep 5 on death' : 'keep 5 items on death (not 3)'}
+          </span>
+        </div>
+        <button
+          className="chip"
+          disabled={
+            PROGRESSION.upgrades.deathWard.costs[view.upgrades['deathWard'] ?? 0] === undefined ||
+            view.gp < (PROGRESSION.upgrades.deathWard.costs[view.upgrades['deathWard'] ?? 0] ?? Infinity)
+          }
+          onClick={() => onCommand({ type: 'buyUpgrade', upgradeId: 'deathWard' })}
+        >
+          {PROGRESSION.upgrades.deathWard.costs[view.upgrades['deathWard'] ?? 0] === undefined
+            ? 'warded'
+            : `${PROGRESSION.upgrades.deathWard.costs[view.upgrades['deathWard'] ?? 0]!.toLocaleString('en-US')} gp`}
+        </button>
+      </div>
       <h3>Clerk Orders</h3>
       {tier === 0 ? (
         <p className="dim small">hire the clerk to give orders</p>

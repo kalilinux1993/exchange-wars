@@ -12,6 +12,7 @@ Through brick 49 (9w): RPG layer (8 regions, stats/xp, brews, bounties, sellswor
 - **Code health**: ~~usePref helper~~ DONE 10c (loadouts/watch/alerts via usePref; title/room stay bespoke — raw-string / validated-enum).
 - **Robustness**: UI to restore/export a quarantined save on next boot; guard monsterById/itemDef at UI read sites; 100k-tick determinism gate in a CI-only suite.
 - **RPG content**: more event faces (8 so far: shrine/gamble/imp/portal/merchant/spar/toll/courier — 10d added risk-banking; next bends a still-untouched system); a 9th region (needs a NEW resource to extort); an attack/strength brew (needs a clean attack-flavored catalog potion); encounter depletion (only if an audit shows the TAS tail needs bounding).
+- **Progression sinks**: 10e added the Death Ward (100k → keep 5 on death). More gp sinks that aid raiding (a 2nd ward tier? a stat-respec? a bank-space cap?) keep big bankrolls meaningful.
 - **Jesse-gated**: prestige/rebirth loop; a deeper art-direction steering pass.
 
 ## Decided / dropped

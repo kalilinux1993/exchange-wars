@@ -1113,10 +1113,16 @@ var PROGRESSION = {
     autoFlip: { costs: [5e4, 15e4, 4e5] },
     /** The Sellsword (9h): a hireling who runs your expeditions while you
      * trade — shallow regions only, conservative, levels YOUR stats. */
-    sellsword: { costs: [3e4] }
+    sellsword: { costs: [3e4] },
+    /** Death Ward (10e): a deep gp sink that softens death — keep your 5 most
+     * valuable carried items instead of 3. */
+    deathWard: { costs: [1e5] }
   }
 };
+var DEATH_KEEP_BASE = 3;
+var DEATH_KEEP_WARDED = 5;
 function expeditionDeath(state, agent, exp) {
+  const keepN = (agent.upgrades?.["deathWard"] ?? 0) > 0 ? DEATH_KEEP_WARDED : DEATH_KEEP_BASE;
   const units = [];
   for (const [itemId, qty] of Object.entries(exp.pack)) {
     const cost = itemDef(state, itemId)?.baseCost ?? 0;
@@ -1125,7 +1131,7 @@ function expeditionDeath(state, agent, exp) {
   units.sort((a, b) => b.cost - a.cost || (a.itemId < b.itemId ? -1 : 1));
   for (let i = 0; i < units.length; i++) {
     const u = units[i];
-    if (i < 3) agent.inventory[u.itemId] = (agent.inventory[u.itemId] ?? 0) + 1;
+    if (i < keepN) agent.inventory[u.itemId] = (agent.inventory[u.itemId] ?? 0) + 1;
     else state.ledger.itemsBurned[u.itemId] = (state.ledger.itemsBurned[u.itemId] ?? 0) + 1;
   }
   state.ledger.gpBurned += exp.packGp;

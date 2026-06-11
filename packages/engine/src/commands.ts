@@ -60,6 +60,9 @@ export const PROGRESSION = {
     /** The Sellsword (9h): a hireling who runs your expeditions while you
      * trade — shallow regions only, conservative, levels YOUR stats. */
     sellsword: { costs: [30_000] },
+    /** Death Ward (10e): a deep gp sink that softens death — keep your 5 most
+     * valuable carried items instead of 3. */
+    deathWard: { costs: [100_000] },
   },
 } as const;
 
@@ -129,13 +132,17 @@ export interface PlayerView {
   markets: MarketView[];
 }
 
-/** OSRS rules: keep your 3 most valuable carried UNITS; the rest — and all
- * loot gp — is lost to the depths (burned; it was minted at the kills). */
+/** OSRS rules: keep your N most valuable carried UNITS (3 by default, 5 with
+ * a Death Ward — 10e); the rest — and all loot gp — is lost to the depths
+ * (burned; it was minted at the kills). */
+export const DEATH_KEEP_BASE = 3;
+export const DEATH_KEEP_WARDED = 5;
 function expeditionDeath(
   state: WorldState,
   agent: AgentState,
   exp: NonNullable<AgentState['expedition']>,
 ): void {
+  const keepN = (agent.upgrades?.['deathWard'] ?? 0) > 0 ? DEATH_KEEP_WARDED : DEATH_KEEP_BASE;
   const units: { itemId: ItemId; cost: number }[] = [];
   for (const [itemId, qty] of Object.entries(exp.pack)) {
     const cost = itemDef(state, itemId)?.baseCost ?? 0;
@@ -144,7 +151,7 @@ function expeditionDeath(
   units.sort((a, b) => b.cost - a.cost || (a.itemId < b.itemId ? -1 : 1));
   for (let i = 0; i < units.length; i++) {
     const u = units[i]!;
-    if (i < 3) agent.inventory[u.itemId] = (agent.inventory[u.itemId] ?? 0) + 1;
+    if (i < keepN) agent.inventory[u.itemId] = (agent.inventory[u.itemId] ?? 0) + 1;
     else state.ledger.itemsBurned[u.itemId] = (state.ledger.itemsBurned[u.itemId] ?? 0) + 1;
   }
   state.ledger.gpBurned += exp.packGp;
