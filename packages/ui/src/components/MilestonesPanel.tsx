@@ -13,24 +13,45 @@ export function MilestonesPanel({
   worth: number;
 }) {
   const got = unlocked.length;
+  // OSRS-style: a compact badge grid (icon + tooltip) instead of a 31-line
+  // wall (9k). Closest-to-done unearned deeds float up so there's always a
+  // visible "next goal"; the rest collapse behind a count.
+  const ranked = MILESTONES.map((m) => {
+    const done = unlocked.includes(m.id);
+    const pct = !done && m.progress ? Math.min(99, Math.floor(m.progress(game, view, worth) * 100)) : 0;
+    return { m, done, pct };
+  });
+  const next = ranked.filter((r) => !r.done).sort((a, b) => b.pct - a.pct).slice(0, 3);
   return (
     <section className="panel milestones">
       <h2>
-        Deeds <span className="dim">{got}/{MILESTONES.length}</span>
+        Deeds{' '}
+        <span className="dim">
+          {got}/{MILESTONES.length}
+        </span>
       </h2>
-      <ul className="rows small">
-        {MILESTONES.map((m) => {
-          const done = unlocked.includes(m.id);
-          const pct = !done && m.progress ? Math.min(99, Math.floor(m.progress(game, view, worth) * 100)) : null;
-          return (
-            <li key={m.id} className={done ? 'deed got' : 'deed'}>
-              <span className={done ? 'mine' : 'dim'}>{done ? '◆' : '◇'}</span>
+      <div className="deedgrid" title="every deed — filled badges are earned; hover for the tale">
+        {ranked.map(({ m, done, pct }) => (
+          <span
+            key={m.id}
+            className={done ? 'deedbadge got' : 'deedbadge'}
+            title={done ? `${m.name} — ${m.flavor}` : `${m.name}${pct > 0 ? ` · ${pct}%` : ' · locked'}`}
+          >
+            {done ? '◆' : '◇'}
+          </span>
+        ))}
+      </div>
+      {next.length > 0 && (
+        <ul className="rows small">
+          {next.map(({ m, pct }) => (
+            <li key={m.id} className="deed">
+              <span className="dim">◇</span>
               <span>{m.name}</span>
-              <span className="dim flavor">{done ? m.flavor : pct !== null ? `${pct}%` : '· · ·'}</span>
+              <span className="dim flavor">{pct > 0 ? `${pct}%` : '· · ·'}</span>
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

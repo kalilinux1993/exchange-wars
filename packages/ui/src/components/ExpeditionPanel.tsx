@@ -9,11 +9,12 @@ import {
   maxHpFor,
   monsterById,
   regionIndex,
-  xpForLevel,
 } from '@exchange-wars/engine';
 import type { PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { deathRecap, loadLoadouts, saveLoadouts, type Game } from '../game';
+import { CharacterPanel } from './CharacterPanel';
+import { RegionMap } from './RegionMap';
 
 /**
  * The Expeditions panel: outfit an adventurer from your REAL inventory,
@@ -36,12 +37,6 @@ export function ExpeditionPanel({
   const progress = agent?.questProgress ?? 0;
   const lvls = levelsOf(agent?.combatXp);
   const trainedMax = maxHpFor(lvls.hp);
-  const xpLine = (stat: 'atk' | 'def' | 'hp'): string => {
-    const lvl = lvls[stat];
-    if (lvl >= 99) return `${lvl}`;
-    const cur = agent?.combatXp?.[stat] ?? 0;
-    return `${lvl} (${cur - xpForLevel(lvl)}/${xpForLevel(lvl + 1) - xpForLevel(lvl)} xp)`;
-  };
   const [regionId, setRegionId] = useState(REGIONS[0]!.id);
   const [draft, setDraft] = useState<Record<string, number>>({});
   const [loadouts, setLoadouts] = useState<Record<string, number>[]>(loadLoadouts);
@@ -97,9 +92,7 @@ export function ExpeditionPanel({
     return (
       <section className="panel expedition">
         <h2>Expeditions</h2>
-        <p className="dim small" title="Attack trains as you deal damage and unlocks weapons; Defence trains as you take it and unlocks armor; Hitpoints harden as you fight (+2 max hp per level)">
-          ⚔ Attack {xpLine('atk')} · 🛡 Defence {xpLine('def')} · ♥ Hitpoints {xpLine('hp')} ({trainedMax} max)
-        </p>
+        <CharacterPanel agent={agent} names={names} />
         {resting && (
           <p className="warn small" title="wounds persist between expeditions — rest (or embark hurt, your gamble)">
             ♥ recovering: {agent!.hp}/{trainedMax} hp — mending as the market ticks
@@ -160,19 +153,8 @@ export function ExpeditionPanel({
             </ul>
           </details>
         )}
-        <ul className="rows small regions">
-          {REGIONS.map((r, i) => (
-            <li
-              key={r.id}
-              className={i > progress ? 'dim' : regionId === r.id ? 'selected-region' : ''}
-              onClick={() => i <= progress && setRegionId(r.id)}
-            >
-              <span>{i > progress ? '🔒' : i === progress ? '⚑' : '✓'}</span>
-              <span>{r.name}</span>
-              <span className="dim small">{r.flavor}</span>
-            </li>
-          ))}
-        </ul>
+        <RegionMap progress={progress} selected={regionId} onSelect={setRegionId} />
+        <p className="dim small">{REGIONS[regionIndex(regionId)]?.flavor}</p>
         <h3>Pack (from your satchel)</h3>
         {(() => {
           const draftUnits = Object.values(draft).reduce((a, b) => a + b, 0);

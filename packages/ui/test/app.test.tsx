@@ -460,10 +460,12 @@ describe('UI shell', () => {
     expect(screen.getByText('How to Play')).toBeTruthy();
   });
 
-  it('locked worth deeds show progress percentages', () => {
+  it('locked worth deeds show progress percentages (in the badge grid tooltips)', () => {
     freshApp();
-    expect(screen.getByText('22%')).toBeTruthy(); // Merchant Prince: 55k / 250k
-    expect(screen.getByText('5%')).toBeTruthy(); // Millionaire: 55k / 1M
+    // The compact deed grid (9k) carries every deed's progress in its title;
+    // the closest-to-done few also surface inline.
+    expect(document.querySelector('[title*="Merchant Prince · 22%"]')).toBeTruthy(); // 55k / 250k
+    expect(document.querySelector('[title*="Millionaire · 5%"]')).toBeTruthy(); // 55k / 1M
   });
 
   it('the Chronicle records event begins and ends', () => {

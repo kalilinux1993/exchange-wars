@@ -3,6 +3,11 @@
 Live: https://kalilinux1993.github.io/exchange-wars/ · repo github.com/kalilinux1993/exchange-wars
 Deploy: push to main → CI (typecheck + vitest + e2e) auto-deploys Pages. Verifier: `npm run build:fn` + `npx supabase functions deploy verify-score --project-ref chynnshtcjclphlazkmv` (needs SUPABASE_ACCESS_TOKEN) — required in the same phase as any replay-affecting engine change.
 
+## OSRS HUD arc (Jesse-directed 2026-06-11, started 9k)
+- 9k DONE: SVG region map, paperdoll + skills strip, compact deed badge grid.
+- **Next steps**: animate combat (hit splats / hp tween); a richer paperdoll (per-item silhouettes, not just lit plates); OSRS-style icon tabs WITHIN rooms if panels crowd; an inventory/equipment grid view; sound-free juice on level-up & kill. Raster sprites would need real art assets — SVG is the deterministic, dependency-free path; keep going SVG unless Jesse supplies art.
+- Jesse-gate check-in: confirm the SVG direction matches his mental image before investing in deeper art.
+
 ## Queued (real candidates, in rough priority)
 - **Idle raiding ("the Sellsword")**: the clerk flips while you're away; nothing raids while you're away. A hireable companion running a fixed shallow-region policy inside tickWorld would complete the idle game's second half. BIG brick: engine automation + balance audit + offline interaction — bring full attention, measure with tools/audit-grind.ts before/after.
 - **Encounter depletion** (structural kill-rate bound, FINDINGS #51): cleared regions run dry within an expedition. Only if a future audit shows the TAS tail needs bounding — it currently doesn't.

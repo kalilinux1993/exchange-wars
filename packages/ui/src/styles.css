@@ -838,6 +838,163 @@ th.num {
   flex: 2;
 }
 
+/* ── OSRS-style HUD: map, paperdoll, skills, deed grid (9k) ──────── */
+.regionmap {
+  width: 100%;
+  height: auto;
+  margin: 6px 0;
+  background: radial-gradient(circle at 30% 20%, #20381f, var(--ink) 70%);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+}
+.mapnode circle {
+  fill: var(--ink);
+  stroke: var(--parchment-dim);
+  stroke-width: 1.5;
+}
+.mapnode.cleared circle {
+  fill: #1f3d20;
+  stroke: #4f7a45;
+}
+.mapnode.frontier circle {
+  fill: #3a2f10;
+  stroke: var(--gold);
+}
+.mapnode.locked circle {
+  fill: #181410;
+  stroke: #3a322370;
+}
+.mapnode.selected circle {
+  stroke: var(--gold-bright);
+  stroke-width: 2.5;
+}
+.mapsel {
+  stroke: var(--gold-bright);
+  stroke-width: 1.5;
+  opacity: 0.6;
+}
+.mapmark {
+  font-size: 9px;
+  fill: var(--parchment);
+  pointer-events: none;
+}
+.maplabel {
+  font-size: 7.5px;
+  fill: var(--parchment-dim);
+  pointer-events: none;
+}
+.mapnode.frontier .maplabel,
+.mapnode.selected .maplabel {
+  fill: var(--gold-bright);
+}
+
+.character {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  margin: 6px 0;
+}
+.paperdoll {
+  width: 84px;
+  flex: none;
+  background: linear-gradient(180deg, #241d12, var(--ink));
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+}
+.doll-skin {
+  fill: #b98a5e;
+}
+.doll-slot {
+  fill: #2a2418;
+  stroke: #3a3223;
+  stroke-width: 1;
+}
+.doll-slot.on {
+  fill: var(--gold);
+  stroke: var(--gold-bright);
+}
+.doll-slot.weapon.on {
+  fill: #c0c4cc;
+}
+.charside {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.equiplist {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px 8px;
+  font-size: 0.74rem;
+}
+.equip {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+.equip.on span:last-child {
+  color: var(--gold-bright);
+}
+.skills {
+  display: flex;
+  gap: 5px;
+}
+.skillcell {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  background: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  flex: 1;
+}
+.skillglyph {
+  font-size: 0.8rem;
+}
+.skilllvl {
+  color: var(--gold-bright);
+  font-weight: 700;
+}
+.skillbar {
+  flex: 1;
+  height: 4px;
+  background: #2a2418;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.skillbar span {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+}
+.hpline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+}
+.hpbar.mini {
+  flex: 1;
+  height: 6px;
+}
+
+.deedgrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 4px 0 8px;
+}
+.deedbadge {
+  font-size: 0.9rem;
+  color: var(--parchment-dim);
+  cursor: default;
+}
+.deedbadge.got {
+  color: var(--gold-bright);
+}
+
 /* ── phone-sized screens ──────────────────────────────── */
 @media (max-width: 640px) {
   :root {
