@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyCommand, MASTERY_BASE, type PlayerCommand } from '../src/commands';
 import { hashState } from '../src/hash';
 import { checkInvariants } from '../src/invariants';
-import { levelsOf, maxHpFor, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS, SPAR_XP, TOLL_COST, xpForLevel } from '../src/quest';
+import { FORGE_ATK, FORGE_COST, levelsOf, maxHpFor, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS, SPAR_XP, TOLL_COST, xpForLevel } from '../src/quest';
 import { addAgent, BOUNTY_CHECK_TICKS, createWorld, tickWorld } from '../src/sim';
 import type { WorldState } from '../src/types';
 
@@ -237,6 +237,46 @@ describe('expeditions', () => {
     const before = exp.packGp;
     ok(state, id, { type: 'choose', accept: false });
     expect(exp.packGp).toBe(before);
+  });
+
+  it('field forge: loot gp buys a dive-long Attack boost, fully conserved', () => {
+    const { state, id } = fixture(7);
+    const agent = state.agents[id]!;
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    const exp = agent.expedition!;
+    exp.packGp += 1_000;
+    state.ledger.gpMinted += 1_000;
+
+    // Accept: fee leaves the world, a +FORGE_ATK dive-long boost goes up.
+    const burnBefore = state.ledger.gpBurned;
+    exp.event = { kind: 'forge', prompt: 'test forge' };
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.packGp).toBe(1_000 - FORGE_COST);
+    expect(state.ledger.gpBurned).toBe(burnBefore + FORGE_COST);
+    expect(exp.boost).toEqual({ atk: FORGE_ATK, def: 0 });
+    checkInvariants(state);
+
+    // Composes with an existing brew boost: keeps the better atk + any def up.
+    exp.boost = { atk: FORGE_ATK + 5, def: 10 };
+    exp.event = { kind: 'forge', prompt: 'test forge' };
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.boost).toEqual({ atk: FORGE_ATK + 5, def: 10 }); // not downgraded
+    checkInvariants(state);
+
+    // Too poor: no charge, no boost, nothing burned, still conserved.
+    const f = fixture(8);
+    const a2 = f.state.agents[f.id]!;
+    ok(f.state, f.id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    const e2 = a2.expedition!;
+    e2.packGp += 100; // < FORGE_COST
+    f.state.ledger.gpMinted += 100;
+    const burn2 = f.state.ledger.gpBurned;
+    e2.event = { kind: 'forge', prompt: 'test forge' };
+    ok(f.state, f.id, { type: 'choose', accept: true });
+    expect(e2.packGp).toBe(100);
+    expect(f.state.ledger.gpBurned).toBe(burn2);
+    expect(e2.boost ?? null).toBeNull();
+    checkInvariants(f.state);
   });
 
   it('new faces in the dark: portal hops a region, merchant sells dear, imp gambles your blood', () => {

@@ -175,7 +175,7 @@ export function expeditionSeed(worldSeed: number, expeditionId: number): number 
  * repertoire grows with depth (8u): portals tempt you one region past your
  * right, imps gamble your blood, merchants surface where the food runs out. */
 export interface EventState {
-  kind: 'shrine' | 'gamble' | 'portal' | 'imp' | 'merchant' | 'spar' | 'toll' | 'courier';
+  kind: 'shrine' | 'gamble' | 'portal' | 'imp' | 'merchant' | 'spar' | 'toll' | 'courier' | 'forge';
   prompt: string;
 }
 
@@ -198,6 +198,11 @@ export const SPAR_XP = 25;
 export const SPAR_BRUISES: [number, number] = [5, 12];
 /** The toll-keeper's price for word of a nearby stash. */
 export const TOLL_COST = 150;
+/** The field forge: a wandering smith whets your blade — loot gp for a
+ * dive-long Attack boost. A gp SINK that aids raiding (the loot→combat path
+ * the brews charge inventory for), composing with any potion boost already up. */
+export const FORGE_COST = 300;
+export const FORGE_ATK = 8;
 /** The strongbox courier ships this fraction of your loot gp home (safe from
  * death) and keeps COURIER_CUT of what's shipped — de-risk at a haircut. */
 export const COURIER_FRACTION = 0.5;
