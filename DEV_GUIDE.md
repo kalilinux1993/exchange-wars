@@ -1,5 +1,10 @@
 # Dev Guide
 
+## Phase 6t — Chunked Offline Catch-up (2026-06-10)
+
+- **The tab no longer freezes on reopen.** `applyOfflineProgress` split into `planOfflineProgress` (computes ticks owed, restamps lastSeenMs) + `finishOfflineProgress` (worth delta, recordWorth); the sync function remains as their composition for small debts and tests. In App, `beginOffline` routes debts ≤ 5k ticks through the sync path and bigger ones through a chunk-driver effect (1k ticks per setTimeout slice) behind a "The world turns…" scrim with a progress bar. Finalize latches news/fills/deeds earned while away, saves, schedules a cloud push, and hands off to the away banner. All three offline entry points (boot, cloud adopt, save import) share it.
+- Worst case before: 100k-tick cap ≈ 14s of frozen UI at 100 items (worse pre-6p). Now: same total work, responsive tab, visible progress.
+
 ## Phase 6s — Book Cap & Screenshot Refresh (2026-06-10)
 
 - **Resting-order hard cap** (exchange.ts): `MAX_RESTING_PER_AGENT_BOOK = 16` enforced in placeOrder (reject reason `book-cap`). Generous — players are slot-capped at 8 world-wide, no NPC archetype rests more than a handful — and hash-equality at introduction (7f338255/15cacaf8/81d9b0d9 on seeds 7/42/1337) proves it never binds in healthy sims. It bounds book growth against runaway strategies. Closes the last meaty Phase-1 spam-test leftover.

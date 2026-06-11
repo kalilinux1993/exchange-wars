@@ -2,7 +2,7 @@
 // Catalog-agnostic: everything derives from DEFAULT_ITEMS so `npm run
 // gen:catalog` regens never break these tests.
 import { addAgent, createWorld, DEFAULT_ITEMS, playerView } from '@exchange-wars/engine';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { App } from '../src/App';
 import { TradeFeed } from '../src/components/TradeFeed';
@@ -221,6 +221,39 @@ describe('UI shell', () => {
     render(<App initial={game} />);
     expect(screen.getByText(/while you were away/i)).toBeTruthy();
     expect(game.world.tick).toBeGreaterThanOrEqual(600);
+  });
+
+  it('big offline debts run chunked behind the catch-up overlay', async () => {
+    // Tiny world again — this tests the chunk driver, not the economy.
+    const world = createWorld({
+      seed: 1,
+      items: [{ id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.08 }],
+      producersPerItem: 0,
+      consumersPerItem: 0,
+      marketMakersPerItem: 0,
+      momentumTraders: 0,
+      noiseTraders: 0,
+      players: 0,
+    });
+    const human = addAgent(world, 'player', HUMAN_START_GP, {});
+    human.policy = 'idle';
+    const game: Game = {
+      world,
+      playerId: human.id,
+      startGp: HUMAN_START_GP,
+      worthHistory: [],
+      milestones: [],
+      newsLog: [],
+      seenEvents: [],
+      fills: [],
+      fillScanTick: 0,
+      lastSeenMs: Date.now() - 20_000_500, // owes ~20k ticks > sync threshold
+    };
+    render(<App initial={game} />);
+    expect(screen.getByText(/The world turns/)).toBeTruthy(); // overlay up, tab responsive
+    await waitFor(() => expect(screen.queryByText(/The world turns/)).toBeNull(), { timeout: 15_000 });
+    expect(game.world.tick).toBeGreaterThanOrEqual(20_000); // debt fully paid
+    expect(screen.getByText(/while you were away/i)).toBeTruthy(); // banner takes over
   });
 
   it('max button fills the buy qty from gp and the item buy limit', () => {

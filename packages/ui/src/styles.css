@@ -872,3 +872,22 @@ th.num {
     animation: none;
   }
 }
+
+/* --- offline catch-up overlay --- */
+.catchup {
+  min-width: 320px;
+  text-align: center;
+}
+
+.catchup .bar {
+  height: 10px;
+  margin-top: 10px;
+  border: 1px solid var(--hairline);
+  background: var(--ink);
+}
+
+.catchup .bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), var(--gold-bright));
+  transition: width 120ms linear;
+}

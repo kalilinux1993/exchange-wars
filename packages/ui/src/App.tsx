@@ -16,8 +16,9 @@ import { TradeTicket } from './components/TradeTicket';
 import { UpgradeShop } from './components/UpgradeShop';
 import { WorthChart } from './components/WorthChart';
 import {
-  applyOfflineProgress,
   checkMilestones,
+  finishOfflineProgress,
+  planOfflineProgress,
   clearSave,
   exportSaveString,
   importSaveString,
@@ -30,20 +31,22 @@ import {
   viewNetWorth,
   type Game,
   type Milestone,
+  type OfflinePlan,
   type OfflineResult,
 } from './game';
 
 const SPEEDS = [0, 1, 5, 20] as const;
+// Offline catch-ups at or under this run synchronously (sub-second); bigger
+// ones run in chunks behind the catch-up overlay so the tab never freezes
+// (the 100k-tick cap is ~14s of solid sim at 100 items).
+const SYNC_CATCHUP_TICKS = 5_000;
+const CATCHUP_CHUNK_TICKS = 1_000;
 
 export function App({ initial }: { initial?: Game }) {
   const gameRef = useRef<Game | null>(null);
   const offlineRef = useRef<OfflineResult | null>(null);
   if (gameRef.current === null) {
     gameRef.current = initial ?? loadGame() ?? newGame(42);
-    offlineRef.current = applyOfflineProgress(gameRef.current, Date.now());
-    // Latch anything offline progress earned — silently (the banner covers it).
-    const v0 = playerView(gameRef.current.world, gameRef.current.playerId);
-    if (v0) checkMilestones(gameRef.current, v0, viewNetWorth(v0));
   }
   const game = gameRef.current;
   const [, force] = useReducer((x: number) => x + 1, 0);
@@ -51,6 +54,8 @@ export function App({ initial }: { initial?: Game }) {
   const [selected, setSelected] = useState<ItemId>(game.world.items[0]?.id ?? '');
   const [lastResult, setLastResult] = useState<CommandResult | null>(null);
   const [awayDismissed, setAwayDismissed] = useState(false);
+  const [catchUp, setCatchUp] = useState<{ done: number; total: number } | null>(null);
+  const planRef = useRef<OfflinePlan | null>(null);
   const [toast, setToast] = useState<Milestone | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [seedDraft, setSeedDraft] = useState<string | null>(null);
@@ -84,6 +89,63 @@ export function App({ initial }: { initial?: Game }) {
     }, 5_000);
   };
 
+  /** Start offline accrual for a (possibly just-adopted) game: small debts
+   * run synchronously, big ones hand off to the chunked catch-up effect. */
+  const beginOffline = (g: Game): void => {
+    offlineRef.current = null;
+    const plan = planOfflineProgress(g, Date.now());
+    if (!plan) return;
+    if (plan.ticks <= SYNC_CATCHUP_TICKS) {
+      runTicks(g.world, plan.ticks);
+      offlineRef.current = finishOfflineProgress(g, plan);
+      return;
+    }
+    planRef.current = plan;
+    setCatchUp({ done: 0, total: plan.ticks });
+  };
+
+  // Boot: apply the offline debt and latch anything it earned — silently
+  // (the away banner / catch-up overlay cover the narration).
+  useEffect(() => {
+    const g = gameRef.current;
+    if (!g) return;
+    beginOffline(g);
+    const v0 = playerView(g.world, g.playerId);
+    if (v0) checkMilestones(g, v0, viewNetWorth(v0));
+    force();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The chunked catch-up driver: one slice per timeout so the UI repaints
+  // between slices; finalize latches news/fills/deeds earned while away.
+  useEffect(() => {
+    if (!catchUp) return;
+    const g = gameRef.current;
+    if (!g) return;
+    if (catchUp.done >= catchUp.total) {
+      const plan = planRef.current;
+      planRef.current = null;
+      if (plan) offlineRef.current = finishOfflineProgress(g, plan);
+      updateNews(g);
+      recordFills(g);
+      const v = playerView(g.world, g.playerId);
+      if (v) checkMilestones(g, v, viewNetWorth(v));
+      saveGame(g);
+      schedulePush();
+      setCatchUp(null);
+      setAwayDismissed(false);
+      force();
+      return;
+    }
+    const id = setTimeout(() => {
+      const step = Math.min(CATCHUP_CHUNK_TICKS, catchUp.total - catchUp.done);
+      runTicks(g.world, step);
+      setCatchUp({ done: catchUp.done + step, total: catchUp.total });
+    }, 0);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catchUp]);
+
   useEffect(() => {
     void getSupabase()
       .auth.getSession()
@@ -102,7 +164,7 @@ export function App({ initial }: { initial?: Game }) {
       const local = gameRef.current;
       if (cloud && chooseSave(local, cloud) === 'cloud') {
         gameRef.current = cloud;
-        offlineRef.current = applyOfflineProgress(cloud, Date.now());
+        beginOffline(cloud);
         saveGame(cloud);
         setSelected(cloud.world.items[0]?.id ?? '');
         setAwayDismissed(false);
@@ -196,7 +258,7 @@ export function App({ initial }: { initial?: Game }) {
         return;
       }
       gameRef.current = g;
-      offlineRef.current = applyOfflineProgress(g, Date.now());
+      beginOffline(g);
       saveGame(g);
       setSelected(g.world.items[0]?.id ?? '');
       setAwayDismissed(false);
@@ -320,6 +382,20 @@ export function App({ initial }: { initial?: Game }) {
           </div>
         );
       })()}
+      {catchUp && (
+        <div className="scrim">
+          <section className="panel catchup">
+            <h2>The world turns…</h2>
+            <p className="dim">
+              while you were away: {catchUp.done.toLocaleString('en-US')} /{' '}
+              {catchUp.total.toLocaleString('en-US')} ticks
+            </p>
+            <div className="bar">
+              <div className="bar-fill" style={{ width: `${Math.round((catchUp.done / catchUp.total) * 100)}%` }} />
+            </div>
+          </section>
+        </div>
+      )}
       {offlineRef.current && !awayDismissed && (
         <div className="awaybar">
           while you were away: <b>{offlineRef.current.ticks.toLocaleString('en-US')}</b> ticks passed · net

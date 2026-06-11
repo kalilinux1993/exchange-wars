@@ -302,12 +302,17 @@ export interface OfflineResult {
   worthAfter: number;
 }
 
+export interface OfflinePlan {
+  ticks: number;
+  worthBefore: number;
+}
+
 /**
- * The idle-game contract: real time away advances the world at OFFLINE_TPS,
- * capped. Clock is injected so this stays unit-testable. Mutates the game
- * (fast-forwards + restamps lastSeenMs); returns null when nothing applied.
+ * Plan an offline catch-up WITHOUT running it (restamps lastSeenMs). The UI
+ * runs big plans in chunks behind an overlay — 100k ticks at 100 items is
+ * ~14s, far too long to block the main thread on tab open.
  */
-export function applyOfflineProgress(game: Game, nowMs: number): OfflineResult | null {
+export function planOfflineProgress(game: Game, nowMs: number): OfflinePlan | null {
   const last = game.lastSeenMs;
   game.lastSeenMs = nowMs;
   if (last === undefined || nowMs <= last) return null;
@@ -315,12 +320,28 @@ export function applyOfflineProgress(game: Game, nowMs: number): OfflineResult |
   if (ticks < OFFLINE_MIN_TICKS) return null;
   const before = playerView(game.world, game.playerId);
   if (!before) return null;
-  const worthBefore = viewNetWorth(before);
-  runTicks(game.world, ticks);
+  return { ticks, worthBefore: viewNetWorth(before) };
+}
+
+/** Close out a plan after its ticks have run (however they were chunked). */
+export function finishOfflineProgress(game: Game, plan: OfflinePlan): OfflineResult {
   const after = playerView(game.world, game.playerId);
-  const worthAfter = after ? viewNetWorth(after) : worthBefore;
+  const worthAfter = after ? viewNetWorth(after) : plan.worthBefore;
   recordWorth(game, worthAfter);
-  return { ticks, worthBefore, worthAfter };
+  return { ticks: plan.ticks, worthBefore: plan.worthBefore, worthAfter };
+}
+
+/**
+ * The idle-game contract: real time away advances the world at OFFLINE_TPS,
+ * capped. Clock is injected so this stays unit-testable. Mutates the game
+ * (fast-forwards + restamps lastSeenMs); returns null when nothing applied.
+ * Synchronous composition of plan/finish — the UI chunks big plans itself.
+ */
+export function applyOfflineProgress(game: Game, nowMs: number): OfflineResult | null {
+  const plan = planOfflineProgress(game, nowMs);
+  if (!plan) return null;
+  runTicks(game.world, plan.ticks);
+  return finishOfflineProgress(game, plan);
 }
 
 export function saveGame(game: Game): void {
