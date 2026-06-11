@@ -52,6 +52,54 @@ export async function pushCloudSave(game: Game): Promise<boolean> {
   }
 }
 
+export interface BoardRow {
+  handle: string;
+  worth: number;
+}
+
+/** Top verified sprints for a seed. null = leaderboard backend not deployed
+ * (or offline) — callers hide the feature entirely on null. */
+export async function fetchLeaderboard(seed: number): Promise<BoardRow[] | null> {
+  try {
+    const { data, error } = await getSupabase()
+      .from('leaderboard')
+      .select('handle,worth')
+      .eq('seed', seed)
+      .order('worth', { ascending: false })
+      .limit(10);
+    if (error) return null;
+    return (data ?? []) as BoardRow[];
+  } catch {
+    return null;
+  }
+}
+
+export interface SubmitResult {
+  ok: boolean;
+  worth?: number;
+  improved?: boolean;
+  error?: string;
+}
+
+/** Submit a sprint log for server-side replay verification (JWT attached by
+ * the client automatically). The server's verdict is the score — never ours. */
+export async function submitSprint(
+  handle: string,
+  seed: number,
+  log: unknown[],
+): Promise<SubmitResult> {
+  try {
+    const { data, error } = await getSupabase().functions.invoke('verify-score', {
+      body: { handle, seed, log },
+    });
+    if (error) return { ok: false, error: error.message };
+    const d = data as { worth?: number; improved?: boolean } | null;
+    return { ok: true, ...(d?.worth !== undefined ? { worth: d.worth } : {}), ...(d?.improved !== undefined ? { improved: d.improved } : {}) };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
 /** Latest-wins by the save's own lastSeenMs (same clock domain as accrual). */
 export function chooseSave(local: Game | null, cloud: Game | null): 'local' | 'cloud' {
   if (!cloud) return 'local';

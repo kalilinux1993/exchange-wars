@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 7h — Sprint Board UI (2026-06-11, brick 3)
+
+- **LeaderboardPanel** (third column): probes `fetchLeaderboard(seed)` once per seed and renders NOTHING on null — shipped ahead of the backend, lights up by itself when Jesse deploys. Rows = top-10 verified worth; submit posts the log (truncated to tick < SPRINT_TICKS) via `submitSprint` (functions.invoke, JWT automatic); handle persisted in localStorage `ew-handle`.
+- **Provability guard**: `Game.logSince` (0 = recorded from birth). Pre-7f saves normalize to their current tick → "predates command recording" notice, submit disabled. newGame/restart → 0.
+- **Test-network rule**: app.test.tsx installs a MODULE-SCOPE fetch stub with a mutable router (default offline) — supabase-js captures fetch at client construction, so per-test stubs would leak across the singleton. jsdom never touches the real backend.
+
 ## Phase 7g — Sprint Verifier & Leaderboard Backend (2026-06-11, brick 2)
 
 - **Sprint format**: leaderboard = best worth at EXACTLY `SPRINT_TICKS` (10k) on a seed. Bounded replay (~1.4s) fits Edge Function CPU budgets and makes scores comparable. `verifySprint(seed, startGp, log)` (engine replay.ts): structural validation (seed/start/tick bounds/order/`SPRINT_MAX_COMMANDS`) then replay — pure, total for JSON inputs, unit-tested incl. each rejection reason and garbage-command tolerance.

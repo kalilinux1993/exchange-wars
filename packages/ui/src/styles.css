@@ -900,3 +900,26 @@ th.num {
 .event-mark {
   color: var(--gold-bright);
 }
+
+.submitrow {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.submitrow input {
+  font: inherit;
+  font-size: 0.8rem;
+  flex: 1;
+  min-width: 0;
+  color: var(--parchment);
+  background: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 4px 8px;
+}
+
+.submitrow input:focus {
+  outline: none;
+  border-color: var(--gold);
+}

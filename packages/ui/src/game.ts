@@ -28,6 +28,10 @@ export interface Game {
   /** Every human command with its tick — the run is REPLAYABLE from seed +
    * this log (engine replayRun), which is what verified leaderboards check. */
   commandLog: RunLogEntry[];
+  /** Tick since which the log is complete. Only 0 is provable: saves that
+   * predate command recording normalize to their current tick and can play
+   * on but can't compete. */
+  logSince: number;
 }
 
 export interface GhostRun {
@@ -349,6 +353,7 @@ export function newGame(seed: number): Game {
     fills: [],
     fillScanTick: 0,
     commandLog: [],
+    logSince: 0,
   };
 }
 
@@ -422,6 +427,7 @@ export function normalizeGame(game: Game): Game {
     fillScanTick: game.fillScanTick ?? 0,
     // Old saves have no log: they stay playable but can't prove their run.
     commandLog: game.commandLog ?? [],
+    logSince: game.logSince ?? (game.commandLog === undefined ? game.world.tick : 0),
   };
 }
 

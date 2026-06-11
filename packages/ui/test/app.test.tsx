@@ -3,11 +3,12 @@
 // gen:catalog` regens never break these tests.
 import { addAgent, createWorld, DEFAULT_ITEMS, playerView } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../src/App';
+import { LeaderboardPanel } from '../src/components/LeaderboardPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { ghostWorthAt } from '../src/components/WorthChart';
-import { chooseSave } from '../src/cloud';
+import { chooseSave, type Session } from '../src/cloud';
 import {
   applyOfflineProgress,
   checkMilestones,
@@ -27,10 +28,25 @@ import {
 const FIRST = DEFAULT_ITEMS[0]!; // cheapest item — guaranteed affordable
 const LAST = DEFAULT_ITEMS[DEFAULT_ITEMS.length - 1]!;
 
+// jsdom must NEVER hit the real Supabase (the backend partially exists now,
+// which would make tests network-dependent). supabase-js captures fetch once
+// at client construction, so the stub is installed at MODULE scope with a
+// mutable router: default = offline; tests script routes per-case.
+let fetchRoutes: ((url: string) => Promise<Response> | null) | null = null;
+vi.stubGlobal('fetch', (input: RequestInfo | URL): Promise<Response> => {
+  const url = String(input instanceof Request ? input.url : input);
+  return fetchRoutes?.(url) ?? Promise.reject(new Error('offline'));
+});
+const jsonResponse = (body: unknown): Promise<Response> =>
+  Promise.resolve(
+    new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+  );
+
 afterEach(() => {
   cleanup();
   localStorage.clear();
   window.history.replaceState(null, '', window.location.pathname);
+  fetchRoutes = null;
 });
 
 function freshApp(): Game {
@@ -208,6 +224,7 @@ describe('UI shell', () => {
       fills: [],
       fillScanTick: 0,
       commandLog: [],
+      logSince: 0,
     };
     expect(applyOfflineProgress(game, 1_000_000)).toBeNull();
     expect(game.world.tick).toBe(0);
@@ -351,6 +368,7 @@ describe('UI shell', () => {
       fills: [],
       fillScanTick: 0,
       commandLog: [],
+      logSince: 0,
       lastSeenMs: Date.now() - 20_000_500, // owes ~20k ticks > sync threshold
     };
     render(<App initial={game} />);
@@ -504,6 +522,58 @@ describe('UI shell', () => {
     fireEvent.click(screen.getByText('start trading'));
     expect(screen.getByText(/450 left/)).toBeTruthy(); // newsbar chip
     expect(screen.getByText(/craze active — ends in ~450 ticks/)).toBeTruthy(); // ticket (FIRST selected by default)
+  });
+
+  it('the Sprint Board stays hidden while the leaderboard backend is absent', () => {
+    freshApp(); // default fetch route: offline → probe null → no panel
+    expect(screen.queryByText('Sprint Board')).toBeNull();
+  });
+
+  it('the Sprint Board renders verified rows and submits a sprint', async () => {
+    fetchRoutes = (url) => {
+      if (url.includes('/rest/v1/leaderboard')) return jsonResponse([{ handle: 'gertrude', worth: 77_777 }]);
+      if (url.includes('/functions/v1/verify-score')) return jsonResponse({ worth: 123_456, improved: true });
+      return null;
+    };
+    const game = newGame(42);
+    game.world.tick = 10_000; // sprint horizon reached
+    const onToast = vi.fn();
+    render(<LeaderboardPanel game={game} session={{} as Session} onToast={onToast} />);
+    await waitFor(() => expect(screen.getByText('Sprint Board')).toBeTruthy());
+    expect(screen.getByText('gertrude')).toBeTruthy();
+    expect(screen.getByText('77,777')).toBeTruthy();
+    fireEvent.click(screen.getByText('submit 10k sprint'));
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith('Sprint verified — new best!', expect.stringContaining('123,456')),
+    );
+  });
+
+  it('unprovable runs (pre-recording saves) cannot submit', async () => {
+    fetchRoutes = (url) => (url.includes('/rest/v1/leaderboard') ? jsonResponse([]) : null);
+    const game = newGame(42);
+    game.world.tick = 10_000;
+    game.logSince = 5_000; // log incomplete — replay would misattribute
+    render(<LeaderboardPanel game={game} session={{} as Session} onToast={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText('Sprint Board')).toBeTruthy());
+    expect((screen.getByText('submit 10k sprint') as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(/predates command recording/)).toBeTruthy();
+  });
+
+  it('logSince normalizes: pre-log saves become unprovable, logged saves stay provable', () => {
+    const fresh = newGame(7);
+    expect(fresh.logSince).toBe(0);
+    const preLog = newGame(7);
+    preLog.world.tick = 500;
+    // @ts-expect-error — simulating a pre-7f save shape
+    delete preLog.commandLog;
+    // @ts-expect-error — simulating a pre-7f save shape
+    delete preLog.logSince;
+    expect(normalizeGame(preLog).logSince).toBe(500);
+    const logged = newGame(7);
+    logged.world.tick = 500;
+    // @ts-expect-error — simulating a 7f-era save (log but no logSince)
+    delete logged.logSince;
+    expect(normalizeGame(logged).logSince).toBe(0);
   });
 
   it('human commands are recorded into the replayable command log', () => {
