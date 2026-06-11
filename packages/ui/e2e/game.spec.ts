@@ -86,6 +86,12 @@ test('capture README screenshot (on demand)', async ({ page }) => {
   await page.screenshot({ path: fileURLToPath(new URL('../../../docs/screenshot.png', import.meta.url)) });
 });
 
+test('a #seed challenge link boots that exact world for fresh visitors', async ({ page }) => {
+  await page.goto('/#seed=777');
+  await dismissHelp(page);
+  await expect(page.locator('.clock')).toContainText('777');
+});
+
 test('engine rejection reasons surface in the ticket', async ({ page }) => {
   await dismissHelp(page);
   await page.locator('.market tbody tr').first().click();

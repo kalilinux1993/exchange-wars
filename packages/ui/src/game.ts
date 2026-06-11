@@ -32,6 +32,14 @@ export interface GhostRun {
   history: { tick: number; worth: number }[];
 }
 
+/** Parse a `#seed=N` challenge fragment (the "race a friend" link). */
+export function parseChallengeSeed(hash: string): number | null {
+  const m = /^#seed=(\d{1,10})$/.exec(hash);
+  if (!m) return null;
+  const seed = Number(m[1]);
+  return Number.isSafeInteger(seed) ? seed : null;
+}
+
 /**
  * Restarting the SAME seed keeps your best previous run as a chart ghost
  * (best = highest final worth, comparing the run being abandoned against any

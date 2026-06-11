@@ -1,5 +1,11 @@
 # Dev Guide
 
+## Phase 6v — Challenge Links (2026-06-10)
+
+- **`#seed=N` links** (parseChallengeSeed in game.ts; boot effect in App.tsx): fresh visitors start that exact seed directly; players with a save get a ⚔ challenge bar (accept = restart on that seed, never a silent clobber). The hash is consumed via history.replaceState so reloads don't re-prompt.
+- **"challenge link" chip** next to "new game": copies `…/#seed=<current>` to the clipboard (prompt fallback where clipboard is unavailable), confirms with a toast naming the seed.
+- Pairs with phase 6u ghosts: send a friend your seed, both race on identical worlds — "race a friend on fair ground" is now one link.
+
 ## Phase 6u — Ghost Runs (2026-06-10)
 
 - **Race yourself on a seed.** `ghostForRestart` (game.ts): restarting the SAME seed stores the abandoned run's worthHistory as `Game.ghost` — best-by-final-worth against any ghost that run was itself racing, so your record run survives weaker attempts. WorthChart draws the ghost as a dim dashed polyline on shared scales with a "grey ghost = your best run on this seed" legend; App only passes a seed-matched ghost. The local, serverless half of the ghost-leaderboards idea — determinism is what makes the race fair.

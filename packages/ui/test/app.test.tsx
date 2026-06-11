@@ -16,6 +16,7 @@ import {
   importSaveString,
   newGame,
   OFFLINE_CAP_TICKS,
+  parseChallengeSeed,
   updateNews,
   type Game,
 } from '../src/game';
@@ -26,6 +27,7 @@ const LAST = DEFAULT_ITEMS[DEFAULT_ITEMS.length - 1]!;
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  window.history.replaceState(null, '', window.location.pathname);
 });
 
 function freshApp(): Game {
@@ -222,6 +224,40 @@ describe('UI shell', () => {
     render(<App initial={game} />);
     expect(screen.getByText(/while you were away/i)).toBeTruthy();
     expect(game.world.tick).toBeGreaterThanOrEqual(600);
+  });
+
+  it('parseChallengeSeed accepts only #seed=<digits>', () => {
+    expect(parseChallengeSeed('#seed=777')).toBe(777);
+    expect(parseChallengeSeed('#seed=0')).toBe(0);
+    expect(parseChallengeSeed('#seed=abc')).toBeNull();
+    expect(parseChallengeSeed('#seed=')).toBeNull();
+    expect(parseChallengeSeed('')).toBeNull();
+    expect(parseChallengeSeed('#seed=99999999999')).toBeNull(); // 11 digits
+  });
+
+  it('a #seed link starts fresh visitors on that seed directly', () => {
+    window.location.hash = '#seed=777';
+    render(<App />); // no initial, no save
+    fireEvent.click(screen.getByText('start trading'));
+    expect(screen.getByText('777')).toBeTruthy(); // seed in the clock
+    expect(window.location.hash).toBe(''); // consumed
+  });
+
+  it('a #seed link with an existing save offers a challenge bar instead of clobbering', () => {
+    window.location.hash = '#seed=777';
+    const game = newGame(42);
+    render(<App initial={game} />);
+    expect(screen.getByText(/challenged to seed/)).toBeTruthy();
+    fireEvent.click(screen.getByText('accept'));
+    expect(screen.queryByText(/challenged to seed/)).toBeNull();
+    expect(screen.getByText('777')).toBeTruthy();
+  });
+
+  it('the challenge-link chip raises a copied toast naming the seed', () => {
+    freshApp();
+    fireEvent.click(screen.getByText('challenge link'));
+    expect(screen.getByText('Challenge link copied')).toBeTruthy();
+    expect(screen.getByText(/seed 42/)).toBeTruthy();
   });
 
   it('ghostForRestart keeps the best previous run on the SAME seed only', () => {

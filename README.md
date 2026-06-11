@@ -15,7 +15,7 @@ The defining constraint: **the entire game core is testable and debuggable with 
 - **Trader's cockpit**: filterable/sortable market, clickable depth ladder, offer ticket with max/limit awareness, personal fill log, fortune chart
 - **Progression**: GE offer slots (3→8), a hireable **auto-flipping clerk** with three tiers and configurable orders (risk / capital / focus), real **GE buy limits**, quartermaster **delivery contracts**, and 10 Deeds to earn
 - **True idle game**: the world advances ~1 tick per real second while the tab is closed (≈28h cap); installable PWA; save export/import; optional email sign-in for cross-device cloud saves
-- **Challenge seeds**: the same seed always produces the identical world — race a friend on fair ground
+- **Challenge seeds & ghosts**: the same seed always produces the identical world — send a friend a `#seed=` challenge link, or restart your own seed and race your best previous run as a chart ghost
 
 ## Quick start
 

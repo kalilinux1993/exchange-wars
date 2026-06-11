@@ -19,6 +19,7 @@ import {
   checkMilestones,
   finishOfflineProgress,
   ghostForRestart,
+  parseChallengeSeed,
   planOfflineProgress,
   clearSave,
   exportSaveString,
@@ -46,8 +47,11 @@ const CATCHUP_CHUNK_TICKS = 1_000;
 export function App({ initial }: { initial?: Game }) {
   const gameRef = useRef<Game | null>(null);
   const offlineRef = useRef<OfflineResult | null>(null);
+  const hadSaveRef = useRef(false);
   if (gameRef.current === null) {
-    gameRef.current = initial ?? loadGame() ?? newGame(42);
+    const saved = initial ?? loadGame();
+    hadSaveRef.current = saved !== null && saved !== undefined;
+    gameRef.current = saved ?? newGame(42);
   }
   const game = gameRef.current;
   const [, force] = useReducer((x: number) => x + 1, 0);
@@ -55,6 +59,7 @@ export function App({ initial }: { initial?: Game }) {
   const [selected, setSelected] = useState<ItemId>(game.world.items[0]?.id ?? '');
   const [lastResult, setLastResult] = useState<CommandResult | null>(null);
   const [awayDismissed, setAwayDismissed] = useState(false);
+  const [challenge, setChallenge] = useState<number | null>(null);
   const [catchUp, setCatchUp] = useState<{ done: number; total: number } | null>(null);
   const planRef = useRef<OfflinePlan | null>(null);
   const [toast, setToast] = useState<Milestone | null>(null);
@@ -106,13 +111,26 @@ export function App({ initial }: { initial?: Game }) {
   };
 
   // Boot: apply the offline debt and latch anything it earned — silently
-  // (the away banner / catch-up overlay cover the narration).
+  // (the away banner / catch-up overlay cover the narration). Then handle a
+  // `#seed=N` challenge link: fresh visitors start on that seed directly;
+  // players with a save get a bar (never clobber a run silently).
   useEffect(() => {
     const g = gameRef.current;
     if (!g) return;
     beginOffline(g);
     const v0 = playerView(g.world, g.playerId);
     if (v0) checkMilestones(g, v0, viewNetWorth(v0));
+    const ch = parseChallengeSeed(window.location.hash);
+    if (ch !== null) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      if (!hadSaveRef.current) {
+        gameRef.current = newGame(ch);
+        offlineRef.current = null;
+        setSelected(gameRef.current.world.items[0]?.id ?? '');
+      } else if (g.world.seed !== ch) {
+        setChallenge(ch);
+      }
+    }
     force();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -269,6 +287,28 @@ export function App({ initial }: { initial?: Game }) {
     });
   };
 
+  const copyChallenge = (): void => {
+    const url = `${window.location.origin}${window.location.pathname}#seed=${game.world.seed}`;
+    const done = (): void =>
+      setToast({
+        id: 'challenge-link',
+        name: 'Challenge link copied',
+        flavor: `seed ${game.world.seed} — same world, fair ground`,
+        achieved: () => false,
+      });
+    if (navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(url).then(done, done);
+    } else {
+      try {
+        window.prompt('copy your challenge link', url);
+      } catch {
+        // jsdom / ancient browsers: prompt unavailable — the toast still
+        // names the seed, which is the part that matters.
+      }
+      done();
+    }
+  };
+
   const restart = (seed: number): void => {
     const ghost = gameRef.current ? ghostForRestart(gameRef.current, seed) : undefined;
     clearSave();
@@ -328,9 +368,18 @@ export function App({ initial }: { initial?: Game }) {
             ?
           </button>
           {seedDraft === null ? (
-            <button className="chip" onClick={() => setSeedDraft(String(game.world.seed + 1))}>
-              new game
-            </button>
+            <>
+              <button className="chip" onClick={() => setSeedDraft(String(game.world.seed + 1))}>
+                new game
+              </button>
+              <button
+                className="chip"
+                title="copy a link that challenges a friend to this exact seed"
+                onClick={copyChallenge}
+              >
+                challenge link
+              </button>
+            </>
           ) : (
             <span className="seedform">
               <input
@@ -397,6 +446,24 @@ export function App({ initial }: { initial?: Game }) {
               <div className="bar-fill" style={{ width: `${Math.round((catchUp.done / catchUp.total) * 100)}%` }} />
             </div>
           </section>
+        </div>
+      )}
+      {challenge !== null && (
+        <div className="awaybar">
+          ⚔ challenged to seed <b>{challenge}</b> — same world, fair ground. Starting abandons your current
+          run.
+          <button
+            className="chip"
+            onClick={() => {
+              restart(challenge);
+              setChallenge(null);
+            }}
+          >
+            accept
+          </button>
+          <button className="chip" onClick={() => setChallenge(null)}>
+            ×
+          </button>
         </div>
       )}
       {offlineRef.current && !awayDismissed && (
