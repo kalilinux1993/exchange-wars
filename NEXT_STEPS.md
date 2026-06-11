@@ -7,7 +7,8 @@ Deploy: push to main → CI (typecheck + vitest + e2e) auto-deploys Pages. Verif
 - 9k DONE: SVG region map, paperdoll + skills strip, compact deed badge grid.
 - 9l DONE: combat scene — figure vs generated monster, hp bars, hit-splats (render-diff animation, no engine timers).
 - 9m DONE: art pipeline — Icon loader (import.meta.glob auto-discovery, emoji fallback), CREDITS.md, assets README. Jesse chose game-icons.net (CC BY) + CC0 packs.
-- **POPULATE ART (next)**: drop real SVGs into packages/ui/src/assets/icons/ per the naming convention (skill-attack, monster-goblin, item-shark, region-…) and credit each in CREDITS.md. Then route monster/item/region glyphs through `<Icon>` too (skills strip already wired). Needs either Jesse dropping files or a careful per-icon fetch+transcribe pass.
+- 9n DONE: original sword/shield/heart skill icons as the default set (WebFetch markdown-converts SVGs → can't auto-pull game-icons; originals are replaceable same-filename).
+- **POPULATE MORE ART**: route monster/item/region glyphs through `<Icon>` and author originals (or Jesse drops game-icons CC BY / CC0 files — same-name overrides the defaults, credit in CREDITS.md). game-icons auto-fetch is NOT possible with current tools (markdown conversion strips paths) — Jesse-drop or hand-author only.
 - **Next steps**: richer paperdoll (per-item silhouettes, not just lit plates); OSRS-style icon tabs WITHIN rooms if panels crowd; an inventory/equipment grid view; level-up flash on the skills strip; monster variety in the scene (more shapes, not just hue). Raster sprites would need real art assets — SVG is the deterministic, dependency-free path; keep going SVG unless Jesse supplies art.
 - Jesse-gate check-in: confirm the SVG direction matches his mental image before investing in deeper art.
 

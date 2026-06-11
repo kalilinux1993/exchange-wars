@@ -23,6 +23,12 @@ No attribution required; listed for provenance.
 
 _(none yet)_
 
+### Original project art
+Authored for this project; covered by the project's own license. Placeholder
+defaults — drop a game-icons.net (CC BY) or CC0 file with the same name to
+replace any of them.
+- `skill-attack.svg`, `skill-defence.svg`, `skill-hitpoints.svg` — sword / shield / heart (original SVG)
+
 ## Explicitly NOT used
 - Jagex / Old School RuneScape game sprites — Jagex copyright.
 - OSRS Wiki imagery — CC BY-NC-SA 4.0 (non-commercial + share-alike),

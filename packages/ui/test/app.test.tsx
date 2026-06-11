@@ -5,6 +5,7 @@ import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, playerView, SPRINT_
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../src/App';
+import { Icon } from '../src/components/Icon';
 import { LeaderboardPanel } from '../src/components/LeaderboardPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { ghostWorthAt } from '../src/components/WorthChart';
@@ -601,16 +602,18 @@ describe('UI shell', () => {
     // (no expedition at all = died fighting — also a settled fight)
   });
 
-  it('the icon pipeline falls back to the emoji glyph until a real asset is dropped in', () => {
+  it('the icon pipeline renders dropped-in art and falls back to the glyph otherwise', () => {
     const game = newGame(42);
     render(<App initial={game} />);
     fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
     const panel = document.querySelector('.expedition') as HTMLElement;
-    // No SVG files committed yet → skills strip shows the emoji glyphs.
+    // skill-*.svg now exist → the skills strip renders real icons, not emoji.
     const skills = panel.querySelector('.skills') as HTMLElement;
-    expect(skills.textContent).toContain('⚔');
-    expect(skills.textContent).toContain('🛡');
-    expect(skills.querySelector('img')).toBeNull(); // no asset → no <img>, just glyph
+    expect(skills.querySelectorAll('img').length).toBe(3);
+    // A name with no committed asset still falls back to its glyph.
+    const { container } = render(<Icon name="definitely-missing-xyz" glyph="✦" />);
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.textContent).toContain('✦');
   });
 
   it('the combat scene renders the foe and animates a hit splat per round', () => {
