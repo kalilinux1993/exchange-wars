@@ -78,6 +78,7 @@ import {
   worthBreakdown,
   returnOnStake,
   sessionPnL,
+  restartStakes,
   parseChallengeSeed,
   realizedFromBook,
   tradeRecord,
@@ -1051,6 +1052,33 @@ describe('UI shell', () => {
       expect(sessionPnL(1000, 1000)).toEqual({ delta: 0, pct: 0, up: true });
       expect(sessionPnL(500, 0)).toEqual({ delta: 500, pct: 0, up: true });
     });
+  });
+
+  describe('restartStakes', () => {
+    it('flags something at stake once you have a deed or have grown past your stake', () => {
+      expect(restartStakes({ milestones: [], startGp: 10_000 }, 10_000)).toEqual({ worth: 10_000, deeds: 0, atStake: false }); // fresh run
+      expect(restartStakes({ milestones: ['first-blood'], startGp: 10_000 }, 10_000).atStake).toBe(true); // a deed earned
+      expect(restartStakes({ milestones: [], startGp: 10_000 }, 12_000).atStake).toBe(true); // worth grew
+      expect(restartStakes({ startGp: 10_000 }, 9_000).atStake).toBe(false); // underwater, no deeds — nothing earned to lose
+      expect(restartStakes({ milestones: ['a', 'b', 'c'], startGp: 10_000 }, 50_000).deeds).toBe(3);
+    });
+  });
+
+  it('the new-game seed form warns what restarting abandons, only with progress at stake', () => {
+    const fresh = newGame(42);
+    const r1 = render(<App initial={fresh} />);
+    fireEvent.click(screen.getByRole('button', { name: 'new game' }));
+    expect(r1.container.querySelector('.restartwarn')).toBeNull(); // a fresh run → no alarm
+    r1.unmount();
+
+    const earned = newGame(42);
+    earned.milestones = ['first-blood', 'six-figures']; // 2 deeds earned
+    render(<App initial={earned} />);
+    fireEvent.click(screen.getByRole('button', { name: 'new game' }));
+    const warn = document.querySelector('.restartwarn');
+    expect(warn).toBeTruthy();
+    expect(warn!.textContent).toMatch(/wipes this run/);
+    expect(warn!.textContent).toMatch(/2 deeds/);
   });
 
   it('WealthPanel shows the value of equipped kit', () => {

@@ -60,6 +60,7 @@ import {
   leveledUp,
   fillToastFlavor,
   playerWorth,
+  restartStakes,
   recordWorth,
   saveGame,
   streakAtRisk,
@@ -730,6 +731,19 @@ export function App({ initial }: { initial?: Game }) {
               <button className="chip" onClick={() => setSeedDraft(null)}>
                 ×
               </button>
+              {(() => {
+                const stakes = restartStakes(game, playerWorth(game));
+                if (!stakes.atStake) return null; // a fresh run has nothing to abandon
+                return (
+                  <span
+                    className="warn small restartwarn"
+                    title="starting a new game clears this save — your current run is kept only as a ghost you can race against"
+                  >
+                    ⚠ wipes this run — {fmtCompact(stakes.worth)} net
+                    {stakes.deeds > 0 ? ` · ${stakes.deeds} ${stakes.deeds === 1 ? 'deed' : 'deeds'}` : ''}
+                  </span>
+                );
+              })()}
             </span>
           )}
         </div>

@@ -888,6 +888,20 @@ export function sessionPnL(worth: number, baseline: number): StakeReturn {
   return { delta, pct: baseline > 0 ? delta / baseline : 0, up: delta >= 0 };
 }
 
+/**
+ * What a "new game" would abandon — net worth + earned deeds — and whether there's
+ * anything worth warning about. `atStake` is true once you've earned a deed OR grown
+ * past your starting stake, so a brand-new run (worth == startGp, no deeds) raises no
+ * alarm and the warning MEANS something the rest of the time. Pure (worth injected).
+ */
+export function restartStakes(
+  game: { milestones?: string[]; startGp: number },
+  worth: number,
+): { worth: number; deeds: number; atStake: boolean } {
+  const deeds = game.milestones?.length ?? 0;
+  return { worth, deeds, atStake: deeds > 0 || worth > game.startGp };
+}
+
 /** How a buy reshapes a position you already hold — the average-down preview. */
 export interface BlendedBuy {
   units: number; // resulting total units
