@@ -2484,6 +2484,26 @@ describe('UI shell', () => {
     expect(extract.className).toContain('hasloot'); // emphasised as the payoff action
   });
 
+  it('the dive shows an hp-aware "push read" that turns risky when wounded', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.expedition = {
+      regionId: 'dragons_maw', // a hard, fiery region
+      rngState: 1,
+      hp: 8, // badly wounded — pushing is a gamble
+      pack: {},
+      packGp: 5000,
+      cleared: 5,
+      combat: null, // between fights → the push read shows
+    };
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const read = document.querySelector('p.forecast');
+    expect(read?.textContent).toMatch(/push read:/);
+    expect(read?.textContent).toMatch(/risky/); // wounded vs the Maw's hardest
+    expect(read?.textContent).toMatch(/bank your haul/); // nudges extract while loot's at stake
+  });
+
   it('the combat scene renders the foe and animates a hit splat per round', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;

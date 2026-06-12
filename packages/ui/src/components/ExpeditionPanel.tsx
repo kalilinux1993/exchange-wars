@@ -574,7 +574,29 @@ export function ExpeditionPanel({
           </div>
         </>
       ) : (
-        <div className="controls">
+        <>
+          {(() => {
+            // Push-your-luck risk read at your CURRENT hp (wounds carry between
+            // fights): vs the HARDEST foe this region can throw, would advancing
+            // be a fair fight or a gamble? Pairs with the extract button's loot
+            // stake — together they frame "bank it or push?". Honest estimate.
+            const d = regionDanger(region);
+            const roster = region.elite ? [...region.monsters, region.elite] : region.monsters;
+            const fiery = roster.some((id) => monsterById(id).dragonfire);
+            const dragonBonus = fiery && !exp.antifire ? Math.ceil(d.atk / 2) : 0;
+            const f = combatForecast({ atk: stats.atk, def: stats.def, hp: exp.hp }, { atk: d.atk, def: d.def, hp: d.hp }, dragonBonus);
+            return (
+              <p
+                className="dim small forecast"
+                title="a rough read on the HARDEST foe this region can send, at your CURRENT hp — push deeper, or bank what you've got? The next encounter is random and rolls vary; this is an estimate, not a promise."
+              >
+                push read: you down it in ≈<b>{f.roundsToKill}</b> · it downs you in ≈<b>{f.roundsToFall}</b> ·{' '}
+                <b className={f.favored ? 'up' : 'down'}>{f.favored ? 'favored' : 'risky'}</b>
+                {!f.favored && exp.packGp > 0 ? ' — bank your haul?' : ''}
+              </p>
+            );
+          })()}
+          <div className="controls">
           <button className="chip" title="each step takes time — the market moves one tick" onClick={() => onCommand({ type: 'advance' })}>
             venture deeper (+1 tick)
           </button>
@@ -603,7 +625,8 @@ export function ExpeditionPanel({
           >
             {exp.packGp > 0 ? `extract · bank ${exp.packGp.toLocaleString('en-US')} gp` : 'extract (keep your kit)'}
           </button>
-        </div>
+          </div>
+        </>
       )}
       {!exp.combat && (exp.journal?.length ?? 0) > 0 && (
         <ul className="rows small combatlog">
