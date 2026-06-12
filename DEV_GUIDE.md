@@ -1,6 +1,9 @@
 # Dev Guide
 
-> **Consolidation gap:** phases **10h–13c** are documented in `.phases/` + FINDINGS #94–#167 but not yet folded here (pre-existing debt from the autonomous build loop). The 13z–16b and 13d–13y arcs below are consolidated; 10h–13c await a future pass.
+> **Consolidated record: complete (Phase 1 → 16b).** The whole autonomous build loop is now folded into the
+> sections below (newest-first); per-brick detail lives in `.phases/` + FINDINGS. The former 10h–13c gap was
+> closed in 16h. Engine-redeploy obligation still open: the `verify-score` batch `12b+13d+13e+13f+13r+14j`
+> (Jesse-gated on `SUPABASE_ACCESS_TOKEN`).
 
 ## Phases 13z–16b consolidated — value-band suite, adventure risk⟷reward, atmosphere, lifecycle recaps, leaderboard (2026-06-12)
 
@@ -60,6 +63,36 @@ Per-phase detail in `.phases/` and FINDINGS #168–#189; ~22 bricks + 2 adversar
 ### Reviews (2 adversarial passes)
 - **Equipment consistency** (pre-13r): three best-per-slot pickers — found the tie-break divergence (→13r); conservation/determinism/fallback/invariants all SOUND.
 - **Money helpers** (pre-13t): `returnOnStake`/`flipAffordability`/`underwaterSummary`/`gearDelta` — verdict SOUND (no sign/tax/edge bugs); one latent flag tightened + surfaced (→13t).
+
+## Phases 10h–13c consolidated — RPG content, the trading-cockpit build-out, embark/HUD decision-support, daily-social (2026-06-12, retro)
+
+Per-phase detail in `.phases/` and FINDINGS #94–#167 (~30 bricks). Reconstructed from the records (this arc predates the autonomous-loop session), so it cites FINDINGS#/symbols rather than over-claiming line detail. Engine changes here went through `verify-score` redeploys in-phase EXCEPT the 12b batch (still pending). NB: FINDINGS numbers ≠ brick labels (separate counters); #117/#119/#122 (Field Forge/Skarn/Blood Altar) were branch-numbered and are described in the #140 merge finding.
+
+### Engine additions (replay-affecting)
+- **Region Mastery** (10i, #95): one-time combat-XP bounty (`40 + 30×depth`) on first frontier clear, hung off the `questProgress` advance branch — XP-only, conservation-clean.
+- **Sellsword haul counters** (10k, #97): `stats.sellswordKills`/`sellswordBanked` written in `tickWorld` (worth-neutral; bundle changed → redeployed).
+- **Goading potion** (10n, #100): +10 atk/dive `CONSUMABLES` line (offensive twin of divine bastion).
+- **12b content batch** (#140, PR #1 `--no-ff`): **Field Forge** (burn 300gp → +8 atk/dive), **Skarn** elite in `wilderness_ruins`, **Blood Altar** (hp→atk). **verify-score redeploy PENDING** (the batch the header tracks). Elite placed in barely-tested region 4 to dodge the seed-path blast radius (see Patterns).
+
+### UI — the trading cockpit (the P&L arc 11b→11p)
+- **Suggested flip** (10j, #96) + **Best Flips Now** `rankFlips(markets, tax, n)` (10v, #108): the flipper's core sum surfaced + ranked across every book; tax a parameter for purity. **One-click flip** prefill (11d, #116). **Flip roi/limit** on rows (11c, #115 — refused to sort on an unverifiable realizable-units guess).
+- **Fair value band** (10m, #99): `lastPrice` in `[baseCost..consumeValue]` → cheap<34%/fair/rich>67% (rich=GOLD, a sell-op isn't bad) — the seed of the value-band suite later generalized in 15f.
+- **Lifetime trade book** (11o, #127): persistent `TradeBook` (FIFO lots + realized-per-item) accrued fill-by-fill in `recordFills`; `applyFillToBook` the single FIFO truth; `realizedPnL`/`openPosition` (11b/11i, #114/#121) reimplemented as wrappers. On `Game` not `WorldState` (determinism untouched); `normalizeGame` rebuild migration. **Scorecard** `totalRealized`/`totalUnrealized(priceOf)` (11p, #128).
+- **Open Positions** `heldPositions(book, markOf)` (12c, #141) + **concentration** `positionConcentration` (12k, #149) + **wealth composition** (holdings = total−cash−buyOrders, 12m, #151). **Average-down** `blendBuy` (12d, #142), **break-even** `breakEvenSell` (ceil(avg/(1−tax)) then tighten down for floor-tax, property-tested, 12h, #146), **flip consistency** `tradeRecord` (12n, #152). **Liquidity bar** `depthSplit` (11f, #118). **Sell-above alerts** unified via `alertHit(last, threshold, dir)` (12a, #139). **Contract premium / bounty bar** (11y/11z, #137/#138).
+
+### UI — RPG / adventure + HUD (the embark-decision arc)
+- **Danger reads**: `regionDanger(region)` worst-case foe (11l, #124); effective stats via the engine's `deriveStats` (11m, #125); per-axis red colouring (11n, #126); **train-to-unlock** `lockedUpgrades` (10w, #109).
+- **Forecast**: `combatForecast`/`expectedHit` (≈rounds-to-kill vs -to-fall off the RNG damage MEAN; `favored = roundsToKill <= roundsToFall`, player strikes first; the `expectedHit`↔`quest.ts` duplication paid down with sync-comment+pinned tests+≈framing — the citation later audited in 15p) (12j, #148); live in-combat variant w/ dragonfire `foeHitBonus` (12o, #153); **embark prep** `embarkPrep` (inspects the DRAFT, food gated on `!favored`) + one-click fix chip (12p/12q, #154/#155).
+- **Delve Log** `DelveRecord` latched on the exp present→absent transition (12i, #147), "raid again" nonce-pulse (12l, #150), **region conquest** `regionRoster`/`regionMastery` 👑 (12f, #144), `raidTotals` by outcome (12s, #157). **Bestiary/combat art** unified in `MonsterBody`/`MonsterGlyph` (10p, #102); **item icons** `itemIcon(id)` category-map (10o, #101). **Timestamped deeds** + Fortune-curve dots via `ghostWorthAt` (11s/11t, #131/#132); next-deed bars (12z, #164). **Adventurer's Record** `recordRows(stats)` (10z, #112).
+
+### UI — daily / social
+- **Daily seed** `dailySeed()` (UTC YYYYMMDD, 10q, #103) + "🗓 today" pill (10r, #104) + **streak** `bumpStreak`/`streakAtRisk` (pure, day injected, 10s/10t, #105/#106) + **daily best** `recordDailyBest`/`dailyBestView` (12e, #143) + new-record celebration (12w, #161). **`myRank`** by sanitized handle (board exposes only handle/worth/deepest, 11q, #129) + daily-board framing (11r, #130).
+
+### Robustness / patterns / gotchas (the recurring lessons)
+- **Corrupt-save recovery** (10u, #107): quarantine was only half — a red recovery bar hands the bytes back (`loadCorruptSave`/`discardCorruptSave`).
+- **Deterministic-engine blast radius** (12n, #152): "additive" content rarely is — a `region.elite` inserts an `rng.chance` into `rollEncounter`, reordering every fixed-seed assertion downstream; cost ∝ how heavily the touched seed-path is asserted, not diff size. 12b dodged it by region placement.
+- **Detection-in-a-shared-slot** (12x/12y, #162/#163): the sellsword shares `agent.expedition`; the Delve Log effect reanimated a latent toast mis-attribution — fix one consumer, audit ALL; aim reviews at the failure CLASS (effect lifecycles), not arithmetic. **Resting-fill notify** (13b, #166) was 80% spam-suppression (1×-gate + skip-command-path + fire-FIRST so milestone/alert toasts override — the toast-priority discipline later corrected wholesale in 16e). `fillToastFlavor` names-when-homogeneous (13c, #167).
+- **All-rooms-mounted locator collisions** (#147/#150/#128): tab-hidden rooms stay in the DOM → loose `getByText` cross-matches; target by unique title/distinctive label. **jsdom has no layout** → explicit `active` props over `offsetParent` (12g, #145) + `typeof scrollIntoView` guards (12v, #160). **Gated-window-listener** (`active` prop + state-via-ref) reused near-free for ticket hotkeys (12g→12t, #145/#158). **SVG transform on OUTER `<g>`** / `.equipval` class over `:last-child` (10w/10p, #109/#102). **Optional new fields = no migration churn** (11s vs 11o). **A "SOUND" adversarial review is evidence, not waste** (12u, #159). **Consolidation cadence**: ~16 feature bricks then a librarian brick (10h, #94).
 
 ## Phases 9y–10g consolidated — content, trading depth, polish (2026-06-11)
 
