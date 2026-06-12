@@ -1,3 +1,4 @@
+import { GEAR } from '@exchange-wars/engine';
 import type { ItemDef, ItemId, PlayerView, Trade } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { nextRowIndex } from '../game';
@@ -47,7 +48,7 @@ export function MarketTable({
   active?: boolean;
 }) {
   const [filter, setFilter] = useState('');
-  const [track, setTrack] = useState<'all' | 'staples' | 'exotics'>('all');
+  const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear'>('all');
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
   const toggleSort = (key: SortKey): void =>
     setSort((s) => (s && s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 }));
@@ -61,6 +62,7 @@ export function MarketTable({
   const needle = filter.trim().toLowerCase();
   const inTrack = (id: ItemId): boolean => {
     if (track === 'all') return true;
+    if (track === 'gear') return GEAR[id] !== undefined; // the equippable items only
     const exotic = (defs.get(id)?.volatility ?? 0) >= EXOTIC_VOL;
     return track === 'exotics' ? exotic : !exotic;
   };
@@ -134,7 +136,7 @@ export function MarketTable({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-        {(['all', 'staples', 'exotics'] as const).map((t) => (
+        {(['all', 'staples', 'exotics', 'gear'] as const).map((t) => (
           <button key={t} className={track === t ? 'chip active' : 'chip'} onClick={() => setTrack(t)}>
             {t}
           </button>
@@ -180,6 +182,17 @@ export function MarketTable({
                   />
                 )}
                 {defs.get(m.itemId)?.name ?? m.itemId}
+                {GEAR[m.itemId] !== undefined && (
+                  <span
+                    className="gearmark"
+                    title={`equippable ${GEAR[m.itemId]!.slot} — needs ${
+                      GEAR[m.itemId]!.slot === 'weapon' ? 'Attack' : 'Defence'
+                    } ${GEAR[m.itemId]!.req}`}
+                  >
+                    {' '}
+                    {GEAR[m.itemId]!.slot === 'weapon' ? '⚔' : '🛡'}
+                  </span>
+                )}
                 {eventItems.has(m.itemId) && (
                   <span className="event-mark" title="active event — see the newsbar">
                     {' '}

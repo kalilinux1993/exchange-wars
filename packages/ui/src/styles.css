@@ -1467,6 +1467,13 @@ kbd {
 .event-mark {
   color: var(--gold-bright);
 }
+/* equippable-gear marker on a market row — find your upgrades among the
+   commodities (or isolate them with the 'gear' track). */
+.gearmark {
+  color: var(--gold);
+  font-size: 0.82em;
+  cursor: help;
+}
 
 /* a contract you can deliver right now — a faint green nudge. */
 .contracts li.contract.ready {

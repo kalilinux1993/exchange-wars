@@ -616,6 +616,22 @@ describe('UI shell', () => {
         Element.prototype.scrollIntoView = orig;
       }
     });
+
+    it('the "gear" track isolates equippable items, each marked', () => {
+      const view = { markets: DEFAULT_ITEMS.map((i) => mkt(i.id)) } as unknown as PlayerView;
+      const { container } = render(
+        <MarketTable view={view} items={DEFAULT_ITEMS} trades={[]} selected="rune_2h_sword" onSelect={() => {}} eventItems={new Set()} active />,
+      );
+      // gear rows carry a ⚔/🛡 marker even in the "all" view
+      expect(container.querySelectorAll('.gearmark').length).toBeGreaterThan(0);
+      const allRows = container.querySelectorAll('tbody tr').length;
+      fireEvent.click(within(container).getByRole('button', { name: 'gear' }));
+      const gearRows = container.querySelectorAll('tbody tr').length;
+      expect(gearRows).toBeGreaterThan(0);
+      expect(gearRows).toBeLessThan(allRows); // filtered to the equippable subset
+      // every visible row is now gear (one marker each)
+      expect(container.querySelectorAll('tbody tr .gearmark').length).toBe(gearRows);
+    });
   });
 
   describe('Delve Log', () => {
