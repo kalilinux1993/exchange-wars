@@ -2787,6 +2787,17 @@ describe('UI shell', () => {
       render(<FirstSteps game={game} view={playerView(game.world, game.playerId)!} />);
       expect(screen.queryByText('Getting Started')).toBeNull();
     });
+    it('an unfinished step links to its tab; a finished one is plain text', () => {
+      const onGo = vi.fn();
+      const fresh = newGame(42); // every step undone → the actionable ones are links
+      const { rerender } = render(<FirstSteps game={fresh} view={playerView(fresh.world, fresh.playerId)!} onGo={onGo} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Place your first trade in the Grand Exchange' }));
+      expect(onGo).toHaveBeenCalledWith('exchange'); // jumps to the Exchange
+      const done = newGame(42);
+      done.fills = [{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 1, price: 1 }]; // the trade step is now done
+      rerender(<FirstSteps game={done} view={playerView(done.world, done.playerId)!} onGo={onGo} />);
+      expect(screen.queryByRole('button', { name: 'Place your first trade in the Grand Exchange' })).toBeNull(); // not a link
+    });
   });
 
   it('MilestonesPanel shows the latest earned deed with its timing', () => {

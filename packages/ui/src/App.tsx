@@ -930,7 +930,7 @@ export function App({ initial }: { initial?: Game }) {
           inactive ones hide via .tabhidden — display rules beat `hidden`. */}
       <main className={room === 'exchange' ? 'board' : 'board tabhidden'}>
         <section className="middle">
-          <FirstSteps game={game} view={view} />
+          <FirstSteps game={game} view={view} onGo={pickRoom} />
           <MarketTable
             view={view}
             items={game.world.items}
