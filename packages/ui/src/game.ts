@@ -1781,6 +1781,7 @@ export function newGame(seed: number): Game {
     worthHistory: [{ tick: 0, worth: HUMAN_START_GP }],
     milestones: [],
     milestoneTicks: {},
+    delves: [], // parity with normalizeGame — a fresh game must equal a migrated one (16j review)
     newsLog: [],
     seenEvents: [],
     fills: [],

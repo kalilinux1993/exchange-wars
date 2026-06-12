@@ -2678,6 +2678,15 @@ describe('UI shell', () => {
       const fixed = normalizeGame(stale);
       expect(realizedFromBook(fixed.tradeBook)[0]).toMatchObject({ itemId: 'x', soldUnits: 3 });
     });
+    it('a fresh newGame already carries the fields normalizeGame defaults (no missing delves)', () => {
+      const fresh = newGame(42);
+      expect(fresh.delves).toEqual([]); // 16j: newGame omitted delves while normalizeGame defaulted it
+      // normalizing a fresh game is a no-op on the migrated fields → fresh ≡ normalized
+      const normed = normalizeGame(fresh);
+      expect(normed.delves).toEqual(fresh.delves);
+      expect(normed.fills).toEqual(fresh.fills);
+      expect(normed.commandLog).toEqual(fresh.commandLog);
+    });
   });
 
   describe('resolveShortcut', () => {

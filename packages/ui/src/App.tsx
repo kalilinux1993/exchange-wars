@@ -110,6 +110,10 @@ export function App({ initial }: { initial?: Game }) {
   const [challenge, setChallenge] = useState<number | null>(null);
   const [catchUp, setCatchUp] = useState<{ done: number; total: number } | null>(null);
   const planRef = useRef<OfflinePlan | null>(null);
+  // The game a chunked catch-up was planned FOR — so the driver can abort if `gameRef` is
+  // swapped (cloud-adopt / import / restart) mid-flight rather than run the stale plan's
+  // ticks against, or finalize it against, a different game (16j save-flow review fix).
+  const catchUpGame = useRef<Game | null>(null);
   const [toast, setToast] = useState<Milestone | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [seedDraft, setSeedDraft] = useState<string | null>(null);
@@ -217,12 +221,17 @@ export function App({ initial }: { initial?: Game }) {
     offlineRef.current = null;
     const plan = planOfflineProgress(g, Date.now());
     if (!plan) return;
+    // Offline catch-up advances world.tick via runTicks but logs NO commands; this stays
+    // replay-correct ONLY because the player agent is policy:'idle' and takes no engine
+    // action while away. If automation ever acts for the player offline, the verified-run
+    // replay would diverge and logSince would still claim 0 — guard this before that.
     if (plan.ticks <= SYNC_CATCHUP_TICKS) {
       runTicks(g.world, plan.ticks);
       offlineRef.current = finishOfflineProgress(g, plan);
       return;
     }
     planRef.current = plan;
+    catchUpGame.current = g; // tag the catch-up so the driver can detect a mid-flight game swap
     setCatchUp({ done: 0, total: plan.ticks });
   };
 
@@ -257,6 +266,15 @@ export function App({ initial }: { initial?: Game }) {
     if (!catchUp) return;
     const g = gameRef.current;
     if (!g) return;
+    // Abort if the game was swapped out from under the catch-up (cloud-adopt / import /
+    // restart): NEVER advance the new world by the old plan's ticks, nor finalize the stale
+    // plan against it (a data-corruption bug found by the 16j save-flow review). A swap that
+    // needs its own offline accrual re-runs beginOffline, which re-tags catchUpGame.
+    if (catchUpGame.current !== g) {
+      planRef.current = null;
+      setCatchUp(null);
+      return;
+    }
     if (catchUp.done >= catchUp.total) {
       const plan = planRef.current;
       planRef.current = null;
