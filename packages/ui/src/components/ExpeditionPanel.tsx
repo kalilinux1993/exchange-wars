@@ -87,21 +87,32 @@ export function ExpeditionPanel({
   const prevRef = useRef<{
     active: boolean;
     inCombat: boolean;
-    snapshot: { regionId: string; pack: Record<string, number>; packGp: number; cleared: number } | undefined;
+    snapshot:
+      | { regionId: string; pack: Record<string, number>; packGp: number; cleared: number; bySellsword: boolean }
+      | undefined;
   }>({ active: false, inCombat: false, snapshot: undefined });
   useEffect(() => {
     const prev = prevRef.current;
     const now = {
       active: exp !== undefined,
       inCombat: exp?.combat != null,
+      // Stamp WHO owns the dive: the sellsword autopilot shares this same
+      // expedition slot (it runs inside tickWorld), so without this its dives
+      // would fire player death toasts + pollute the Delve Log.
       snapshot: exp
-        ? { regionId: exp.regionId, pack: { ...exp.pack }, packGp: exp.packGp, cleared: exp.cleared }
+        ? {
+            regionId: exp.regionId,
+            pack: { ...exp.pack },
+            packGp: exp.packGp,
+            cleared: exp.cleared,
+            bySellsword: !!agent?.sellsword,
+          }
         : prev.snapshot,
     };
-    if (prev.active && !now.active && prev.snapshot) {
-      // An expedition ended. Vanishing mid-combat = death; otherwise a clean
-      // extract (you can only extract out of combat). Both get a Delve Log entry;
-      // only death also narrates the loss as a toast.
+    if (prev.active && !now.active && prev.snapshot && !prev.snapshot.bySellsword) {
+      // A PLAYER expedition ended (sellsword dives are skipped — they report via
+      // the sellsword stats + away-bar summary). Vanishing mid-combat = death;
+      // otherwise a clean extract. Both get a Delve Log entry; death also toasts.
       const died = prev.inCombat;
       onDelveEnd?.(summarizeDelve(prev.snapshot, died, game.world.tick));
       if (died) {

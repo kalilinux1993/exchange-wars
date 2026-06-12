@@ -20,6 +20,7 @@ import { PositionsPanel } from '../src/components/PositionsPanel';
 import { ConquestPanel } from '../src/components/ConquestPanel';
 import { MarketTable } from '../src/components/MarketTable';
 import { DelvePanel } from '../src/components/DelvePanel';
+import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
 import { WealthPanel } from '../src/components/WealthPanel';
 import { PlayerPanel } from '../src/components/PlayerPanel';
 import { depthSplit } from '../src/components/TradeTicket';
@@ -625,6 +626,44 @@ describe('UI shell', () => {
       expect(screen.getByText(/lost/)).toBeTruthy(); // 300 forfeited to the death
       expect(screen.getByText('🏆', { exact: false })).toBeTruthy(); // survived row
       expect(screen.getByText('☠', { exact: false })).toBeTruthy(); // died row
+    });
+    const startDive = (sellsword: boolean) => {
+      const game = newGame(42);
+      const agent = game.world.agents[game.playerId]!;
+      agent.sellsword = sellsword;
+      (agent as { expedition?: unknown }).expedition = {
+        regionId: REGIONS[0]!.id,
+        rngState: 1,
+        hp: 30,
+        pack: {},
+        packGp: 500,
+        cleared: 2,
+        combat: { monsterId: 'goblin', monsterHp: 0, playerHp: 0, maxHp: 30, antifire: false, outcome: 'dead', lootGp: 0, lootItems: [], log: [] },
+        journal: [],
+      };
+      return { game, agent };
+    };
+    it('a PLAYER dive that ends in combat logs the delve + death toast', () => {
+      const { game, agent } = startDive(false); // sellsword off → this is the player's
+      const onDelveEnd = vi.fn();
+      const onToast = vi.fn();
+      const view = playerView(game.world, game.playerId)!;
+      const { rerender } = render(<ExpeditionPanel game={game} view={view} onCommand={() => {}} onToast={onToast} onDelveEnd={onDelveEnd} />);
+      delete (agent as { expedition?: unknown }).expedition; // died mid-combat
+      rerender(<ExpeditionPanel game={game} view={view} onCommand={() => {}} onToast={onToast} onDelveEnd={onDelveEnd} />);
+      expect(onDelveEnd).toHaveBeenCalledTimes(1);
+      expect(onToast).toHaveBeenCalled(); // "You died in …"
+    });
+    it('a SELLSWORD dive (sharing the slot) is NOT logged or toasted as the player', () => {
+      const { game, agent } = startDive(true); // the hunt is on → the slot is the sellsword's
+      const onDelveEnd = vi.fn();
+      const onToast = vi.fn();
+      const view = playerView(game.world, game.playerId)!;
+      const { rerender } = render(<ExpeditionPanel game={game} view={view} onCommand={() => {}} onToast={onToast} onDelveEnd={onDelveEnd} />);
+      delete (agent as { expedition?: unknown }).expedition; // the sellsword's dive ended
+      rerender(<ExpeditionPanel game={game} view={view} onCommand={() => {}} onToast={onToast} onDelveEnd={onDelveEnd} />);
+      expect(onDelveEnd).not.toHaveBeenCalled(); // no spurious Delve Log entry
+      expect(onToast).not.toHaveBeenCalled(); // no false "You died" attributed to the player
     });
     it('raidTotals sums loot banked on survival vs lost to deaths', () => {
       expect(raidTotals(undefined)).toEqual({ runs: 0, deaths: 0, banked: 0, lost: 0 });

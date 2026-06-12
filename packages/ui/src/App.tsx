@@ -535,6 +535,10 @@ export function App({ initial }: { initial?: Game }) {
     setLastResult(null);
     setSpeed(0);
     setSeedDraft(null);
+    // New run → re-capture the daily record to beat and re-arm the celebration,
+    // so the next firing isn't measured against a stale prior-seed best.
+    incomingBest.current = undefined;
+    recordCelebrated.current = false;
     schedulePush();
     force();
   };
