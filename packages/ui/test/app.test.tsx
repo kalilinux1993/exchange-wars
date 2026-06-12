@@ -41,6 +41,7 @@ import {
   ghostForRestart,
   alertHit,
   applyFillToBook,
+  blendBuy,
   bookFromFills,
   emptyTradeBook,
   HUMAN_START_GP,
@@ -709,6 +710,28 @@ describe('UI shell', () => {
     const view = { markets: [] } as unknown as PlayerView;
     render(<PositionsPanel game={newGame(42)} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} />);
     expect(screen.getByText(/no open positions/i)).toBeTruthy();
+  });
+
+  describe('blendBuy (average-down preview)', () => {
+    it('blends the new buy into your held cost basis, signed by direction', () => {
+      const hold = { units: 10, avgCost: 100 };
+      expect(blendBuy(hold, 10, 80)).toEqual({ units: 20, avgCost: 90, prevUnits: 10, prevAvg: 100, delta: -10 }); // down
+      expect(blendBuy(hold, 5, 200)).toEqual({ units: 15, avgCost: 133, prevUnits: 10, prevAvg: 100, delta: 33 }); // up (round 133.3)
+      expect(blendBuy(hold, 10, 100)).toEqual({ units: 20, avgCost: 100, prevUnits: 10, prevAvg: 100, delta: 0 }); // flat
+    });
+    it('null when there is nothing to blend or the add is empty', () => {
+      expect(blendBuy(null, 5, 80)).toBeNull(); // a fresh buy has no average to move
+      expect(blendBuy({ units: 10, avgCost: 100 }, 0, 80)).toBeNull(); // empty add
+    });
+  });
+
+  it('the ticket previews how a buy moves your average cost (averaging down)', () => {
+    const game = newGame(42);
+    game.tradeBook = bookFromFills([{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }], 0.02);
+    render(<App initial={game} />); // FIRST selected, position 10 @ 100, buy side default
+    fireEvent.change(screen.getByLabelText(/price/i), { target: { value: '80' } }); // buy 1 @ 80 → avg 98
+    expect(screen.getByText(/after this buy/i)).toBeTruthy();
+    expect(screen.getByText(/averaging down/i)).toBeTruthy();
   });
 
   describe('openPosition', () => {

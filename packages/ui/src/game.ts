@@ -321,6 +321,33 @@ export function heldPositions(book: TradeBook, markOf: (itemId: string) => numbe
   return out.sort((a, b) => b.unrealized - a.unrealized || (a.itemId < b.itemId ? -1 : 1));
 }
 
+/** How a buy reshapes a position you already hold — the average-down preview. */
+export interface BlendedBuy {
+  units: number; // resulting total units
+  avgCost: number; // resulting quantity-weighted average cost per unit
+  prevUnits: number;
+  prevAvg: number;
+  delta: number; // avgCost − prevAvg: <0 averaging down, >0 averaging up, 0 unchanged
+}
+
+/**
+ * Preview the new average cost after adding `addQty` units @ `addPrice` to an
+ * open buy position. Buys carry no GE tax (tax is sell-side), so the blend is
+ * raw cost over raw units — consistent with the FIFO book's lot prices. Returns
+ * null when there's no position to blend with (a fresh buy has no average-down
+ * story) or the add is non-positive. Pure.
+ */
+export function blendBuy(
+  open: { units: number; avgCost: number } | null,
+  addQty: number,
+  addPrice: number,
+): BlendedBuy | null {
+  if (!open || open.units <= 0 || addQty <= 0 || addPrice < 0) return null;
+  const units = open.units + addQty;
+  const avgCost = Math.round((open.units * open.avgCost + addQty * addPrice) / units);
+  return { units, avgCost, prevUnits: open.units, prevAvg: open.avgCost, delta: avgCost - open.avgCost };
+}
+
 /**
  * Recent *realized* profit per item: FIFO-match each sell fill against the
  * player's earlier buy fills (within the rolling fills window), netting the GE

@@ -2,6 +2,7 @@ import { GE_TAX_RATE } from '@exchange-wars/engine';
 import type { CommandResult, ItemDef, ItemId, PlayerCommand, PlayerView, Side } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { Sparkline } from './Sparkline';
+import { blendBuy } from '../game';
 
 /**
  * Split the resting book into bid/ask proportions for the liquidity bar —
@@ -271,6 +272,24 @@ export function TradeTicket({
           {shortGp && <span className="warn"> · exceeds your {view.gp.toLocaleString('en-US')} gp</span>}
           {shortItems && <span className="warn"> · you hold only {held.toLocaleString('en-US')}</span>}
         </p>
+        {side === 'buy' &&
+          valid &&
+          (() => {
+            const blend = blendBuy(position, q, p);
+            if (!blend) return null;
+            const word = blend.delta < 0 ? '↓ averaging down' : blend.delta > 0 ? '↑ averaging up' : '· avg unchanged';
+            return (
+              <p
+                className="dim small blend"
+                title="how this buy reshapes the position you already hold — its new quantity-weighted average cost (buys are untaxed)"
+              >
+                after this buy: <b>{blend.units.toLocaleString('en-US')}</b> @ avg{' '}
+                {blend.avgCost.toLocaleString('en-US')}{' '}
+                <span className="dim">(was {blend.prevAvg.toLocaleString('en-US')})</span>{' '}
+                <span className={blend.delta < 0 ? 'pct up' : 'dim'}>{word}</span>
+              </p>
+            );
+          })()}
         <button type="submit" className={`submit ${side}`} disabled={!valid}>
           place {side} offer
         </button>
