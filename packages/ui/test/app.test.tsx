@@ -64,6 +64,7 @@ import {
   breakEvenSell,
   priceSwing,
   valueBand,
+  bandPosition,
   marketMood,
   flipMargin,
   bookFromFills,
@@ -879,6 +880,26 @@ describe('UI shell', () => {
       expect(screen.getByText('+77')).toBeTruthy(); // 1000/1100 → buy 1001, sell 1099, +77 after 2% tax
     });
 
+    it('shows a sortable value-band column ordering cheap → rich by band position', () => {
+      const items = [
+        { id: 'cheap_one', name: 'Cheap One', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+        { id: 'rich_one', name: 'Rich One', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+      ] as unknown as ItemDef[];
+      const row = (itemId: string, lastPrice: number) => ({
+        itemId, bestBid: 1, bestAsk: 2, lastPrice, ema: lastPrice, volume: 0, bestBidIsMine: false, bestAskIsMine: false,
+      });
+      // input order is rich-then-cheap, so an ascending band sort must reorder them
+      const view = { markets: [row('rich_one', 190), row('cheap_one', 110)] } as unknown as PlayerView;
+      const { container } = render(<MarketTable view={view} items={items} trades={[]} selected="cheap_one" onSelect={() => {}} eventItems={new Set()} active />);
+      expect(screen.getByRole('columnheader', { name: /band/ })).toBeTruthy();
+      expect(container.textContent).toContain('🟢'); // cheap (pos 0.1)
+      expect(container.textContent).toContain('🟡'); // rich (pos 0.9)
+      fireEvent.click(screen.getByRole('columnheader', { name: /band/ }));
+      const rows = container.querySelectorAll('tbody tr');
+      expect(rows[0]!.textContent).toContain('Cheap One'); // ascending → cheapest band first
+      expect(rows[1]!.textContent).toContain('Rich One');
+    });
+
     it('the "flippable" track keeps only items with a positive after-tax margin', () => {
       const row = (itemId: string, bid: number, ask: number) => ({
         itemId, bestBid: bid, bestAsk: ask, lastPrice: bid, ema: bid, volume: 0, bestBidIsMine: false, bestAskIsMine: false,
@@ -1554,6 +1575,15 @@ describe('UI shell', () => {
       expect(valueBand(def, 999)).toBe('rich'); // above ceiling → clamps rich
       expect(valueBand({ baseCost: 100, consumeValue: 100 }, 100)).toBeNull(); // no band
       expect(valueBand(undefined, 100)).toBeNull();
+    });
+    it('bandPosition is the clamped 0..1 fraction valueBand categorizes (single source)', () => {
+      const def = { baseCost: 100, consumeValue: 200 }; // band 100..200
+      expect(bandPosition(def, 150)).toBeCloseTo(0.5); // mid
+      expect(bandPosition(def, 110)).toBeCloseTo(0.1); // cheap third
+      expect(bandPosition(def, 50)).toBe(0); // below floor → clamps to 0
+      expect(bandPosition(def, 999)).toBe(1); // above ceiling → clamps to 1
+      expect(bandPosition({ baseCost: 100, consumeValue: 100 }, 100)).toBeNull(); // no band
+      expect(bandPosition(undefined, 100)).toBeNull();
     });
     it('marketMood counts breadth (traded only) and the cheap/rich value spread', () => {
       const items = [

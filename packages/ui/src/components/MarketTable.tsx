@@ -1,11 +1,11 @@
 import { GEAR } from '@exchange-wars/engine';
 import type { ItemDef, ItemId, PlayerView, Trade } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { flipMargin, marketMood, nextRowIndex, valueBand } from '../game';
+import { bandPosition, flipMargin, marketMood, nextRowIndex, valueBand } from '../game';
 
 const SPARK_POINTS = 20;
 
-type SortKey = 'name' | 'bid' | 'ask' | 'last' | 'vol' | 'margin';
+type SortKey = 'name' | 'bid' | 'ask' | 'last' | 'vol' | 'margin' | 'band';
 
 /** After-tax flip margin per unit (undercut the spread one tick each way), or
  *  null when there's no two-sided book — the same sum TopFlips ranks, per row,
@@ -85,6 +85,7 @@ export function MarketTable({
     if (sort.key === 'ask') return m.bestAsk;
     if (sort.key === 'last') return m.lastPrice;
     if (sort.key === 'margin') return flipMargin(m);
+    if (sort.key === 'band') return bandPosition(defs.get(m.itemId), m.lastPrice);
     return m.volume;
   };
   const sorted =
@@ -189,6 +190,9 @@ export function MarketTable({
             <th className="num sortable" onClick={() => toggleSort('margin')} title="after-tax flip margin per unit — undercut the spread one tick each way. Sort to find the whole market's flippable items, not just the top few.">
               margin{arrow('margin')}
             </th>
+            <th className="sortable" onClick={() => toggleSort('band')} title="where last sits in the item's cost→value band — 🟢 cheap (accumulate) → 🟡 rich (offload). Sort ascending for the market's best accumulation candidates, descending for offload candidates.">
+              band{arrow('band')}
+            </th>
             <th aria-label="trend" />
             <th className="num sortable" onClick={() => toggleSort('vol')}>
               volume{arrow('vol')}
@@ -245,6 +249,25 @@ export function MarketTable({
                 return (
                   <td className={`num ${mg !== null && mg > 0 ? 'up' : 'dim'}`}>
                     {mg === null ? '—' : `${mg > 0 ? '+' : ''}${mg.toLocaleString('en-US')}`}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const band = valueBand(defs.get(m.itemId), m.lastPrice);
+                return (
+                  <td
+                    className="bandcell"
+                    title={
+                      band === null
+                        ? 'no fundamental band'
+                        : band === 'cheap'
+                          ? 'near its floor — accumulation candidate'
+                          : band === 'rich'
+                            ? 'near its ceiling — offload candidate'
+                            : 'mid-band'
+                    }
+                  >
+                    {band === null ? <span className="dim">—</span> : band === 'cheap' ? '🟢' : band === 'rich' ? '🟡' : '⚪'}
                   </td>
                 );
               })()}
