@@ -283,6 +283,17 @@ export function diveRecords(delves: DelveRecord[] | undefined): DiveRecords {
   return { bestHaul, mostKills };
 }
 
+/**
+ * Did this just-finished dive set a NEW best haul? True only if it SURVIVED (a death forfeits
+ * the loot) and beat the best banked haul among the PRIOR dives. The first survived dive sets the
+ * bar silently (no prior to beat) — celebrate a genuine improvement, not a trivial first run. Pure.
+ */
+export function isNewBestHaul(priorDelves: DelveRecord[] | undefined, record: DelveRecord): boolean {
+  if (record.died) return false;
+  const prior = diveRecords(priorDelves).bestHaul;
+  return prior !== null && record.lootGp > prior.lootGp;
+}
+
 /** A region's full native roster: its encounter pool + named elite, deduped, order-stable. */
 export function regionRoster(region: { monsters: string[]; elite?: string }): string[] {
   const ids = region.elite ? [...region.monsters, region.elite] : [...region.monsters];

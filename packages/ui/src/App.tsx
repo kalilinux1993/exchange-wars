@@ -1,4 +1,4 @@
-import { applyCommand, EVENT_LABELS, levelsOf, playerView, runTicks, tickWorld } from '@exchange-wars/engine';
+import { applyCommand, EVENT_LABELS, levelsOf, playerView, REGIONS, regionIndex, runTicks, tickWorld } from '@exchange-wars/engine';
 import type { CommandResult, ItemId, PlayerCommand } from '@exchange-wars/engine';
 import { chooseSave, getSupabase, loadCloudSave, pushCloudSave, type Session } from './cloud';
 import { AccountBar } from './components/AccountBar';
@@ -38,6 +38,7 @@ import {
   dailyBestView,
   beatRecord,
   DELVE_LOG_CAP,
+  isNewBestHaul,
   checkMilestones,
   MILESTONES,
   finishOfflineProgress,
@@ -1028,9 +1029,20 @@ export function App({ initial }: { initial?: Game }) {
             }}
             onToast={(name, flavor) => setToast({ id: 'expedition', name, flavor, achieved: () => false })}
             onDelveEnd={(record) => {
+              // A new best haul? Compare to the prior dives BEFORE this one is appended.
+              const newBest = isNewBestHaul(game.delves, record);
               const log = (game.delves ??= []);
               log.push(record);
               if (log.length > DELVE_LOG_CAP) log.splice(0, log.length - DELVE_LOG_CAP);
+              if (newBest) {
+                const where = REGIONS[regionIndex(record.regionId)]?.name ?? record.regionId;
+                setToast({
+                  id: 'besthaul',
+                  name: '🏆 New best haul!',
+                  flavor: `${record.lootGp.toLocaleString('en-US')} gp banked from ${where}`,
+                  achieved: () => false,
+                });
+              }
               saveGame(game);
               force();
             }}

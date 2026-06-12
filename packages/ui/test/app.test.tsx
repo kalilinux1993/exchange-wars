@@ -108,6 +108,7 @@ import {
   raidTotals,
   raidTotalsByRegion,
   diveRecords,
+  isNewBestHaul,
   totalRealized,
   totalUnrealized,
   updateNews,
@@ -1743,6 +1744,15 @@ describe('UI shell', () => {
       ]);
       expect(r.bestHaul).toEqual({ regionId: A, lootGp: 800 }); // 800 banked beats 500; the 9000 was forfeited
       expect(r.mostKills).toEqual({ regionId: B, kills: 9 }); // the deadly dive still cleared the most
+    });
+    it('isNewBestHaul fires only on a survived dive that beats the prior best', () => {
+      const A = REGIONS[0]!.id;
+      const prior = [{ tick: 0, regionId: A, kills: 2, lootGp: 800, died: false }]; // best so far: 800
+      const rec = (lootGp: number, died: boolean) => ({ tick: 1, regionId: A, kills: 1, lootGp, died });
+      expect(isNewBestHaul(prior, rec(1200, false))).toBe(true); // beats 800
+      expect(isNewBestHaul(prior, rec(500, false))).toBe(false); // under the prior best
+      expect(isNewBestHaul(prior, rec(9999, true))).toBe(false); // a death forfeits the loot — not a haul
+      expect(isNewBestHaul(undefined, rec(500, false))).toBe(false); // no prior best → first dive sets the bar, no toast
     });
   });
 
