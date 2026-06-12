@@ -833,9 +833,12 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       if (agent.expedition) return { ok: false, reason: 'on-expedition', trades: [] };
       const lv = levelsOf(agent.combatXp);
       const worn = (agent.worn ??= {});
-      // Per slot, the best USABLE piece the player owns (satchel OR already worn)
-      // wins. Scan GEAR in catalog order so ties resolve first-seen — identical
-      // tie-break to deriveStats, so what we equip matches what fights.
+      // Per slot, the best USABLE piece the player owns (satchel OR already
+      // worn) wins. Ties (e.g. rune_plateskirt vs rune_platelegs — identical
+      // stats) resolve by SMALLER itemId, an explicit order-independent rule so
+      // the equip result matches the paperdoll preview (equipped()) exactly.
+      // Tied pieces are stat-identical by construction, so combat is unaffected
+      // whichever wins — the tie-break is purely about which itemId we name.
       const bestPerSlot: Record<string, ItemId> = {};
       for (const [itemId, g] of Object.entries(GEAR)) {
         if ((g.slot === 'weapon' ? lv.atk : lv.def) < g.req) continue; // under-level → inert
@@ -843,7 +846,9 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
         if (!owned) continue;
         const cur = bestPerSlot[g.slot];
         const curG = cur ? GEAR[cur]! : undefined;
-        if (!curG || g.atk + g.def > curG.atk + curG.def) bestPerSlot[g.slot] = itemId;
+        const score = g.atk + g.def;
+        if (!curG || score > curG.atk + curG.def || (score === curG.atk + curG.def && itemId < cur!))
+          bestPerSlot[g.slot] = itemId;
       }
       let changed = false;
       for (const [slot, itemId] of Object.entries(bestPerSlot)) {

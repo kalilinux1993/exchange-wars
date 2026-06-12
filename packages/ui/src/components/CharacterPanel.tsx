@@ -30,7 +30,10 @@ export function equipped(
     if (!g) continue;
     if ((g.slot === 'weapon' ? lvls.atk : lvls.def) < g.req) continue;
     const score = g.atk + g.def;
-    if (!best[g.slot] || score > best[g.slot]!.score) best[g.slot] = { id, score };
+    const cur = best[g.slot];
+    // Tie-break by SMALLER itemId — the same order-independent rule equipBest
+    // uses, so the paperdoll preview names exactly what "equip best" would wear.
+    if (!cur || score > cur.score || (score === cur.score && id < cur.id)) best[g.slot] = { id, score };
   }
   const out: Partial<Record<GearSlot, string>> = {};
   for (const [slot, v] of Object.entries(best)) out[slot as GearSlot] = v!.id;

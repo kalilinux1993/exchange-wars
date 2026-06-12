@@ -1713,7 +1713,9 @@ function applyCommand(state, playerId, cmd) {
         if (!owned) continue;
         const cur = bestPerSlot[g.slot];
         const curG = cur ? GEAR[cur] : void 0;
-        if (!curG || g.atk + g.def > curG.atk + curG.def) bestPerSlot[g.slot] = itemId;
+        const score = g.atk + g.def;
+        if (!curG || score > curG.atk + curG.def || score === curG.atk + curG.def && itemId < cur)
+          bestPerSlot[g.slot] = itemId;
       }
       let changed = false;
       for (const [slot, itemId] of Object.entries(bestPerSlot)) {

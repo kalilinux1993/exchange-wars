@@ -1223,6 +1223,11 @@ describe('UI shell', () => {
       const kit = equipped({ adamant_dart: 1, dragon_longsword: 1 }, { atk: 99, def: 99 });
       expect(kit.weapon).toBe('dragon_longsword');
     });
+    it('breaks stat-ties by smaller itemId — same rule as equipBest, so the doll matches', () => {
+      // rune_plateskirt vs rune_platelegs: identical stats; smaller itemId wins.
+      const kit = equipped({ rune_plateskirt: 1, rune_platelegs: 1 }, { atk: 99, def: 99 });
+      expect(kit.legs).toBe('rune_platelegs');
+    });
   });
 
   describe('fmtCompact', () => {

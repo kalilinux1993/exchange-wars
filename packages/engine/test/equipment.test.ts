@@ -107,6 +107,17 @@ describe('equipment manager', () => {
     checkInvariants(state);
   });
 
+  it('equipBest resolves stat-ties deterministically by smaller itemId', () => {
+    const state = createWorld({ seed: 1 });
+    // rune_plateskirt and rune_platelegs are both legs, def 20, req 10 — a stat tie.
+    const p = addAgent(state, 'player', 50_000, { rune_plateskirt: 1, rune_platelegs: 1 });
+    p.combatXp = { atk: 50_000, def: 50_000 };
+    const r = applyCommand(state, p.id, { type: 'equipBest' });
+    expect(r.ok).toBe(true);
+    expect(p.worn?.['legs']).toBe('rune_platelegs'); // smaller itemId wins (legs < skirt)
+    checkInvariants(state);
+  });
+
   it('equipBest is rejected mid-expedition', () => {
     const state = createWorld({ seed: 1 });
     const p = addAgent(state, 'player', 50_000, { rune_2h_sword: 2, shark: 4, adamant_dart: 1 });
