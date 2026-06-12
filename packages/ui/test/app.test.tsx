@@ -45,6 +45,7 @@ import {
   newGame,
   nextRoundTarget,
   normalizeGame,
+  offlineRatePerMin,
   OFFLINE_CAP_TICKS,
   openFromBook,
   openPosition,
@@ -1114,6 +1115,14 @@ describe('UI shell', () => {
     const newly = checkMilestones(game, view, 0);
     expect(newly.map((m) => m.id)).toContain('first-blood');
     expect(game.milestoneTicks!['first-blood']).toBe(1234);
+  });
+
+  describe('offlineRatePerMin', () => {
+    it('converts an offline worth delta into gp/min (60 ticks = 1 min)', () => {
+      expect(offlineRatePerMin(60_000, 600)).toBe(6_000); // 60k over 10 min
+      expect(offlineRatePerMin(-1_200, 120)).toBe(-600); // losses too
+      expect(offlineRatePerMin(500, 0)).toBe(0); // no time passed
+    });
   });
 
   describe('nextRoundTarget', () => {

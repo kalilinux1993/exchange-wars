@@ -44,6 +44,7 @@ import {
   loadCorruptSave,
   loadGame,
   newGame,
+  offlineRatePerMin,
   openFromBook,
   recordFills,
   playerWorth,
@@ -716,26 +717,34 @@ export function App({ initial }: { initial?: Game }) {
           </button>
         </div>
       )}
-      {offlineRef.current && !awayDismissed && (
-        <div className="awaybar">
-          while you were away: <b>{offlineRef.current.ticks.toLocaleString('en-US')}</b> ticks (~
-          {fmtDuration(offlineRef.current.ticks)}) passed · net worth{' '}
-          <b className={offlineRef.current.worthAfter >= offlineRef.current.worthBefore ? 'up' : 'down'}>
-            {offlineRef.current.worthAfter - offlineRef.current.worthBefore >= 0 ? '+' : ''}
-            {(offlineRef.current.worthAfter - offlineRef.current.worthBefore).toLocaleString('en-US')} gp
-          </b>
-          {offlineRef.current.sellswordKills > 0 && (
-            <span>
-              {' '}
-              · 🗡 sellsword: {offlineRef.current.sellswordKills.toLocaleString('en-US')} kills,{' '}
-              {offlineRef.current.sellswordBanked.toLocaleString('en-US')} gp banked
-            </span>
-          )}
-          <button className="chip" onClick={() => setAwayDismissed(true)}>
-            ×
-          </button>
-        </div>
-      )}
+      {offlineRef.current &&
+        !awayDismissed &&
+        (() => {
+          const o = offlineRef.current!;
+          const delta = o.worthAfter - o.worthBefore;
+          const perMin = offlineRatePerMin(delta, o.ticks);
+          return (
+            <div className="awaybar">
+              while you were away: <b>{o.ticks.toLocaleString('en-US')}</b> ticks (~{fmtDuration(o.ticks)}) passed ·
+              net worth{' '}
+              <b className={delta >= 0 ? 'up' : 'down'} title={`${delta.toLocaleString('en-US')} gp`}>
+                {delta >= 0 ? '+' : ''}
+                {fmtCompact(delta)} gp
+              </b>
+              {delta > 0 && <span className="dim"> · ≈{fmtCompact(perMin)}/min</span>}
+              {o.sellswordKills > 0 && (
+                <span>
+                  {' '}
+                  · 🗡 sellsword: {o.sellswordKills.toLocaleString('en-US')} kills, {fmtCompact(o.sellswordBanked)} gp
+                  banked
+                </span>
+              )}
+              <button className="chip" onClick={() => setAwayDismissed(true)}>
+                ×
+              </button>
+            </div>
+          );
+        })()}
       <nav className="tabs" role="tablist" aria-label="rooms">
         <button role="tab" aria-selected={room === 'exchange'} className={room === 'exchange' ? 'tab active' : 'tab'} onClick={() => pickRoom('exchange')}>
           🪙 Exchange

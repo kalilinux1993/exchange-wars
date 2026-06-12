@@ -679,6 +679,12 @@ export function nextRoundTarget(n: number): number {
   return 10 ** (k + 1);
 }
 
+/** Offline earning rate in gp/min (1 offline tick ≡ 1 second, so ticks/60 =
+ * minutes away). 0 when no time passed. Pure. */
+export function offlineRatePerMin(delta: number, ticks: number): number {
+  return ticks > 0 ? Math.round((delta * 60) / ticks) : 0;
+}
+
 /** Record a net-worth sample if enough ticks have passed since the last one. */
 export function recordWorth(game: Game, worth: number): void {
   const h = game.worthHistory;
