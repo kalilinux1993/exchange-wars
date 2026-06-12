@@ -1579,6 +1579,37 @@ input.belowbe {
 .conquest-row.done .conquestbar > span {
   background: #2dd4bf;
 }
+/* a conquest row stacks a header line (name · bar · N/M) over its roster strip. */
+.conquest-row {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 5px;
+}
+.conquest-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.conquest-head > span:first-child {
+  flex: 1;
+}
+/* the native-foe roster: one glyph per foe, lit once slain, dim until then —
+   the dim glyphs are exactly the foes left to hunt in this region. */
+.conquest-roster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding-left: 2px;
+}
+.roster-foe {
+  display: inline-flex;
+  line-height: 0;
+}
+.roster-foe.unmet {
+  opacity: 0.22;
+  filter: grayscale(1);
+}
 
 /* next-deed progress bar — the closest unearned deeds, at a glance. */
 .deedbar {

@@ -569,6 +569,20 @@ describe('UI shell', () => {
     expect(screen.getByText(`1/${REGIONS.length} mastered`)).toBeTruthy(); // exactly one conquered
   });
 
+  it('the roster strip lights exactly the foes slain, dims the rest', () => {
+    const game = newGame(42);
+    // Slay one distinct foe from region 0's roster; the rest stay unmet.
+    const r0 = REGIONS[0]!;
+    const roster = [...new Set(r0.elite ? [...r0.monsters, r0.elite] : r0.monsters)];
+    game.world.stats.killsByMonster = { [roster[0]!]: 3 };
+    const { container } = render(<ConquestPanel game={game} />);
+    const r0row = container.querySelectorAll('.conquest-row')[0]!;
+    expect(r0row.querySelectorAll('.roster-foe.slain').length).toBe(1); // the one we killed
+    expect(r0row.querySelectorAll('.roster-foe.unmet').length).toBe(roster.length - 1); // the rest
+    // total glyphs == roster size (deduped)
+    expect(r0row.querySelectorAll('.roster-foe').length).toBe(roster.length);
+  });
+
   describe('nextRowIndex (market keyboard nav)', () => {
     it('clamps at both ends, no wrap', () => {
       expect(nextRowIndex(0, 1, 3)).toBe(1);
