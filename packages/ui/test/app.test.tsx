@@ -495,6 +495,14 @@ describe('UI shell', () => {
     expect(screen.queryByText(/new daily record/i)).toBeNull();
   });
 
+  it('MilestonesPanel shows a progress bar on the closest unearned deeds', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    // worth = start → the 100k-worth deed sits at 50%, so a bar renders
+    const { container } = render(<MilestonesPanel unlocked={[]} game={game} view={view} worth={HUMAN_START_GP} />);
+    expect(container.querySelectorAll('.deedbar').length).toBeGreaterThan(0);
+  });
+
   describe('regionMastery', () => {
     it('rosters a region as its pool plus elite, deduped & order-stable', () => {
       expect(regionRoster({ monsters: ['a', 'b'] })).toEqual(['a', 'b']);

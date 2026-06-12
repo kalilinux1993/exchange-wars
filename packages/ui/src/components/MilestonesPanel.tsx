@@ -59,7 +59,16 @@ export function MilestonesPanel({
             <li key={m.id} className="deed">
               <span className="dim">◇</span>
               <span>{m.name}</span>
-              <span className="dim flavor">{pct > 0 ? `${pct}%` : '· · ·'}</span>
+              {pct > 0 ? (
+                <>
+                  <span className="deedbar" aria-hidden="true">
+                    <span style={{ width: `${pct}%` }} />
+                  </span>
+                  <span className="dim flavor">{pct}%</span>
+                </>
+              ) : (
+                <span className="dim flavor">· · ·</span>
+              )}
             </li>
           ))}
         </ul>

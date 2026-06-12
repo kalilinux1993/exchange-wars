@@ -1498,6 +1498,20 @@ kbd {
   background: #2dd4bf;
 }
 
+/* next-deed progress bar — the closest unearned deeds, at a glance. */
+.deedbar {
+  flex: 0 0 48px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ink);
+  overflow: hidden;
+}
+.deedbar > span {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+}
+
 /* portfolio allocation bar — held value split across positions, one segment each. */
 .allocbar {
   display: flex;
