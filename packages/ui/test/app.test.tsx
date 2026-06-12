@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Catalog-agnostic: everything derives from DEFAULT_ITEMS so `npm run
 // gen:catalog` regens never break these tests.
-import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, playerView, SPRINT_TICKS, tickWorld, xpForLevel } from '@exchange-wars/engine';
+import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, playerView, REGIONS, SPRINT_TICKS, tickWorld, xpForLevel } from '@exchange-wars/engine';
 import type { AgentState, SimStats } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -13,6 +13,7 @@ import { MoversPanel } from '../src/components/MoversPanel';
 import { CharacterPanel, equipped, lockedUpgrades } from '../src/components/CharacterPanel';
 import { TopFlips, rankFlips } from '../src/components/TopFlips';
 import { RecordsPanel, recordRows } from '../src/components/RecordsPanel';
+import { regionDanger } from '../src/components/ExpeditionPanel';
 import { resolveShortcut } from '../src/keyboard';
 import { ProfitPanel } from '../src/components/ProfitPanel';
 import { depthSplit } from '../src/components/TradeTicket';
@@ -696,6 +697,22 @@ describe('UI shell', () => {
     expect(screen.getByText('1×').className).toContain('active'); // resumed to 1×
     fireEvent.keyDown(document.body, { key: 'p' });
     expect(screen.getByText('❚❚').className).toContain('active'); // paused again
+  });
+
+  describe('regionDanger', () => {
+    it('reports the hardest-hitting foe in a region (pool + elite)', () => {
+      const wild = REGIONS.find((r) => r.id === 'wilderness_ruins')!;
+      // fire_giant (atk19/def11/hp85) out-threats lesser_demon; no elite on main
+      expect(regionDanger(wild)).toEqual({ atk: 19, def: 11, hp: 85, elite: false });
+      const maw = REGIONS.find((r) => r.id === 'dragons_maw')!;
+      expect(regionDanger(maw).elite).toBe(true); // Vorkanth stalks the Maw
+      expect(regionDanger(maw).atk).toBeGreaterThanOrEqual(30); // the Elder out-hits the dragons
+    });
+  });
+
+  it('the expedition panel warns how hard a region hits before you embark', () => {
+    freshApp(); // Adventure room is mounted; default region selected
+    expect(screen.getByText(/danger: foes up to/)).toBeTruthy();
   });
 
   it('RecordsPanel renders the adventurer record in the hall', () => {

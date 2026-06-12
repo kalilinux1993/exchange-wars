@@ -21,6 +21,26 @@ import { MonsterGlyph } from './MonsterBody';
 import { RegionMap } from './RegionMap';
 
 /**
+ * The hardest-hitting foe that stalks a region — its monster pool plus any
+ * named elite — for an at-a-glance danger read before you embark, to weigh
+ * against your own Attack/Defence. Pure: reads MONSTERS via monsterById.
+ */
+export function regionDanger(region: { monsters: string[]; elite?: string }): {
+  atk: number;
+  def: number;
+  hp: number;
+  elite: boolean;
+} {
+  const ids = region.elite ? [...region.monsters, region.elite] : region.monsters;
+  let worst = { atk: 0, def: 0, hp: 0 };
+  for (const id of ids) {
+    const m = monsterById(id);
+    if (m.atk + m.def > worst.atk + worst.def) worst = { atk: m.atk, def: m.def, hp: m.hp };
+  }
+  return { ...worst, elite: region.elite !== undefined };
+}
+
+/**
  * The Expeditions panel: outfit an adventurer from your REAL inventory,
  * delve the node graph, fight one round per click. Reads world state for
  * display; every mutation goes through onCommand (the player surface).
@@ -163,6 +183,21 @@ export function ExpeditionPanel({
         )}
         <RegionMap progress={progress} selected={regionId} onSelect={setRegionId} />
         <p className="dim small">{REGIONS[regionIndex(regionId)]?.flavor}</p>
+        {(() => {
+          const d = regionDanger(REGIONS[regionIndex(regionId)]!);
+          return (
+            <p
+              className="dim small"
+              title="the hardest-hitting foe that stalks this region — weigh it against your own Attack/Defence above"
+            >
+              danger: foes up to{' '}
+              <b className="down">
+                ⚔{d.atk} 🛡{d.def}
+              </b>{' '}
+              · {d.hp} hp{d.elite ? ' · ☠ a named terror lurks here' : ''}
+            </p>
+          );
+        })()}
         <h3>Pack &amp; Equip</h3>
         <p className="dim small">
           There's no separate equip slot — <b>gear you pack is worn automatically</b> (the best usable item per
