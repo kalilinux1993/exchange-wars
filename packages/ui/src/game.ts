@@ -1,6 +1,6 @@
 // Game bootstrap + persistence. The human is an idle-policy player agent:
 // engine-inert unless automation is purchased, acting only via UI commands.
-import { addAgent, CONSUMABLES, createWorld, EVENT_LABELS, GE_TAX_RATE, GEAR, levelsOf, MONSTERS, netWorth, playerView, REGIONS, runTicks } from '@exchange-wars/engine';
+import { addAgent, combatLevel, CONSUMABLES, createWorld, EVENT_LABELS, GE_TAX_RATE, GEAR, levelsOf, MONSTERS, netWorth, playerView, REGIONS, runTicks } from '@exchange-wars/engine';
 import type { GearSlot, PlayerView, RunLogEntry, WorldEvent, WorldState } from '@exchange-wars/engine';
 
 export interface Game {
@@ -398,6 +398,24 @@ export function diveStreak(delves: DelveRecord[] | undefined): DiveStreak {
 export const STREAK_MILESTONES = [5, 10, 25, 50, 100];
 export function isStreakMilestone(current: number): boolean {
   return STREAK_MILESTONES.includes(current);
+}
+
+/**
+ * A shareable one-glance summary of a run — combat level, net worth, peak dive haul, best survival
+ * streak, deeds — plus a challenge link to the same seed. The viral loop a leaderboard game grows on:
+ * "here's what I did, beat me on this exact world." Pure: `origin`/`pathname` injected (no `window`).
+ * Empty stats are omitted (no "0 deeds"); the title + level + worth + link are always present.
+ */
+export function bragText(game: Game, worth: number, origin: string, pathname: string): string {
+  const xp = game.world.agents[game.playerId]?.combatXp;
+  const streak = diveStreak(game.delves);
+  const records = diveRecords(game.delves);
+  const bits = [`combat ${combatLevel(xp)}`, `${fmtCompact(worth)} gp`];
+  if (records.bestHaul) bits.push(`best haul ${fmtCompact(records.bestHaul.lootGp)}`);
+  if (streak.best > 0) bits.push(`${streak.best}-dive streak`);
+  if (game.milestones.length > 0) bits.push(`${game.milestones.length} deeds`);
+  const link = `${origin}${pathname}#seed=${game.world.seed}`;
+  return `⚔ Exchange Wars — ${bits.join(' · ')}\nBeat me on seed ${game.world.seed}: ${link}`;
 }
 
 /** A region's full native roster: its encounter pool + named elite, deduped, order-stable. */

@@ -69,6 +69,7 @@ import {
   leveledUp,
   fillToastFlavor,
   playerWorth,
+  bragText,
   restartStakes,
   recordWorth,
   saveGame,
@@ -686,6 +687,21 @@ export function App({ initial }: { initial?: Game }) {
     });
   };
 
+  const copyBrag = (): void => {
+    const text = bragText(game, playerWorth(game), window.location.origin, window.location.pathname);
+    const done = (): void =>
+      setToast({ id: 'brag', name: 'Run summary copied', flavor: 'paste it anywhere — your stats + a challenge link', achieved: () => false });
+    if (navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(text).then(done, done);
+    } else {
+      try {
+        window.prompt('copy your run summary', text);
+      } catch {
+        // jsdom / ancient browsers: prompt unavailable — the toast still confirms.
+      }
+      done();
+    }
+  };
   const copyChallenge = (): void => {
     const url = `${window.location.origin}${window.location.pathname}#seed=${game.world.seed}`;
     const done = (): void =>
@@ -854,6 +870,13 @@ export function App({ initial }: { initial?: Game }) {
                 onClick={copyChallenge}
               >
                 challenge link
+              </button>
+              <button
+                className="chip"
+                title="copy a shareable summary of your run (stats + a challenge link) to paste anywhere"
+                onClick={copyBrag}
+              >
+                📋 brag
               </button>
             </>
           ) : (

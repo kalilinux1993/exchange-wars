@@ -125,6 +125,7 @@ import {
   diveRecords,
   diveStreak,
   isStreakMilestone,
+  bragText,
   isNewBestHaul,
   totalRealized,
   totalUnrealized,
@@ -2137,6 +2138,14 @@ describe('UI shell', () => {
       expect(isStreakMilestone(4)).toBe(false); // one short
       expect(isStreakMilestone(6)).toBe(false); // one past
       expect(isStreakMilestone(11)).toBe(false); // between milestones
+    });
+    it('bragText summarizes the run with a challenge link to its seed', () => {
+      const txt = bragText(newGame(42), 12_345, 'http://ex.test', '/play');
+      expect(txt).toContain('Exchange Wars');
+      expect(txt).toMatch(/combat \d+/); // combat level
+      expect(txt).toContain('seed 42');
+      expect(txt).toContain('http://ex.test/play#seed=42'); // origin+pathname+#seed= the challenge link
+      expect(txt).not.toContain('0 deeds'); // a fresh game omits empty stats
     });
   });
 
