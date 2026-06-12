@@ -503,6 +503,15 @@ export function ExpeditionPanel({
                     <b className={m.def > youAtk ? 'down' : 'up'}>{m.def}</b>
                     {m.dragonfire ? (exp.combat!.antifire ? ' 🛡🔥' : ' 🔥') : ''}
                   </span>
+                  {m.leech ? (
+                    <span
+                      className="pct down"
+                      title="this foe bleeds loot gp from your pack EVERY round the fight drags — it's a gp-race, not just an hp-race. Finish fast, or extract before it eats your haul."
+                    >
+                      {' '}
+                      💧−{m.leech.toLocaleString('en-US')} gp/round
+                    </span>
+                  ) : null}
                 </p>
                 {(() => {
                   // Live read at the CURRENT hp — should I push or flee? Counts

@@ -2640,6 +2640,23 @@ describe('UI shell', () => {
     expect(foeStats.querySelector('.up')?.textContent).toBe('1');
   });
 
+  it('the combat view warns when a foe drains loot (leech = gp-race)', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.expedition = {
+      regionId: 'the_abyss',
+      rngState: 1,
+      hp: 50,
+      pack: {},
+      packGp: 1000,
+      cleared: 0,
+      combat: { monsterId: 'abyssal_leech', monsterHp: 60, playerHp: 50, antifire: false, maxHp: 50, outcome: 'fighting', lootGp: 0, lootItems: [], log: ['the dark stirs'] },
+    };
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    expect(screen.getByText(/40 gp\/round/)).toBeTruthy(); // abyssal_leech drains 40 loot gp/round
+  });
+
   it('the combat scene renders the foe and animates a hit splat per round', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;
