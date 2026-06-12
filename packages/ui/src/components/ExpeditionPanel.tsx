@@ -217,7 +217,7 @@ export function ExpeditionPanel({
                       {m.dragonfire ? ' 🔥' : ''}
                     </span>
                     <span className="dim small">
-                      {m.gp[0]}–{m.gp[1]} gp
+                      ⚔{m.atk} 🛡{m.def} · {m.hp} hp{m.leech ? ` · 💧${m.leech}/rd` : ''} · {m.gp[0]}–{m.gp[1]} gp
                       {m.drops.length > 0
                         ? ` · drops ${m.drops.map((d) => `${(names.get(d.itemId) ?? d.itemId).toLowerCase()} ${Math.round(d.chance * 100)}%`).join(', ')}`
                         : ''}

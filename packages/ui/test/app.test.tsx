@@ -2663,6 +2663,17 @@ describe('UI shell', () => {
     expect(screen.getByText(/40 gp\/round/)).toBeTruthy(); // abyssal_leech drains 40 loot gp/round
   });
 
+  it('the bestiary lists a met monster with its combat stats', () => {
+    const game = newGame(42);
+    game.world.stats.monstersSlain = 3;
+    game.world.stats.killsByMonster = { goblin: 3 };
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const bestiary = document.querySelector('.bestiary')!;
+    expect(bestiary.textContent).toContain('12 hp'); // goblin hp
+    expect(bestiary.textContent).toMatch(/⚔4 🛡1/); // goblin atk 4 / def 1
+  });
+
   it('the combat scene renders the foe and animates a hit splat per round', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;
