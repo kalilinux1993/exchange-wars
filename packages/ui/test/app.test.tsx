@@ -71,6 +71,7 @@ import {
   streakAtRisk,
   recordDailyBest,
   dailyBestView,
+  beatRecord,
   regionRoster,
   regionMastery,
   expectedHit,
@@ -467,6 +468,30 @@ describe('UI shell', () => {
     localStorage.setItem('ew-daily-best', JSON.stringify({ day: dailySeed(), best: HUMAN_START_GP + 10_000 }));
     render(<App initial={newGame(42)} />);
     expect(screen.queryByText(/🏁/)).toBeNull();
+  });
+
+  describe('beatRecord (daily-record celebration trigger)', () => {
+    it('fires only with a real prior record that worth exceeds', () => {
+      expect(beatRecord(null, 999_999)).toBe(false); // no record carried in
+      expect(beatRecord(1000, 999)).toBe(false); // not beaten
+      expect(beatRecord(1000, 1000)).toBe(false); // a tie isn't a new record
+      expect(beatRecord(1000, 1001)).toBe(true); // beaten
+    });
+  });
+
+  it('celebrates a new daily record when worth passes your prior best', () => {
+    localStorage.setItem('ew-daily-best', JSON.stringify({ day: dailySeed(), best: HUMAN_START_GP + 1000 }));
+    const game = newGame(dailySeed());
+    game.world.agents[game.playerId]!.gp = HUMAN_START_GP + 50_000; // worth now far above the record
+    render(<App initial={game} />);
+    expect(screen.getByText(/new daily record/i)).toBeTruthy();
+  });
+
+  it('does not celebrate without a prior record to beat', () => {
+    const game = newGame(dailySeed()); // no ew-daily-best seeded
+    game.world.agents[game.playerId]!.gp = HUMAN_START_GP + 50_000;
+    render(<App initial={game} />);
+    expect(screen.queryByText(/new daily record/i)).toBeNull();
   });
 
   describe('regionMastery', () => {

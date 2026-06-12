@@ -159,6 +159,15 @@ export function dailyBestView(
 }
 
 /**
+ * Whether to fire the one-time "new daily record" celebration: there's a real
+ * record carried in from a prior session (`incomingBest` non-null) and current
+ * worth has now passed it. Pure; the caller latches it so it fires once.
+ */
+export function beatRecord(incomingBest: number | null, worth: number): boolean {
+  return incomingBest !== null && worth > incomingBest;
+}
+
+/**
  * Clamp a row cursor when walking a list with j/k (or ↑/↓). `cur` may be -1 (the
  * selected row isn't in the displayed/filtered list) — moving from there lands on
  * the first row either direction. Clamps at both ends (no wrap, so the list has a

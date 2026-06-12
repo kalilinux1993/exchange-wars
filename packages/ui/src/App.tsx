@@ -35,6 +35,7 @@ import {
   bumpStreak,
   recordDailyBest,
   dailyBestView,
+  beatRecord,
   DELVE_LOG_CAP,
   checkMilestones,
   MILESTONES,
@@ -263,6 +264,31 @@ export function App({ initial }: { initial?: Game }) {
     if (game.world.seed !== dailySeed()) return;
     const next = recordDailyBest(dailyBest, dailySeed(), playerWorth(game));
     if (next !== dailyBest) setDailyBest(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.world.tick, game.world.seed]);
+
+  // The record to BEAT, captured once at mount before this session's play moves
+  // it — null unless you loaded today's daily already holding a real prior best.
+  const incomingBest = useRef<number | null | undefined>(undefined);
+  if (incomingBest.current === undefined) {
+    incomingBest.current =
+      game.world.seed === dailySeed() && dailyBest && dailyBest.day === dailySeed() && dailyBest.best > game.startGp
+        ? dailyBest.best
+        : null;
+  }
+  // One-time "new daily record" celebration when worth first passes that mark.
+  const recordCelebrated = useRef(false);
+  useEffect(() => {
+    if (game.world.seed !== dailySeed() || recordCelebrated.current) return;
+    if (beatRecord(incomingBest.current ?? null, playerWorth(game))) {
+      recordCelebrated.current = true;
+      setToast({
+        id: 'record',
+        name: '🎉 New daily record!',
+        flavor: `you beat your best of ${(incomingBest.current ?? 0).toLocaleString('en-US')} gp on today's daily`,
+        achieved: () => false,
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.world.tick, game.world.seed]);
 
