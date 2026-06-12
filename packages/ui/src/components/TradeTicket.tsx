@@ -94,6 +94,11 @@ export function TradeTicket({
   // Advisory only — the engine stays the authority on rejections (and slots /
   // buy limits can still reject an offer this check can't predict).
   const held = view.inventory[selected] ?? 0;
+  // Selling under this price loses money after the 2% tax (vs your average cost).
+  // Tint the price field red so a loss-making sell is caught at the input, not
+  // just in the readout below it.
+  const sellFloor = side === 'sell' && position ? breakEvenSell(position.avgCost, GE_TAX_RATE) : null;
+  const belowFloor = sellFloor !== null && valid && p < sellFloor;
   const shortGp = side === 'buy' && valid && total > view.gp;
   const shortItems = side === 'sell' && valid && q > held;
 
@@ -251,6 +256,8 @@ export function TradeTicket({
           <label>
             price
             <input
+              className={belowFloor ? 'belowbe' : undefined}
+              title={belowFloor ? 'below your break-even — this sell loses money after the 2% tax' : undefined}
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               inputMode="numeric"

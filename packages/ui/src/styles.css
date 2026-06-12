@@ -1507,6 +1507,12 @@ kbd {
   color: var(--rise);
   border-color: var(--rise);
 }
+/* the price field when a sell would land below break-even — a loss after tax.
+   Caught at the input, not just the readout. */
+input.belowbe {
+  border-color: var(--fall);
+  background: rgba(224, 122, 95, 0.12);
+}
 
 /* a contract you can deliver right now — a faint green nudge. */
 .contracts li.contract.ready {

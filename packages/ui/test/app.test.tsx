@@ -1366,6 +1366,31 @@ describe('UI shell', () => {
     expect(screen.queryByText(/equips as/)).toBeNull();
   });
 
+  it('TradeTicket tints the price field red when a sell is below break-even', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    const ticket = (price: number) => (
+      <TradeTicket
+        view={view}
+        selected="gold_bar"
+        items={game.world.items}
+        lvls={{ atk: 1, def: 1 }}
+        prefill={{ side: 'sell', price, n: 1 }}
+        onCommand={() => {}}
+        lastResult={null}
+        eventNote={null}
+        recentPrices={[]}
+        position={{ units: 10, avgCost: 1000 }} // break-even ≈ 1,021 after the 2% tax
+        watched={false}
+        onToggleWatch={() => {}}
+      />
+    );
+    const below = render(ticket(900)).container; // a sell at 900 loses money → tinted
+    expect(below.querySelector('input.belowbe')).toBeTruthy();
+    const above = render(ticket(1100)).container; // a sell at 1100 clears cost → not tinted
+    expect(above.querySelector('input.belowbe')).toBeNull();
+  });
+
   it('the ticket shows an order-book liquidity bar once the book has depth', () => {
     freshApp(); // seed 42, paused
     fireEvent.click(screen.getByText('+1k')); // run 1000 ticks → the book fills
