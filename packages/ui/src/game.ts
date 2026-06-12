@@ -308,6 +308,44 @@ export function regionLoot(
   return { gpLo: gpLo === Infinity ? 0 : gpLo, gpHi, drops };
 }
 
+/** Where a tradeable item can be FARMED — the inverse of `regionLoot`. Links the trade economy
+ * (the price) to the dive economy (the foe that supplies it). */
+export interface ItemSource {
+  monsterId: string;
+  monsterName: string;
+  regionId: string | null; // the region whose roster holds this foe (null if it's in no roster)
+  regionName: string | null;
+  chance: number;
+}
+
+/**
+ * Reverse-index the drop tables: every monster that drops `itemId`, with the region its roster sits in
+ * (roster = `region.monsters` + `region.elite`), sorted likeliest-first (monster-id tie-break). Pure;
+ * structural params so it stays engine-import-free. Empty when nothing drops the item (a pure commodity).
+ */
+export function itemSources(
+  itemId: string,
+  monsters: { id: string; name: string; drops: { itemId: string; chance: number }[] }[],
+  regions: { id: string; name: string; monsters: string[]; elite?: string }[],
+): ItemSource[] {
+  const regionOf = (monsterId: string): { id: string; name: string } | null =>
+    regions.find((r) => r.monsters.includes(monsterId) || r.elite === monsterId) ?? null;
+  const out: ItemSource[] = [];
+  for (const m of monsters) {
+    const drop = m.drops.find((d) => d.itemId === itemId);
+    if (!drop) continue;
+    const region = regionOf(m.id);
+    out.push({
+      monsterId: m.id,
+      monsterName: m.name,
+      regionId: region?.id ?? null,
+      regionName: region?.name ?? null,
+      chance: drop.chance,
+    });
+  }
+  return out.sort((a, b) => b.chance - a.chance || (a.monsterId < b.monsterId ? -1 : 1));
+}
+
 /** A player's PEAK dives — the "best ever" markers the lifetime aggregates don't capture. */
 export interface DiveRecords {
   /** Most loot banked from a single SURVIVED dive (a death forfeits the loot — not a haul). */

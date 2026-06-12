@@ -1,8 +1,8 @@
-import { GE_TAX_RATE } from '@exchange-wars/engine';
+import { GE_TAX_RATE, MONSTERS, REGIONS } from '@exchange-wars/engine';
 import type { CommandResult, ItemDef, ItemId, PlayerCommand, PlayerView, Side } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { Sparkline } from './Sparkline';
-import { blendBuy, breakEvenSell, buyConcentration, gearDelta, priceSwing, valueBand } from '../game';
+import { blendBuy, breakEvenSell, buyConcentration, gearDelta, itemSources, priceSwing, valueBand } from '../game';
 
 /**
  * Split the resting book into bid/ask proportions for the liquidity bar —
@@ -157,6 +157,21 @@ export function TradeTicket({
               : 'staple — all clerks'}
         </p>
       )}
+      {(() => {
+        // Cross-economy context: this item is also a monster drop — you can FARM it
+        // on a dive instead of buying it. Shown only for drop-items (most staples
+        // have no source), near the item context rather than among the trade math.
+        const sources = itemSources(selected, MONSTERS, REGIONS);
+        if (sources.length === 0) return null;
+        const top = sources[0]!;
+        return (
+          <p className="dim small huntable" title="this item is a monster drop — you can farm it on a dive instead of buying it (best source shown)">
+            🗡 farm: <b>{top.monsterName}</b> {Math.round(top.chance * 100)}%
+            {top.regionName && <span className="dim"> · {top.regionName}</span>}
+            {sources.length > 1 && <span className="dim"> +{sources.length - 1} more</span>}
+          </p>
+        );
+      })()}
       {eventNote && <p className="warn small">{eventNote}</p>}
       <Sparkline prices={recentPrices} />
       {(() => {

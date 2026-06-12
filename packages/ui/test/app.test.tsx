@@ -117,6 +117,7 @@ import {
   raidTotals,
   raidTotalsByRegion,
   regionLoot,
+  itemSources,
   diveRecords,
   isNewBestHaul,
   totalRealized,
@@ -1082,6 +1083,22 @@ describe('UI shell', () => {
       expect(loot.drops[0]).toEqual({ itemId: 'bones', chance: 0.9 }); // dedup → best chance, likeliest first
       expect(loot.drops.map((d) => d.itemId)).toEqual(['bones', 'gem', 'rune']); // 0.9, 0.2, 0.1
       expect(regionLoot([])).toEqual({ gpLo: 0, gpHi: 0, drops: [] }); // empty roster
+    });
+    it('itemSources reverse-indexes drops, resolves the region, and ranks likeliest first', () => {
+      const monsters = [
+        { id: 'goblin', name: 'Goblin', drops: [{ itemId: 'rune', chance: 0.1 }] },
+        { id: 'dragon', name: 'Green dragon', drops: [{ itemId: 'rune', chance: 0.4 }, { itemId: 'bones', chance: 0.9 }] },
+        { id: 'rat', name: 'Rat', drops: [] },
+      ];
+      const regions = [
+        { id: 'plains', name: 'Plains', monsters: ['goblin', 'rat'] },
+        { id: 'maw', name: 'The Maw', monsters: ['wyrm'], elite: 'dragon' }, // dragon is the elite here
+      ];
+      const src = itemSources('rune', monsters, regions);
+      expect(src.map((s) => s.monsterId)).toEqual(['dragon', 'goblin']); // 0.4 before 0.1
+      expect(src[0]).toMatchObject({ monsterName: 'Green dragon', regionId: 'maw', regionName: 'The Maw', chance: 0.4 });
+      expect(src[1]).toMatchObject({ monsterId: 'goblin', regionId: 'plains' }); // roster lookup
+      expect(itemSources('not_dropped', monsters, regions)).toEqual([]); // a pure commodity has no source
     });
     it('DelvePanel shows a per-region breakdown once 2+ regions are raided, hidden below', () => {
       const game = newGame(42);
@@ -2094,6 +2111,22 @@ describe('UI shell', () => {
       />,
     );
     expect(screen.queryByText(/equips as/)).toBeNull();
+  });
+
+  it('TradeTicket shows a farm source for a drop-item, none for a pure staple', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    const props = {
+      view, items: game.world.items, lvls: { atk: 99, def: 99 }, prefill: null,
+      onCommand: () => {}, lastResult: null, eventNote: null, recentPrices: [] as number[],
+      position: null, watched: false, onToggleWatch: () => {},
+    };
+    const drop = render(<TradeTicket {...props} selected="nature_rune" />); // a real monster drop
+    expect(drop.container.querySelector('.huntable')).toBeTruthy();
+    expect(drop.container.querySelector('.huntable')!.textContent).toMatch(/farm:/);
+    drop.unmount();
+    const staple = render(<TradeTicket {...props} selected="shark" />); // food — not dropped
+    expect(staple.container.querySelector('.huntable')).toBeNull();
   });
 
   it('TradeTicket shows the realized price-swing readout when recent trades exist', () => {
