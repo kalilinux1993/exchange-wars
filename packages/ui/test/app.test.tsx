@@ -106,6 +106,7 @@ import {
   summarizeDelve,
   recentDelves,
   raidTotals,
+  raidTotalsByRegion,
   totalRealized,
   totalUnrealized,
   updateNews,
@@ -882,6 +883,33 @@ describe('UI shell', () => {
         { tick: 2, regionId: 'r', kills: 1, lootGp: 300, died: true },
       ];
       expect(raidTotals(delves)).toEqual({ runs: 3, deaths: 1, banked: 1400, lost: 300 });
+    });
+    it('raidTotalsByRegion groups by region and ranks best-net first', () => {
+      expect(raidTotalsByRegion(undefined)).toEqual([]);
+      const A = REGIONS[0]!.id;
+      const B = REGIONS[1]!.id;
+      const r = raidTotalsByRegion([
+        { tick: 0, regionId: A, kills: 1, lootGp: 500, died: false }, // A +500
+        { tick: 1, regionId: A, kills: 1, lootGp: 200, died: true }, // A −200
+        { tick: 2, regionId: B, kills: 3, lootGp: 1000, died: false }, // B +1000
+      ]);
+      expect(r[0]).toMatchObject({ regionId: B, runs: 1, deaths: 0, net: 1000 }); // best net first
+      expect(r[1]).toMatchObject({ regionId: A, runs: 2, deaths: 1, banked: 500, lost: 200, net: 300 });
+    });
+    it('DelvePanel shows a per-region breakdown once 2+ regions are raided, hidden below', () => {
+      const game = newGame(42);
+      game.delves = [{ tick: 0, regionId: REGIONS[0]!.id, kills: 1, lootGp: 500, died: false }]; // one region
+      const one = render(<DelvePanel game={game} />);
+      expect(one.container.querySelector('.raidbyregion')).toBeNull(); // header totals already say it
+      one.unmount();
+      game.delves = [
+        { tick: 0, regionId: REGIONS[0]!.id, kills: 1, lootGp: 500, died: false },
+        { tick: 1, regionId: REGIONS[1]!.id, kills: 2, lootGp: 900, died: false }, // a second region
+      ];
+      const two = render(<DelvePanel game={game} />);
+      const block = two.container.querySelector('.raidbyregion');
+      expect(block).toBeTruthy();
+      expect(block!.textContent).toMatch(/best farm first/);
     });
     it('a Delve Log row calls onPick with its region (raid here again)', () => {
       const game = newGame(42);

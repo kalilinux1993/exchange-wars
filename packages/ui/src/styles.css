@@ -761,6 +761,13 @@ th.num {
   margin-top: 8px;
 }
 
+/* per-region raid breakdown in the Delve Log — a small "which region pays best" summary */
+.raidbyregion {
+  margin: 2px 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(61, 52, 36, 0.5);
+}
+
 /* keycap pills in the help guide */
 kbd {
   font: inherit;

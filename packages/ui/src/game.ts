@@ -233,6 +233,37 @@ export function raidTotals(delves: DelveRecord[] | undefined): RaidTotals {
   return { runs: list.length, deaths, banked, lost };
 }
 
+/** Per-region raid risk/reward — one region's slice of the Delve Log. */
+export interface RegionRaid {
+  regionId: string;
+  runs: number;
+  deaths: number;
+  banked: number; // loot kept on survival
+  lost: number; // loot forfeited on death
+  net: number; // banked − lost
+}
+
+/**
+ * The Delve Log grouped BY region — "which region is my best (or deadliest) farm?". Ranked by
+ * net loot (banked − lost) descending, then runs, then id for a stable order. Pure.
+ */
+export function raidTotalsByRegion(delves: DelveRecord[] | undefined): RegionRaid[] {
+  const byId: Record<string, RegionRaid> = {};
+  for (const d of delves ?? []) {
+    const r = (byId[d.regionId] ??= { regionId: d.regionId, runs: 0, deaths: 0, banked: 0, lost: 0, net: 0 });
+    r.runs += 1;
+    if (d.died) {
+      r.deaths += 1;
+      r.lost += d.lootGp;
+    } else {
+      r.banked += d.lootGp;
+    }
+  }
+  const list = Object.values(byId);
+  for (const r of list) r.net = r.banked - r.lost;
+  return list.sort((a, b) => b.net - a.net || b.runs - a.runs || (a.regionId < b.regionId ? -1 : 1));
+}
+
 /** A region's full native roster: its encounter pool + named elite, deduped, order-stable. */
 export function regionRoster(region: { monsters: string[]; elite?: string }): string[] {
   const ids = region.elite ? [...region.monsters, region.elite] : [...region.monsters];

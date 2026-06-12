@@ -1,6 +1,6 @@
 import { REGIONS, regionIndex } from '@exchange-wars/engine';
 import type { Game } from '../game';
-import { fmtCompact, fmtDuration, raidTotals, recentDelves } from '../game';
+import { fmtCompact, fmtDuration, raidTotals, raidTotalsByRegion, recentDelves } from '../game';
 
 /**
  * Delve Log (12i): a persistent chronicle of finished expeditions — the
@@ -20,6 +20,7 @@ export function DelvePanel({
 }) {
   const rows = recentDelves(game.delves, limit);
   const t = raidTotals(game.delves);
+  const byRegion = raidTotalsByRegion(game.delves);
   return (
     <section className="panel delvelog">
       <h2>
@@ -39,6 +40,32 @@ export function DelvePanel({
           </span>
         )}
       </h2>
+      {byRegion.length >= 2 && (
+        <div className="raidbyregion">
+          <span className="dim small">by region — best farm first:</span>
+          <ul className="rows small">
+            {byRegion.map((r) => {
+              const name = REGIONS[regionIndex(r.regionId)]?.name ?? r.regionId;
+              return (
+                <li
+                  key={r.regionId}
+                  className="raidregion"
+                  title={`${name}: ${r.runs} run${r.runs === 1 ? '' : 's'}, ${r.deaths} death${r.deaths === 1 ? '' : 's'} · ${r.banked.toLocaleString('en-US')} banked − ${r.lost.toLocaleString('en-US')} lost`}
+                >
+                  <span>{name}</span>
+                  <span className="dim small">
+                    {r.runs}r{r.deaths > 0 ? ` · ${r.deaths}☠` : ''}
+                  </span>
+                  <span className={r.net >= 0 ? 'pct up' : 'pct down'}>
+                    {r.net >= 0 ? '+' : '−'}
+                    {fmtCompact(Math.abs(r.net))} net
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
       {rows.length === 0 ? (
         <p className="dim small">no expeditions yet — finish a raid in the Adventure tab and it will chronicle here</p>
       ) : (
