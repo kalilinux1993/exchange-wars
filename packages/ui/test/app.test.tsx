@@ -17,6 +17,7 @@ import { regionDanger } from '../src/components/ExpeditionPanel';
 import { resolveShortcut } from '../src/keyboard';
 import { ProfitPanel } from '../src/components/ProfitPanel';
 import { PositionsPanel } from '../src/components/PositionsPanel';
+import { ConquestPanel } from '../src/components/ConquestPanel';
 import { depthSplit } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
@@ -61,6 +62,8 @@ import {
   streakAtRisk,
   recordDailyBest,
   dailyBestView,
+  regionRoster,
+  regionMastery,
   totalRealized,
   totalUnrealized,
   updateNews,
@@ -448,6 +451,34 @@ describe('UI shell', () => {
     localStorage.setItem('ew-daily-best', JSON.stringify({ day: dailySeed(), best: HUMAN_START_GP + 10_000 }));
     render(<App initial={newGame(42)} />);
     expect(screen.queryByText(/🏁/)).toBeNull();
+  });
+
+  describe('regionMastery', () => {
+    it('rosters a region as its pool plus elite, deduped & order-stable', () => {
+      expect(regionRoster({ monsters: ['a', 'b'] })).toEqual(['a', 'b']);
+      expect(regionRoster({ monsters: ['a', 'b'], elite: 'z' })).toEqual(['a', 'b', 'z']);
+      expect(regionRoster({ monsters: ['a', 'a', 'b'], elite: 'b' })).toEqual(['a', 'b']); // deduped
+    });
+    it('counts distinct roster foes slain; done only when all (incl. elite) fall', () => {
+      const region = { monsters: ['a', 'b'], elite: 'z' };
+      expect(regionMastery(region, undefined)).toEqual({ slain: 0, total: 3, done: false });
+      expect(regionMastery(region, { a: 5, b: 0 })).toEqual({ slain: 1, total: 3, done: false });
+      expect(regionMastery(region, { a: 1, b: 2 })).toEqual({ slain: 2, total: 3, done: false }); // elite alive
+      expect(regionMastery(region, { a: 1, b: 2, z: 1 })).toEqual({ slain: 3, total: 3, done: true });
+    });
+    it('an empty roster is never done (and never divides by zero)', () => {
+      expect(regionMastery({ monsters: [] }, { a: 1 })).toEqual({ slain: 0, total: 0, done: false });
+    });
+  });
+
+  it('the Conquest panel crowns a region once its whole roster is slain', () => {
+    const game = newGame(42);
+    const r0 = REGIONS[0]!;
+    const roster = r0.elite ? [...r0.monsters, r0.elite] : r0.monsters;
+    game.world.stats.killsByMonster = Object.fromEntries(roster.map((id) => [id, 1]));
+    render(<ConquestPanel game={game} />);
+    expect(screen.getByText(r0.name, { exact: false })).toBeTruthy(); // region row present
+    expect(screen.getByText(`1/${REGIONS.length} mastered`)).toBeTruthy(); // exactly one conquered
   });
 
   it('loadCorruptSave / discardCorruptSave round-trip the quarantine', () => {

@@ -20,6 +20,7 @@ import { ProfitPanel } from './components/ProfitPanel';
 import { PositionsPanel } from './components/PositionsPanel';
 import { MilestonesPanel } from './components/MilestonesPanel';
 import { RecordsPanel } from './components/RecordsPanel';
+import { ConquestPanel } from './components/ConquestPanel';
 import { Sparkline } from './components/Sparkline';
 import type { TicketPrefill } from './components/TradeTicket';
 import { PlayerPanel } from './components/PlayerPanel';
@@ -907,6 +908,7 @@ export function App({ initial }: { initial?: Game }) {
         <section className="middle">
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
           <RecordsPanel game={game} />
+          <ConquestPanel game={game} />
           <AlmanacPanel game={game} />
         </section>
         <section className="middle">

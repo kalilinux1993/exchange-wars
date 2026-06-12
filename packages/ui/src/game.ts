@@ -155,6 +155,36 @@ export function dailyBestView(
   return { best: best.best, atPeak: worth >= best.best };
 }
 
+/** A region's full native roster: its encounter pool + named elite, deduped, order-stable. */
+export function regionRoster(region: { monsters: string[]; elite?: string }): string[] {
+  const ids = region.elite ? [...region.monsters, region.elite] : [...region.monsters];
+  return [...new Set(ids)];
+}
+
+/** Per-region monster-mastery completion — the row of the Region Conquest codex. */
+export interface RegionMastery {
+  slain: number; // distinct roster monsters you've killed at least once
+  total: number; // size of the region's native roster
+  done: boolean; // every native foe slain (a region fully conquered)
+}
+
+/**
+ * How much of a region's native roster (encounter pool + elite) you've cleared,
+ * from the lifetime `killsByMonster` tally. `done` only when EVERY native foe —
+ * including the elite — has been slain at least once, a deeper bar than merely
+ * unlocking past the region. Pure (kills injected). A region with no roster is
+ * never "done" (guards a 0/0 division at the call site too).
+ */
+export function regionMastery(
+  region: { monsters: string[]; elite?: string },
+  killsByMonster: Record<string, number> | undefined,
+): RegionMastery {
+  const roster = regionRoster(region);
+  const kills = killsByMonster ?? {};
+  const slain = roster.filter((id) => (kills[id] ?? 0) > 0).length;
+  return { slain, total: roster.length, done: roster.length > 0 && slain === roster.length };
+}
+
 /**
  * Restarting the SAME seed keeps your best previous run as a chart ghost
  * (best = highest final worth, comparing the run being abandoned against any

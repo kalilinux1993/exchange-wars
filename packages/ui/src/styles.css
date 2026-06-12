@@ -1479,6 +1479,24 @@ kbd {
   height: 100%;
   background: var(--gold);
 }
+
+/* region-conquest mastery bar — sits inline between the region name and N/M;
+   gold while in progress, emerald once the region is fully conquered. */
+.conquestbar {
+  flex: 0 0 56px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ink);
+  overflow: hidden;
+}
+.conquestbar > span {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+}
+.conquest-row.done .conquestbar > span {
+  background: #2dd4bf;
+}
 .bounties li.bounty.done .bountybar > span {
   background: var(--rise);
 }
