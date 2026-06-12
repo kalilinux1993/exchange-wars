@@ -1,7 +1,7 @@
 import { GEAR, GE_TAX_RATE } from '@exchange-wars/engine';
 import type { ItemDef, ItemId, PlayerView, Trade } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { nextRowIndex } from '../game';
+import { nextRowIndex, valueBand } from '../game';
 
 const SPARK_POINTS = 20;
 
@@ -59,7 +59,7 @@ export function MarketTable({
   active?: boolean;
 }) {
   const [filter, setFilter] = useState('');
-  const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear' | 'flippable'>('all');
+  const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear' | 'flippable' | 'cheap'>('all');
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
   const toggleSort = (key: SortKey): void =>
     setSort((s) => (s && s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 }));
@@ -71,13 +71,14 @@ export function MarketTable({
     sparks.set(t.itemId, arr);
   }
   const needle = filter.trim().toLowerCase();
-  const inTrack = (m: { itemId: ItemId; bestBid: number | null; bestAsk: number | null }): boolean => {
+  const inTrack = (m: { itemId: ItemId; bestBid: number | null; bestAsk: number | null; lastPrice: number }): boolean => {
     if (track === 'all') return true;
     if (track === 'gear') return GEAR[m.itemId] !== undefined; // the equippable items only
     if (track === 'flippable') {
       const mg = flipMargin(m);
       return mg !== null && mg > 0; // a positive after-tax spread right now
     }
+    if (track === 'cheap') return valueBand(defs.get(m.itemId), m.lastPrice) === 'cheap'; // trading near its floor
     const exotic = (defs.get(m.itemId)?.volatility ?? 0) >= EXOTIC_VOL;
     return track === 'exotics' ? exotic : !exotic;
   };
@@ -152,8 +153,13 @@ export function MarketTable({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-        {(['all', 'staples', 'exotics', 'gear', 'flippable'] as const).map((t) => (
-          <button key={t} className={track === t ? 'chip active' : 'chip'} onClick={() => setTrack(t)}>
+        {(['all', 'staples', 'exotics', 'gear', 'flippable', 'cheap'] as const).map((t) => (
+          <button
+            key={t}
+            className={track === t ? 'chip active' : 'chip'}
+            title={t === 'cheap' ? 'items trading in the cheap third of their cost→value band — accumulation candidates' : undefined}
+            onClick={() => setTrack(t)}
+          >
             {t}
           </button>
         ))}{' '}

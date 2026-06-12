@@ -2,7 +2,7 @@ import { GE_TAX_RATE } from '@exchange-wars/engine';
 import type { CommandResult, ItemDef, ItemId, PlayerCommand, PlayerView, Side } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { Sparkline } from './Sparkline';
-import { blendBuy, breakEvenSell, gearDelta, priceSwing } from '../game';
+import { blendBuy, breakEvenSell, gearDelta, priceSwing, valueBand } from '../game';
 
 /**
  * Split the resting book into bid/ask proportions for the liquidity bar —
@@ -104,9 +104,7 @@ export function TradeTicket({
 
   // Fair value: where lastPrice sits in the item's own [baseCost..consumeValue]
   // band — cheap to accumulate vs rich to offload, which the spread can't say.
-  const band = def && def.consumeValue > def.baseCost ? (def.consumeValue - def.baseCost) : 0;
-  const valuePos = band > 0 && market ? Math.max(0, Math.min(1, (market.lastPrice - def!.baseCost) / band)) : null;
-  const valueLabel = valuePos === null ? null : valuePos < 0.34 ? 'cheap' : valuePos < 0.67 ? 'fair' : 'rich';
+  const valueLabel = market ? valueBand(def, market.lastPrice) : null;
 
   // Suggested flip: undercut the spread one tick each way; margin nets the 2%
   // sell tax. The flipper's core sum, surfaced — green if a flip clears profit.

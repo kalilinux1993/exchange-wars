@@ -1018,6 +1018,21 @@ export interface PriceSwing {
   swingPct: number; // (hi - lo) / lo
   read: 'steady' | 'choppy' | 'wild';
 }
+/**
+ * Where a price sits in an item's fundamental band (producer floor `baseCost` → consumer
+ * ceiling `consumeValue`): `cheap` near the floor (good to accumulate), `rich` near the ceiling
+ * (good to offload), `fair` between. `null` when there's no band (consumeValue ≤ baseCost). The
+ * position clamps to [0,1] so a price outside the band still reads cheap/rich, not past it. Pure.
+ */
+export function valueBand(
+  def: { baseCost: number; consumeValue: number } | undefined,
+  lastPrice: number,
+): 'cheap' | 'fair' | 'rich' | null {
+  if (!def || def.consumeValue <= def.baseCost) return null;
+  const pos = Math.max(0, Math.min(1, (lastPrice - def.baseCost) / (def.consumeValue - def.baseCost)));
+  return pos < 0.34 ? 'cheap' : pos < 0.67 ? 'fair' : 'rich';
+}
+
 export function priceSwing(prices: number[]): PriceSwing | null {
   if (prices.length < 2) return null;
   let lo = prices[0]!;

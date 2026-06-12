@@ -60,6 +60,7 @@ import {
   blendBuy,
   breakEvenSell,
   priceSwing,
+  valueBand,
   bookFromFills,
   emptyTradeBook,
   HUMAN_START_GP,
@@ -703,6 +704,22 @@ describe('UI shell', () => {
     });
     const ids = DEFAULT_ITEMS.slice(0, 3).map((i) => i.id);
     const view = { markets: ids.map(mkt) } as unknown as PlayerView;
+
+    it('the "cheap" track shows only items trading in the cheap third of their value band', () => {
+      const items = [
+        { id: 'floor_iron', name: 'Floor Iron', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+        { id: 'rich_silk', name: 'Rich Silk', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+      ] as unknown as ItemDef[];
+      const row = (itemId: string, lastPrice: number) => ({
+        itemId, bestBid: 1, bestAsk: 2, lastPrice, ema: lastPrice, volume: 1, bestBidIsMine: false, bestAskIsMine: false,
+      });
+      const v = { markets: [row('floor_iron', 110), row('rich_silk', 190)] } as unknown as PlayerView;
+      render(<MarketTable view={v} items={items} trades={[]} selected="floor_iron" onSelect={() => {}} eventItems={new Set()} active />);
+      expect(screen.getByText('Rich Silk')).toBeTruthy(); // both shown under 'all'
+      fireEvent.click(screen.getByRole('button', { name: 'cheap' }));
+      expect(screen.getByText('Floor Iron')).toBeTruthy(); // cheap (pos 0.1) stays
+      expect(screen.queryByText('Rich Silk')).toBeNull(); // rich (pos 0.9) filtered out
+    });
 
     it('j / k walk the selection through the displayed order, clamped at the ends', () => {
       const onSelect = vi.fn();
@@ -1434,6 +1451,16 @@ describe('UI shell', () => {
       expect(priceSwing([100, 108, 95])).toMatchObject({ lo: 95, hi: 108, read: 'wild' }); // (108-95)/95 ≈ 13.7% ≥ 10%
       expect(priceSwing([100, 106])!.read).toBe('choppy'); // 6% in the [4%,10%) band
       expect(priceSwing([100, 130])!.read).toBe('wild'); // +30% -> wild
+    });
+    it('valueBand reads cheap/fair/rich in the cost→value band, clamps, and nulls a bandless item', () => {
+      const def = { baseCost: 100, consumeValue: 200 }; // band 100..200
+      expect(valueBand(def, 110)).toBe('cheap'); // pos 0.10
+      expect(valueBand(def, 150)).toBe('fair'); // pos 0.50
+      expect(valueBand(def, 190)).toBe('rich'); // pos 0.90
+      expect(valueBand(def, 50)).toBe('cheap'); // below floor → clamps cheap
+      expect(valueBand(def, 999)).toBe('rich'); // above ceiling → clamps rich
+      expect(valueBand({ baseCost: 100, consumeValue: 100 }, 100)).toBeNull(); // no band
+      expect(valueBand(undefined, 100)).toBeNull();
     });
     it('worthBreakdown clamps an over-escrowed residual to 0 (torn-snapshot display guard)', () => {
       const view = { gp: 1000, openOrders: [{ side: 'buy', price: 100, remaining: 10 }] } as unknown as PlayerView;
