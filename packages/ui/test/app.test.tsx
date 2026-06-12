@@ -877,6 +877,27 @@ describe('UI shell', () => {
     expect(sold).not.toContain('rune_2h_sword'); // your raiding kit survives the bulk sell
   });
 
+  it('PlayerPanel equips gear from the satchel', () => {
+    const game = newGame(42);
+    game.world.agents[game.playerId]!.inventory['rune_2h_sword'] = 1;
+    const onCommand = vi.fn();
+    const view = playerView(game.world, game.playerId)!;
+    render(<PlayerPanel game={game} view={view} items={game.world.items} onCommand={onCommand} />);
+    fireEvent.click(screen.getByRole('button', { name: 'equip' }));
+    expect(onCommand).toHaveBeenCalledWith({ type: 'equip', itemId: 'rune_2h_sword' });
+  });
+
+  it('PlayerPanel shows equipped gear with an unequip button', () => {
+    const game = newGame(42);
+    const onCommand = vi.fn();
+    const view = playerView(game.world, game.playerId)!;
+    view.worn = { weapon: 'rune_2h_sword' };
+    render(<PlayerPanel game={game} view={view} items={game.world.items} onCommand={onCommand} />);
+    expect(screen.getByText('Equipped')).toBeTruthy();
+    fireEvent.click(screen.getByText('unequip'));
+    expect(onCommand).toHaveBeenCalledWith({ type: 'unequip', slot: 'weapon' });
+  });
+
   // Edge cases probed by the brick-125 adversarial review — pinned so the
   // verified-sound behaviour can't silently regress. (FINDINGS #159.)
   describe('helper edge cases (adversarial-review regression pins)', () => {

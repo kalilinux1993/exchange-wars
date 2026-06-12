@@ -64,6 +64,10 @@ export interface AgentState {
   botConfig?: { maxVolatility?: number; capitalFraction?: number; focusItemId?: ItemId | null };
   /** Players only: rolling GE buy-limit windows per item (absent = fresh). */
   buyWindows?: Record<ItemId, { windowStart: number; bought: number }>;
+  /** Players only: equipped gear by slot (weapon/helm/body/legs/shield) — the
+   *  Equipment manager. Worn gear overrides the expedition pack per slot in
+   *  combat and is NOT at risk on death. Plain JSON; absent = nothing equipped. */
+  worn?: Record<string, ItemId>;
   /** Players only: the expedition in progress (shape in quest.ts; plain JSON). */
   expedition?: import('./quest').ExpeditionState;
   /** Players only: highest region index unlocked (absent = 0, the plains). */

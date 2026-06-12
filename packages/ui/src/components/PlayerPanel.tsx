@@ -14,6 +14,7 @@ export function PlayerPanel({
   items: ItemDef[];
   onCommand: (cmd: PlayerCommand) => void;
 }) {
+  const names = new Map(items.map((i) => [i.id, i.name]));
   const held = items.filter((i) => (view.inventory[i.id] ?? 0) > 0);
   // Selling at the walk's floor fills the whole walkable qty instantly —
   // realize exactly what the honest mark says the bids would pay (8w).
@@ -34,7 +35,7 @@ export function PlayerPanel({
       <h2>Ledger</h2>
       <h3>Inventory</h3>
       {held.some((i) => GEAR[i.id] !== undefined) && (
-        <p className="dim small">⚔ to wear gear, take it on an expedition — the <b>⚔ Adventure</b> tab's pack auto-equips your best.</p>
+        <p className="dim small">⚔ <b>equip</b> gear here to wear it on every dive (it overrides your pack and is safe on death), or pack it manually in the <b>⚔ Adventure</b> tab.</p>
       )}
       <ul className="rows">
         {held.map((i) => {
@@ -48,6 +49,15 @@ export function PlayerPanel({
               <span className="num">
                 {qty.toLocaleString('en-US')} · bids pay ≈{(walk?.gp ?? 0).toLocaleString('en-US')} gp
               </span>
+              {GEAR[i.id] !== undefined && (
+                <button
+                  className="chip"
+                  title={`equip — needs ${GEAR[i.id]!.slot === 'weapon' ? 'Attack' : 'Defence'} ${GEAR[i.id]!.req}`}
+                  onClick={() => onCommand({ type: 'equip', itemId: i.id })}
+                >
+                  equip
+                </button>
+              )}
               {walk && (
                 <button className="chip" title={`sell ${walk.qty} into the resting bids (fills instantly)`} onClick={() => dump(i.id)}>
                   sell @ bid
@@ -81,6 +91,25 @@ export function PlayerPanel({
           </li>
         )}
       </ul>
+      {Object.keys(view.worn).length > 0 && (
+        <>
+          <h3>Equipped</h3>
+          <ul className="rows">
+            {Object.entries(view.worn).map(([slot, itemId]) => (
+              <li key={slot}>
+                <span>
+                  <Icon name={itemIcon(itemId).name} glyph={itemIcon(itemId).glyph} size={14} className="itemicon" />{' '}
+                  {names.get(itemId) ?? itemId}
+                </span>
+                <span className="dim small">{slot}</span>
+                <button className="chip" title="move it back to the satchel" onClick={() => onCommand({ type: 'unequip', slot })}>
+                  unequip
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       <h3>
         Open offers
         {view.openOrders.length > 1 && (

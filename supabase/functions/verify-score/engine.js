@@ -680,7 +680,7 @@ var HP_PER_LEVEL = 2;
 function maxHpFor(hpLevel) {
   return PLAYER_BASE.maxHp + HP_PER_LEVEL * (hpLevel - 1);
 }
-function deriveStats(pack, lvls = { atk: 1, def: 1 }) {
+function deriveStats(pack, lvls = { atk: 1, def: 1 }, worn) {
   const best = {};
   for (const [itemId, qty] of Object.entries(pack)) {
     if (qty < 1) continue;
@@ -689,6 +689,14 @@ function deriveStats(pack, lvls = { atk: 1, def: 1 }) {
     if ((g.slot === "weapon" ? lvls.atk : lvls.def) < g.req) continue;
     const cur = best[g.slot];
     if (!cur || g.atk + g.def > cur.atk + cur.def) best[g.slot] = g;
+  }
+  if (worn) {
+    for (const itemId of Object.values(worn)) {
+      const g = GEAR[itemId];
+      if (!g) continue;
+      if ((g.slot === "weapon" ? lvls.atk : lvls.def) < g.req) continue;
+      best[g.slot] = g;
+    }
   }
   let atk = PLAYER_BASE.atk + (lvls.atk - 1);
   let def = PLAYER_BASE.def + (lvls.def - 1);
@@ -1197,7 +1205,7 @@ function runCombatRound(state, agent, exp, action) {
   const rng = createRng(exp.rngState);
   const lvBefore = levelsOf(agent.combatXp);
   const hpBefore = { monster: exp.combat.monsterHp, player: exp.combat.playerHp };
-  const stats = deriveStats(exp.pack, lvBefore);
+  const stats = deriveStats(exp.pack, lvBefore, agent.worn);
   if (exp.boost) {
     stats.atk += exp.boost.atk;
     stats.def += exp.boost.def;
@@ -1671,6 +1679,29 @@ function applyCommand(state, playerId, cmd) {
       else delete agent.sellsword;
       return { ok: true, trades: [] };
     }
+    case "equip": {
+      if (agent.expedition) return { ok: false, reason: "on-expedition", trades: [] };
+      const g = GEAR[cmd.itemId];
+      if (!g) return { ok: false, reason: "not-equippable", trades: [] };
+      if ((agent.inventory[cmd.itemId] ?? 0) < 1) return { ok: false, reason: "not-owned", trades: [] };
+      const lv = levelsOf(agent.combatXp);
+      if ((g.slot === "weapon" ? lv.atk : lv.def) < g.req) return { ok: false, reason: "level-too-low", trades: [] };
+      const worn = agent.worn ??= {};
+      const prev = worn[g.slot];
+      if (prev !== void 0) agent.inventory[prev] = (agent.inventory[prev] ?? 0) + 1;
+      agent.inventory[cmd.itemId] = (agent.inventory[cmd.itemId] ?? 0) - 1;
+      if ((agent.inventory[cmd.itemId] ?? 0) <= 0) delete agent.inventory[cmd.itemId];
+      worn[g.slot] = cmd.itemId;
+      return { ok: true, trades: [] };
+    }
+    case "unequip": {
+      if (agent.expedition) return { ok: false, reason: "on-expedition", trades: [] };
+      const id = agent.worn?.[cmd.slot];
+      if (id === void 0) return { ok: false, reason: "nothing-equipped", trades: [] };
+      agent.inventory[id] = (agent.inventory[id] ?? 0) + 1;
+      delete agent.worn[cmd.slot];
+      return { ok: true, trades: [] };
+    }
     case "claimBounty": {
       const bounties = state.bounties ?? [];
       const idx = bounties.findIndex((b2) => b2.id === cmd.bountyId);
@@ -1739,6 +1770,7 @@ function playerView(state, playerId) {
     },
     contracts: (state.contracts ?? []).filter((c) => c.expiresTick > state.tick).map((c) => ({ id: c.id, itemId: c.itemId, qty: c.qty, unitPrice: c.unitPrice, expiresTick: c.expiresTick })),
     inventory: { ...agent.inventory },
+    worn: { ...agent.worn ?? {} },
     openOrders,
     markets
   };

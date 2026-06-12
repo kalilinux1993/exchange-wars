@@ -11,6 +11,7 @@ import {
   cachePool,
   CONSUMABLES,
   deriveStats,
+  GEAR,
   ENCOUNTERS,
   levelsOf,
   maxHpFor,
@@ -91,7 +92,9 @@ export type PlayerCommand =
   | { type: 'choose'; accept: boolean }
   | { type: 'extract' }
   | { type: 'claimBounty'; bountyId: number }
-  | { type: 'configureSellsword'; active: boolean };
+  | { type: 'configureSellsword'; active: boolean }
+  | { type: 'equip'; itemId: ItemId }
+  | { type: 'unequip'; slot: string };
 
 export interface CommandResult {
   ok: boolean;
@@ -136,6 +139,8 @@ export interface PlayerView {
   /** Open quartermaster contracts (world-public). */
   contracts: { id: number; itemId: ItemId; qty: number; unitPrice: number; expiresTick: number }[];
   inventory: Record<ItemId, number>;
+  /** Equipped gear by slot (the Equipment manager). Absent slots = empty. */
+  worn: Record<string, ItemId>;
   openOrders: OpenOrderView[];
   markets: MarketView[];
 }
@@ -234,7 +239,7 @@ export function runCombatRound(
   const rng = createRng(exp.rngState);
   const lvBefore = levelsOf(agent.combatXp);
   const hpBefore = { monster: exp.combat.monsterHp, player: exp.combat.playerHp };
-  const stats = deriveStats(exp.pack, lvBefore);
+  const stats = deriveStats(exp.pack, lvBefore, agent.worn);
   if (exp.boost) {
     stats.atk += exp.boost.atk;
     stats.def += exp.boost.def;
@@ -798,6 +803,31 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       else delete agent.sellsword; // canonical absent-=-off
       return { ok: true, trades: [] };
     }
+    case 'equip': {
+      if (agent.expedition) return { ok: false, reason: 'on-expedition', trades: [] };
+      const g = GEAR[cmd.itemId];
+      if (!g) return { ok: false, reason: 'not-equippable', trades: [] };
+      if ((agent.inventory[cmd.itemId] ?? 0) < 1) return { ok: false, reason: 'not-owned', trades: [] };
+      const lv = levelsOf(agent.combatXp);
+      if ((g.slot === 'weapon' ? lv.atk : lv.def) < g.req) return { ok: false, reason: 'level-too-low', trades: [] };
+      const worn = (agent.worn ??= {});
+      // Swap: the item leaves inventory for the slot; whatever was in the slot
+      // returns to inventory. Pure inventory↔worn moves — conservation holds.
+      const prev = worn[g.slot];
+      if (prev !== undefined) agent.inventory[prev] = (agent.inventory[prev] ?? 0) + 1;
+      agent.inventory[cmd.itemId] = (agent.inventory[cmd.itemId] ?? 0) - 1;
+      if ((agent.inventory[cmd.itemId] ?? 0) <= 0) delete agent.inventory[cmd.itemId];
+      worn[g.slot] = cmd.itemId;
+      return { ok: true, trades: [] };
+    }
+    case 'unequip': {
+      if (agent.expedition) return { ok: false, reason: 'on-expedition', trades: [] };
+      const id = agent.worn?.[cmd.slot];
+      if (id === undefined) return { ok: false, reason: 'nothing-equipped', trades: [] };
+      agent.inventory[id] = (agent.inventory[id] ?? 0) + 1;
+      delete agent.worn![cmd.slot];
+      return { ok: true, trades: [] };
+    }
     case 'claimBounty': {
       const bounties = state.bounties ?? [];
       const idx = bounties.findIndex((b) => b.id === cmd.bountyId);
@@ -870,6 +900,7 @@ export function playerView(state: WorldState, playerId: number): PlayerView | nu
       .filter((c) => c.expiresTick > state.tick)
       .map((c) => ({ id: c.id, itemId: c.itemId, qty: c.qty, unitPrice: c.unitPrice, expiresTick: c.expiresTick })),
     inventory: { ...agent.inventory },
+    worn: { ...(agent.worn ?? {}) },
     openOrders,
     markets,
   };

@@ -53,6 +53,7 @@ export function checkInvariants(state: WorldState): void {
       const packed = a.expedition?.pack[def.id] ?? 0;
       if (packed < 0) throw new Error(`agent ${a.id} packed negative ${def.id}: ${packed}`);
       total += packed; // expedition packs still count
+      if (a.worn) for (const id of Object.values(a.worn)) if (id === def.id) total += 1; // equipped gear too
     }
     const book = state.books[def.id];
     if (book) for (const o of book.sells) total += o.remaining;

@@ -320,7 +320,11 @@ export function maxHpFor(hpLevel: number): number {
  * Attack, armor demands Defence; under-leveled gear is inert. Levels add
  * +1 atk/def each beyond 1. Quantity is irrelevant for gear (one body is one
  * body); consumables are spent one at a time. */
-export function deriveStats(pack: Record<string, number>, lvls: CombatLevels = { atk: 1, def: 1 }): FighterStats {
+export function deriveStats(
+  pack: Record<string, number>,
+  lvls: CombatLevels = { atk: 1, def: 1 },
+  worn?: Record<string, string>,
+): FighterStats {
   const best: Partial<Record<GearSlot, GearDef>> = {};
   for (const [itemId, qty] of Object.entries(pack)) {
     if (qty < 1) continue;
@@ -329,6 +333,15 @@ export function deriveStats(pack: Record<string, number>, lvls: CombatLevels = {
     if ((g.slot === 'weapon' ? lvls.atk : lvls.def) < g.req) continue; // inert
     const cur = best[g.slot];
     if (!cur || g.atk + g.def > cur.atk + cur.def) best[g.slot] = g;
+  }
+  // Equipped (worn) gear OVERRIDES the pack per slot — the player chose it.
+  if (worn) {
+    for (const itemId of Object.values(worn)) {
+      const g = GEAR[itemId];
+      if (!g) continue;
+      if ((g.slot === 'weapon' ? lvls.atk : lvls.def) < g.req) continue; // inert
+      best[g.slot] = g;
+    }
   }
   let atk = PLAYER_BASE.atk + (lvls.atk - 1);
   let def = PLAYER_BASE.def + (lvls.def - 1);
