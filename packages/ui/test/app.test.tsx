@@ -123,6 +123,7 @@ import {
   itemSources,
   diveRecords,
   diveStreak,
+  isStreakMilestone,
   isNewBestHaul,
   totalRealized,
   totalUnrealized,
@@ -2128,6 +2129,13 @@ describe('UI shell', () => {
       expect(diveStreak([d(false), d(false), d(true)])).toEqual({ current: 0, best: 2 }); // died last → current 0, best 2 survives
       expect(diveStreak([d(false), d(false), d(true), d(false)])).toEqual({ current: 1, best: 2 }); // rebuilding: trailing 1, best still 2
       expect(diveStreak([d(true), d(false), d(false), d(false), d(false)])).toEqual({ current: 4, best: 4 }); // a death early, then a long clean run
+    });
+    it('isStreakMilestone fires exactly on the celebration set, not between or at 0', () => {
+      expect([5, 10, 25, 50, 100].every(isStreakMilestone)).toBe(true); // every milestone
+      expect(isStreakMilestone(0)).toBe(false); // a death/no-streak never celebrates
+      expect(isStreakMilestone(4)).toBe(false); // one short
+      expect(isStreakMilestone(6)).toBe(false); // one past
+      expect(isStreakMilestone(11)).toBe(false); // between milestones
     });
   });
 

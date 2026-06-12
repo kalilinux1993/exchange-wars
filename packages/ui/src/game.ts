@@ -393,6 +393,13 @@ export function diveStreak(delves: DelveRecord[] | undefined): DiveStreak {
   return { current: run, best }; // at loop end, `run` is the trailing (current) streak
 }
 
+/** Survival-streak lengths worth a celebration. The streak grows by exactly 1 per survived dive, so an
+ * exact-membership check fires each milestone once as it's reached (a death resets to 0, never a member). */
+export const STREAK_MILESTONES = [5, 10, 25, 50, 100];
+export function isStreakMilestone(current: number): boolean {
+  return STREAK_MILESTONES.includes(current);
+}
+
 /** A region's full native roster: its encounter pool + named elite, deduped, order-stable. */
 export function regionRoster(region: { monsters: string[]; elite?: string }): string[] {
   const ids = region.elite ? [...region.monsters, region.elite] : [...region.monsters];

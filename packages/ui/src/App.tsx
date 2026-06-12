@@ -45,6 +45,8 @@ import {
   beatRecord,
   DELVE_LOG_CAP,
   isNewBestHaul,
+  diveStreak,
+  isStreakMilestone,
   checkMilestones,
   MILESTONES,
   finishOfflineProgress,
@@ -1192,6 +1194,18 @@ export function App({ initial }: { initial?: Game }) {
                   id: 'besthaul',
                   name: '🏆 New best haul!',
                   flavor: `${record.lootGp.toLocaleString('en-US')} gp banked from ${where}`,
+                  achieved: () => false,
+                });
+              }
+              // Survival-streak milestone (16g): a clean extraction reaching 5/10/25/… in a row.
+              // Computed AFTER the append; a death resets the streak to 0, so it can't fire one. Last
+              // toast in this handler → the rarer milestone wins the slot if a best-haul also fired.
+              const streakNow = diveStreak(game.delves).current;
+              if (isStreakMilestone(streakNow)) {
+                setToast({
+                  id: 'streak-milestone',
+                  name: `🔥 ${streakNow}-dive survival streak!`,
+                  flavor: `${streakNow} clean extractions in a row — don't break it now`,
                   achieved: () => false,
                 });
               }
