@@ -887,6 +887,16 @@ describe('UI shell', () => {
     expect(onCommand).toHaveBeenCalledWith({ type: 'equip', itemId: 'rune_2h_sword' });
   });
 
+  it('PlayerPanel equips your best gear in one click', () => {
+    const game = newGame(42);
+    game.world.agents[game.playerId]!.inventory['rune_2h_sword'] = 1; // a satchel gear upgrade
+    const onCommand = vi.fn();
+    const view = playerView(game.world, game.playerId)!;
+    render(<PlayerPanel game={game} view={view} items={game.world.items} onCommand={onCommand} />);
+    fireEvent.click(screen.getByRole('button', { name: 'equip best' }));
+    expect(onCommand).toHaveBeenCalledWith({ type: 'equipBest' });
+  });
+
   it('PlayerPanel shows equipped gear with an unequip button', () => {
     const game = newGame(42);
     const onCommand = vi.fn();

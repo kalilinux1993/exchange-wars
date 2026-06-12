@@ -1702,6 +1702,32 @@ function applyCommand(state, playerId, cmd) {
       delete agent.worn[cmd.slot];
       return { ok: true, trades: [] };
     }
+    case "equipBest": {
+      if (agent.expedition) return { ok: false, reason: "on-expedition", trades: [] };
+      const lv = levelsOf(agent.combatXp);
+      const worn = agent.worn ??= {};
+      const bestPerSlot = {};
+      for (const [itemId, g] of Object.entries(GEAR)) {
+        if ((g.slot === "weapon" ? lv.atk : lv.def) < g.req) continue;
+        const owned = (agent.inventory[itemId] ?? 0) > 0 || worn[g.slot] === itemId;
+        if (!owned) continue;
+        const cur = bestPerSlot[g.slot];
+        const curG = cur ? GEAR[cur] : void 0;
+        if (!curG || g.atk + g.def > curG.atk + curG.def) bestPerSlot[g.slot] = itemId;
+      }
+      let changed = false;
+      for (const [slot, itemId] of Object.entries(bestPerSlot)) {
+        if (worn[slot] === itemId) continue;
+        const prev = worn[slot];
+        if (prev !== void 0) agent.inventory[prev] = (agent.inventory[prev] ?? 0) + 1;
+        agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) - 1;
+        if ((agent.inventory[itemId] ?? 0) <= 0) delete agent.inventory[itemId];
+        worn[slot] = itemId;
+        changed = true;
+      }
+      if (!changed) return { ok: false, reason: "no-upgrade", trades: [] };
+      return { ok: true, trades: [] };
+    }
     case "claimBounty": {
       const bounties = state.bounties ?? [];
       const idx = bounties.findIndex((b2) => b2.id === cmd.bountyId);

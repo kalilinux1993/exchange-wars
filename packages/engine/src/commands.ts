@@ -94,7 +94,8 @@ export type PlayerCommand =
   | { type: 'claimBounty'; bountyId: number }
   | { type: 'configureSellsword'; active: boolean }
   | { type: 'equip'; itemId: ItemId }
-  | { type: 'unequip'; slot: string };
+  | { type: 'unequip'; slot: string }
+  | { type: 'equipBest' };
 
 export interface CommandResult {
   ok: boolean;
@@ -826,6 +827,35 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
       if (id === undefined) return { ok: false, reason: 'nothing-equipped', trades: [] };
       agent.inventory[id] = (agent.inventory[id] ?? 0) + 1;
       delete agent.worn![cmd.slot];
+      return { ok: true, trades: [] };
+    }
+    case 'equipBest': {
+      if (agent.expedition) return { ok: false, reason: 'on-expedition', trades: [] };
+      const lv = levelsOf(agent.combatXp);
+      const worn = (agent.worn ??= {});
+      // Per slot, the best USABLE piece the player owns (satchel OR already worn)
+      // wins. Scan GEAR in catalog order so ties resolve first-seen — identical
+      // tie-break to deriveStats, so what we equip matches what fights.
+      const bestPerSlot: Record<string, ItemId> = {};
+      for (const [itemId, g] of Object.entries(GEAR)) {
+        if ((g.slot === 'weapon' ? lv.atk : lv.def) < g.req) continue; // under-level → inert
+        const owned = (agent.inventory[itemId] ?? 0) > 0 || worn[g.slot] === itemId;
+        if (!owned) continue;
+        const cur = bestPerSlot[g.slot];
+        const curG = cur ? GEAR[cur]! : undefined;
+        if (!curG || g.atk + g.def > curG.atk + curG.def) bestPerSlot[g.slot] = itemId;
+      }
+      let changed = false;
+      for (const [slot, itemId] of Object.entries(bestPerSlot)) {
+        if (worn[slot] === itemId) continue; // already wearing the best for this slot
+        const prev = worn[slot];
+        if (prev !== undefined) agent.inventory[prev] = (agent.inventory[prev] ?? 0) + 1;
+        agent.inventory[itemId] = (agent.inventory[itemId] ?? 0) - 1;
+        if ((agent.inventory[itemId] ?? 0) <= 0) delete agent.inventory[itemId];
+        worn[slot] = itemId;
+        changed = true;
+      }
+      if (!changed) return { ok: false, reason: 'no-upgrade', trades: [] };
       return { ok: true, trades: [] };
     }
     case 'claimBounty': {

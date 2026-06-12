@@ -35,7 +35,17 @@ export function PlayerPanel({
       <h2>Ledger</h2>
       <h3>Inventory</h3>
       {held.some((i) => GEAR[i.id] !== undefined) && (
-        <p className="dim small">⚔ <b>equip</b> gear here to wear it on every dive (it overrides your pack and is safe on death), or pack it manually in the <b>⚔ Adventure</b> tab.</p>
+        <p className="dim small">
+          ⚔ <b>equip</b> gear here to wear it on every dive (it overrides your pack and is safe on death), or pack it
+          manually in the <b>⚔ Adventure</b> tab.{' '}
+          <button
+            className="chip"
+            title="equip the best usable piece you own in every slot, in one click"
+            onClick={() => onCommand({ type: 'equipBest' })}
+          >
+            equip best
+          </button>
+        </p>
       )}
       <ul className="rows">
         {held.map((i) => {
