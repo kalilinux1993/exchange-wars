@@ -732,6 +732,9 @@ describe('UI shell', () => {
     expect(screen.getByText(/🔒 Def 12/)).toBeTruthy();
     // each worn slot (weapon/body/helm here) shows a gear icon
     expect(document.querySelectorAll('.equipicon').length).toBeGreaterThan(0);
+    // effective combat stats (levels + equipped gear) shown for direct compare
+    expect(screen.getByText(/in battle:/)).toBeTruthy();
+    expect(document.querySelector('.effstats')!.textContent).toMatch(/⚔\d+ 🛡\d+/);
   });
 
   it('a #seed link starts fresh visitors on that seed directly', () => {

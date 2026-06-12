@@ -1,4 +1,4 @@
-import { combatLevel, GEAR, levelsOf, maxHpFor, xpForLevel } from '@exchange-wars/engine';
+import { combatLevel, deriveStats, GEAR, levelsOf, maxHpFor, xpForLevel } from '@exchange-wars/engine';
 import type { GearSlot } from '@exchange-wars/engine';
 import type { AgentState } from '@exchange-wars/engine';
 import { useState } from 'react';
@@ -90,6 +90,7 @@ export function CharacterPanel({
   const lvls = levelsOf(agent?.combatXp);
   const trainedMax = maxHpFor(lvls.hp);
   const kit = equipped(agent?.inventory ?? {}, lvls);
+  const eff = deriveStats(agent?.inventory ?? {}, lvls);
   const locked = lockedUpgrades(agent?.inventory ?? {}, lvls, kit);
   const hp = agent?.hp ?? trainedMax;
   const cmb = combatLevel(agent?.combatXp);
@@ -188,6 +189,15 @@ export function CharacterPanel({
           {skill('def', '🛡', 'Defence')}
           {skill('hp', '♥', 'Hitpoints')}
         </div>
+        <p
+          className="dim small effstats"
+          title="your effective Attack/Defence including equipped gear — what actually fights; compare to a region's danger before you embark"
+        >
+          in battle:{' '}
+          <b>
+            ⚔{eff.atk} 🛡{eff.def}
+          </b>
+        </p>
         <div className="hpline">
           <span className="dim">hp</span>
           <span className="hpbar mini">
