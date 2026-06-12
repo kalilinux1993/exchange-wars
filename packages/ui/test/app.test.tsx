@@ -20,7 +20,7 @@ import { depthSplit } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
-import { ghostWorthAt } from '../src/components/WorthChart';
+import { WorthChart, ghostWorthAt } from '../src/components/WorthChart';
 import { chooseSave, sanitizeHandle, type Session } from '../src/cloud';
 import {
   applyOfflineProgress,
@@ -1103,6 +1103,28 @@ describe('UI shell', () => {
     const newly = checkMilestones(game, view, 0);
     expect(newly.map((m) => m.id)).toContain('first-blood');
     expect(game.milestoneTicks!['first-blood']).toBe(1234);
+  });
+
+  it('WorthChart marks earned deeds on the curve, skipping off-range ticks', () => {
+    const history = [
+      { tick: 0, worth: 50_000 },
+      { tick: 100, worth: 60_000 },
+      { tick: 200, worth: 55_000 },
+    ];
+    render(
+      <WorthChart
+        history={history}
+        startGp={50_000}
+        ghost={null}
+        milestones={[
+          { tick: 100, name: 'Dragon Slayer' }, // within [0,200] → marked
+          { tick: 500, name: 'Too Late' }, // beyond maxT 200 → skipped
+        ]}
+      />,
+    );
+    const marks = document.querySelectorAll('.deedmark');
+    expect(marks.length).toBe(1);
+    expect(marks[0]!.querySelector('title')!.textContent).toContain('Dragon Slayer');
   });
 
   it('MilestonesPanel shows the latest earned deed with its timing', () => {

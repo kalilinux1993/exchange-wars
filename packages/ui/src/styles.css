@@ -498,6 +498,13 @@ th.num {
   opacity: 0.5;
 }
 
+/* deed markers on the fortune curve — where each achievement landed (11t). */
+.worth .deedmark {
+  fill: var(--gold-bright);
+  stroke: var(--ink);
+  stroke-width: 0.6;
+}
+
 .worth.up,
 .worth polyline.up {
   color: var(--rise);

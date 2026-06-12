@@ -28,6 +28,7 @@ import { WorthChart } from './components/WorthChart';
 import {
   bumpStreak,
   checkMilestones,
+  MILESTONES,
   finishOfflineProgress,
   dailySeed,
   fmtDuration,
@@ -843,6 +844,9 @@ export function App({ initial }: { initial?: Game }) {
             history={game.worthHistory}
             startGp={game.startGp}
             ghost={game.ghost && game.ghost.seed === game.world.seed ? game.ghost.history : null}
+            milestones={game.milestones
+              .filter((id) => game.milestoneTicks?.[id] !== undefined)
+              .map((id) => ({ tick: game.milestoneTicks![id]!, name: MILESTONES.find((m) => m.id === id)?.name ?? id }))}
           />
         </section>
         <section className="middle">

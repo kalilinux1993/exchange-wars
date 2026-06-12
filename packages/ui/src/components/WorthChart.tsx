@@ -19,11 +19,14 @@ export function WorthChart({
   history,
   startGp,
   ghost,
+  milestones = [],
 }: {
   history: { tick: number; worth: number }[];
   startGp: number;
   /** Best previous run on this seed (or null) — drawn as a dim race line. */
   ghost: { tick: number; worth: number }[] | null;
+  /** Earned deeds with their achievement tick — marked on the curve (11t). */
+  milestones?: { tick: number; name: string }[];
 }) {
   if (history.length < 2) {
     return (
@@ -70,6 +73,13 @@ export function WorthChart({
           strokeWidth="1.5"
           className={last >= startGp ? 'up' : 'down'}
         />
+        {milestones
+          .filter((ms) => ms.tick >= minT && ms.tick <= maxT)
+          .map((ms, i) => (
+            <circle key={i} cx={x(ms.tick)} cy={y(ghostWorthAt(history, ms.tick))} r={2.4} className="deedmark">
+              <title>🏅 {ms.name}</title>
+            </circle>
+          ))}
       </svg>
       <p className="dim small">
         low {Math.min(...worths).toLocaleString('en-US')} · high {Math.max(...worths).toLocaleString('en-US')}{' '}
