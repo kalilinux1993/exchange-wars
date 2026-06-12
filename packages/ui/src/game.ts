@@ -1750,6 +1750,17 @@ export function biggestMover(
   return best && Math.abs(best.pct) >= 0.03 ? best : null;
 }
 
+/** The biggest mover among items you actually HOLD — the personal complement to the market-wide
+ * `biggestMover`. The headline says what the market did; this says what YOUR positions did while away.
+ * Pure (just `biggestMover` over the held subset). */
+export function heldMover(
+  before: Record<string, number>,
+  markets: { itemId: string; lastPrice: number }[],
+  inventory: Record<string, number>,
+): MarketMover | null {
+  return biggestMover(before, markets.filter((m) => (inventory[m.itemId] ?? 0) > 0));
+}
+
 export interface OfflineResult {
   ticks: number;
   worthBefore: number;
@@ -1759,6 +1770,8 @@ export interface OfflineResult {
   sellswordBanked: number;
   /** The biggest market move while away — the "the world didn't sleep" headline (14y). */
   topMover: MarketMover | null;
+  /** The biggest move among items you HOLD — what YOUR positions did while away (15x). */
+  heldMover: MarketMover | null;
 }
 
 export interface OfflinePlan {
@@ -1804,6 +1817,7 @@ export function finishOfflineProgress(game: Game, plan: OfflinePlan): OfflineRes
     sellswordKills: (game.world.stats.sellswordKills ?? 0) - plan.sellswordKills0,
     sellswordBanked: (game.world.stats.sellswordBanked ?? 0) - plan.sellswordBanked0,
     topMover: after ? biggestMover(plan.pricesBefore, after.markets) : null,
+    heldMover: after ? heldMover(plan.pricesBefore, after.markets, after.inventory) : null,
   };
 }
 

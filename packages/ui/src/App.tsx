@@ -969,6 +969,24 @@ export function App({ initial }: { initial?: Game }) {
                     </span>
                   );
                 })()}
+              {o.heldMover &&
+                o.heldMover.itemId !== o.topMover?.itemId &&
+                (() => {
+                  const mv = o.heldMover!;
+                  const name = game.world.items.find((i) => i.id === mv.itemId)?.name ?? mv.itemId;
+                  const up = mv.pct >= 0;
+                  return (
+                    <span className="awaymover held" title="your biggest-moving HOLDING while you were away — what your own positions did, not just the market">
+                      {' '}
+                      · 💼 your{' '}
+                      <b className={up ? 'up' : 'down'}>
+                        {name} {up ? '+' : ''}
+                        {Math.round(mv.pct * 100)}%
+                      </b>{' '}
+                      ({fmtCompact(mv.startPrice)}→{fmtCompact(mv.endPrice)})
+                    </span>
+                  );
+                })()}
               <button className="chip" onClick={() => setAwayDismissed(true)}>
                 ×
               </button>

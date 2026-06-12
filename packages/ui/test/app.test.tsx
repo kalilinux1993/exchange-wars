@@ -45,6 +45,7 @@ import {
   planOfflineProgress,
   finishOfflineProgress,
   biggestMover,
+  heldMover,
   bumpStreak,
   streakCelebration,
   checkMilestones,
@@ -413,6 +414,14 @@ describe('UI shell', () => {
       const mv = biggestMover({ a: 0, b: 100 }, [mk('a', 999), mk('b', 130), mk('z', 500)]);
       expect(mv?.itemId).toBe('b'); // a's start is 0, z has no captured start → only b (+30%) qualifies
       expect(biggestMover({}, [])).toBeNull();
+    });
+    it('heldMover reports your biggest-moving HOLDING, ignoring items you do not hold', () => {
+      const before = { held: 100, unheld: 100 };
+      const markets = [mk('held', 110), mk('unheld', 200)]; // unheld moved +100%, held only +10%
+      expect(heldMover(before, markets, { held: 5 })!.itemId).toBe('held'); // your position, not the market's mover
+      expect(heldMover(before, markets, { held: 5 })!.pct).toBeCloseTo(0.1);
+      expect(heldMover(before, markets, {})).toBeNull(); // hold nothing → no personal mover
+      expect(heldMover(before, markets, { held: 0 })).toBeNull(); // a zero balance is not a holding
     });
   });
 
