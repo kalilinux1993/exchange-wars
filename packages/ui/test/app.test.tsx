@@ -553,6 +553,24 @@ describe('UI shell', () => {
       fireEvent.keyDown(filter, { key: 'j' }); // target is the INPUT — guarded
       expect(onSelect).not.toHaveBeenCalled();
     });
+
+    it('scrolls the selected row into view when the selection moves', () => {
+      const orig = Element.prototype.scrollIntoView;
+      const spy = vi.fn();
+      Element.prototype.scrollIntoView = spy; // jsdom has no layout — stub it
+      try {
+        const { rerender } = render(
+          <MarketTable view={view} items={DEFAULT_ITEMS} trades={[]} selected={ids[0]!} onSelect={() => {}} eventItems={new Set()} active />,
+        );
+        spy.mockClear(); // ignore the initial-mount scroll
+        rerender(
+          <MarketTable view={view} items={DEFAULT_ITEMS} trades={[]} selected={ids[1]!} onSelect={() => {}} eventItems={new Set()} active />,
+        );
+        expect(spy).toHaveBeenCalled();
+      } finally {
+        Element.prototype.scrollIntoView = orig;
+      }
+    });
   });
 
   describe('Delve Log', () => {

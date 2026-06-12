@@ -115,6 +115,14 @@ export function MarketTable({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+  // Keep the selected row visible — on a long/filtered list, j/k can walk it off
+  // screen. `block: 'nearest'` only scrolls when it isn't already in view. The
+  // typeof guard sidesteps jsdom (no real layout) without a crash.
+  const bodyRef = useRef<HTMLTableSectionElement>(null);
+  useEffect(() => {
+    const row = bodyRef.current?.querySelector('tr.selected') as HTMLElement | null;
+    if (row && typeof row.scrollIntoView === 'function') row.scrollIntoView({ block: 'nearest' });
+  }, [selected]);
   const arrow = (key: SortKey): string => (sort?.key === key ? (sort.dir === 1 ? ' ▲' : ' ▼') : '');
   return (
     <section className="panel market">
@@ -156,7 +164,7 @@ export function MarketTable({
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody ref={bodyRef}>
           {sorted.map((m) => (
             <tr
               key={m.itemId}
