@@ -20,6 +20,22 @@ export function myRank(rows: { handle: string }[], rawHandle: string): number | 
 }
 
 /**
+ * The climb target: the worth gap + handle of the rank directly above you, or null when you're
+ * unranked or already #1. `meRank` is 1-based, so your row is `rows[meRank-1]` and the one above is
+ * `rows[meRank-2]`. The gap floors at 0 (a tie reads as 0 to overtake). Pure.
+ */
+export function rankGap(
+  rows: { handle: string; worth: number }[],
+  meRank: number | null,
+): { gap: number; rank: number; ahead: string } | null {
+  if (meRank === null || meRank <= 1) return null;
+  const above = rows[meRank - 2];
+  const mine = rows[meRank - 1];
+  if (!above || !mine) return null;
+  return { gap: Math.max(0, above.worth - mine.worth), rank: meRank - 1, ahead: above.handle };
+}
+
+/**
  * The verified Sprint Board for the current seed. Self-gating: probes the
  * leaderboard table once per seed and renders NOTHING until the backend
  * exists — the panel lights up by itself the day the table is deployed.
@@ -79,6 +95,15 @@ export function LeaderboardPanel({
         best fortune at tick {SPRINT_TICKS.toLocaleString('en-US')} — every entry verified by replay
       </p>
       {meRank !== null && <p className="dim small">you're #{meRank} on this seed</p>}
+      {(() => {
+        const g = rankGap(rows, meRank);
+        if (!g) return null;
+        return (
+          <p className="dim small rankgap" title="the fortune you'd need at the sprint mark to overtake the rank directly above — your next climb target">
+            🎯 <b>{g.gap.toLocaleString('en-US')}</b> gp behind #{g.rank} <b>{g.ahead}</b>
+          </p>
+        );
+      })()}
       <ul className="rows small">
         {rows.map((r, i) => (
           <li key={`${i}-${r.handle}`} className={meRank === i + 1 ? 'you' : undefined}>

@@ -32,7 +32,7 @@ import { WealthPanel } from '../src/components/WealthPanel';
 import { UpgradeShop } from '../src/components/UpgradeShop';
 import { PlayerPanel } from '../src/components/PlayerPanel';
 import { depthSplit, TradeTicket } from '../src/components/TradeTicket';
-import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
+import { LeaderboardPanel, myRank, rankGap } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
 import { FirstSteps, firstSteps } from '../src/components/FirstSteps';
 import { ContractsBoard, contractPremium } from '../src/components/ContractsBoard';
@@ -3854,6 +3854,17 @@ describe('UI shell', () => {
     it('never matches anonymous or an unset handle', () => {
       expect(myRank([{ handle: 'anonymous trader' }], '')).toBeNull();
       expect(myRank([{ handle: 'anonymous trader' }], '   ')).toBeNull();
+    });
+    it('rankGap gives the worth gap + handle of the rank directly above, null at #1/unranked', () => {
+      const board = [
+        { handle: 'alice', worth: 5000 },
+        { handle: 'bob', worth: 3000 },
+        { handle: 'carol', worth: 2900 },
+      ];
+      expect(rankGap(board, 2)).toEqual({ gap: 2000, rank: 1, ahead: 'alice' }); // bob trails alice by 2000
+      expect(rankGap(board, 3)).toEqual({ gap: 100, rank: 2, ahead: 'bob' }); // carol trails bob by 100
+      expect(rankGap(board, 1)).toBeNull(); // already #1
+      expect(rankGap(board, null)).toBeNull(); // unranked
     });
   });
 
