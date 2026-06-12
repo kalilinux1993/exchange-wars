@@ -1073,6 +1073,23 @@ describe('UI shell', () => {
     });
   });
 
+  describe('equipped — persistent worn gear override', () => {
+    it('shows the EQUIPPED piece even when a stronger one sits in the satchel (truthful, mirrors deriveStats)', () => {
+      // The honest case: you hold the best weapon but have equipped a weak one —
+      // combat fights in the worn piece, so the paperdoll must show it too.
+      const kit = equipped({ dragon_longsword: 1 }, { atk: 99, def: 99 }, { weapon: 'adamant_dart' });
+      expect(kit.weapon).toBe('adamant_dart');
+    });
+    it('fills a slot the satchel cannot (equipped gear has left the inventory)', () => {
+      const kit = equipped({}, { atk: 99, def: 99 }, { body: 'rune_platebody' });
+      expect(kit.body).toBe('rune_platebody');
+    });
+    it('without a worn arg, behaviour is unchanged — best usable from inventory', () => {
+      const kit = equipped({ adamant_dart: 1, dragon_longsword: 1 }, { atk: 99, def: 99 });
+      expect(kit.weapon).toBe('dragon_longsword');
+    });
+  });
+
   describe('fmtCompact', () => {
     it('keeps sub-10k exact, compacts larger aggregates to 3 sig figs', () => {
       expect(fmtCompact(0)).toBe('0');
@@ -1537,6 +1554,23 @@ describe('UI shell', () => {
     // effective combat stats (levels + equipped gear) shown for direct compare
     expect(screen.getByText(/in battle:/)).toBeTruthy();
     expect(document.querySelector('.effstats')!.textContent).toMatch(/⚔\d+ 🛡\d+/);
+  });
+
+  it('CharacterPanel paperdoll reflects ACTUAL worn gear, not the satchel-best preview', () => {
+    // Holds a strong weapon but has equipped a weak one. The figure must show
+    // what fights (worn adamant dart, atk 10), matching the equipment manager —
+    // not the dragon longsword (atk 50) still sitting in the satchel.
+    const agent = {
+      inventory: { dragon_longsword: 1 },
+      worn: { weapon: 'adamant_dart' },
+      combatXp: { atk: xpForLevel(99), def: xpForLevel(99), hp: 0 },
+    } as unknown as AgentState;
+    render(<CharacterPanel agent={agent} names={new Map([['adamant_dart', 'Adamant dart'], ['dragon_longsword', 'Dragon longsword']])} />);
+    const equiplist = document.querySelector('.equiplist')!;
+    expect(equiplist.textContent).toContain('Adamant dart'); // the worn piece is shown
+    expect(equiplist.textContent).not.toContain('Dragon longsword'); // the satchel-best is NOT
+    // effective Attack = base 5 + (99-1) levels + worn atk 10 = 113 (worn, not the dragon's 50)
+    expect(document.querySelector('.effstats')!.textContent).toMatch(/⚔113/);
   });
 
   it('a #seed link starts fresh visitors on that seed directly', () => {

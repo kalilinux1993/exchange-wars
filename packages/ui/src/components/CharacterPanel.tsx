@@ -14,11 +14,14 @@ const SLOTS: { slot: GearSlot; label: string; x: number; y: number }[] = [
   { slot: 'legs', label: 'legs', x: 50, y: 74 },
 ];
 
-/** Best USABLE item the player holds for each slot (mirrors deriveStats's
- * choice) — the paperdoll shows what they'd actually fight in. */
+/** What the player ACTUALLY fights in per slot (mirrors deriveStats): the best
+ * usable piece they hold, but anything they've persistently EQUIPPED (`worn`)
+ * overrides the inventory pick for that slot — so the paperdoll matches the
+ * equipment manager and the combat math, even after gear leaves the satchel. */
 export function equipped(
   inv: Record<string, number>,
   lvls: { atk: number; def: number },
+  worn?: Record<string, string>,
 ): Partial<Record<GearSlot, string>> {
   const best: Partial<Record<GearSlot, { id: string; score: number }>> = {};
   for (const [id, qty] of Object.entries(inv)) {
@@ -31,6 +34,16 @@ export function equipped(
   }
   const out: Partial<Record<GearSlot, string>> = {};
   for (const [slot, v] of Object.entries(best)) out[slot as GearSlot] = v!.id;
+  // Equipped gear OVERRIDES the inventory pick per slot — identical rule to
+  // deriveStats, so the figure shows what truly fights, not what you could pack.
+  if (worn) {
+    for (const id of Object.values(worn)) {
+      const g = GEAR[id];
+      if (!g) continue;
+      if ((g.slot === 'weapon' ? lvls.atk : lvls.def) < g.req) continue;
+      out[g.slot] = id;
+    }
+  }
   return out;
 }
 
@@ -89,8 +102,8 @@ export function CharacterPanel({
 }) {
   const lvls = levelsOf(agent?.combatXp);
   const trainedMax = maxHpFor(lvls.hp);
-  const kit = equipped(agent?.inventory ?? {}, lvls);
-  const eff = deriveStats(agent?.inventory ?? {}, lvls);
+  const kit = equipped(agent?.inventory ?? {}, lvls, agent?.worn);
+  const eff = deriveStats(agent?.inventory ?? {}, lvls, agent?.worn);
   const locked = lockedUpgrades(agent?.inventory ?? {}, lvls, kit);
   const hp = agent?.hp ?? trainedMax;
   const cmb = combatLevel(agent?.combatXp);
