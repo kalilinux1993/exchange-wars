@@ -418,27 +418,19 @@ export function App({ initial }: { initial?: Game }) {
       const fs = fillToastFlavor(newFills, (id) => game.world.items.find((i) => i.id === id)?.name ?? id);
       if (fs) setToast({ id: 'fills', name: '🪙 your offers filled', flavor: fs, achieved: () => false });
     }
-    // Combat level-up: celebrate the moment a skill ticks up. Fires before the
-    // milestone toast below, so a deed earned the same tick still wins the slot.
-    const lv = levelsOf(game.world.agents[game.playerId]?.combatXp);
-    const prog = game.world.agents[game.playerId]?.questProgress ?? 0;
-    if (prevLevels.current === null || levelBaselineGame.current !== game) {
-      prevLevels.current = lv; // (re)baseline on first run OR a game swap — never celebrate the baseline
-      prevProgress.current = prog;
-      levelBaselineGame.current = game;
-    } else {
-      for (const u of leveledUp(prevLevels.current, lv))
-        setToast({ id: 'levelup', name: `${u.glyph} ${u.name} up!`, flavor: `you reached ${u.name} ${u.level}`, achieved: () => false });
-      prevLevels.current = lv;
-      // A new region unlocked the moment the frontier index climbs.
-      if (prevProgress.current !== null && prog > prevProgress.current) {
-        const where = REGIONS[prog]?.name ?? 'a new frontier';
-        setToast({ id: 'region-unlock', name: '🗺 New frontier unlocked!', flavor: `${where} lies open — embark when you're ready`, achieved: () => false });
-      }
-      prevProgress.current = prog;
+    // Swap symmetry: a game-identity change (cloud adoption / restart) re-baselines EVERY
+    // cross-tick detection ref. The one-shot alert Sets are CLEARED here (fire-fresh) — for
+    // INFORMATIONAL alerts, surfacing "your watched X is cheap" right after a save-load is
+    // accurate, not a false achievement (unlike the celebrations below, which SUPPRESS the
+    // adopted baseline). The level/progress/event baselines re-latch in their own game-keyed
+    // blocks; `levelBaselineGame` is written only in the celebration block at the END, so this
+    // read detects the swap for the whole tick.
+    if (levelBaselineGame.current !== game) {
+      alertFired.current.clear();
+      sellFired.current.clear();
+      bandFired.current.clear();
+      richFired.current.clear();
     }
-    const newly = checkMilestones(game, v, w);
-    if (newly.length > 0) setToast(newly[newly.length - 1]!);
     // Price alerts: fire once when a watched item drops to its threshold;
     // re-arm only when it climbs back above (no toast spam at speed).
     for (const [id, threshold] of Object.entries(alerts)) {
@@ -521,6 +513,30 @@ export function App({ initial }: { initial?: Game }) {
         achieved: () => false,
       });
     }
+    // Celebrations LAST (last-writer-wins ⇒ a rare identity moment WINS the single toast slot
+    // over the frequent informational alerts/recaps above). Self-ordered fills<level<region<deed.
+    const lv = levelsOf(game.world.agents[game.playerId]?.combatXp);
+    const prog = game.world.agents[game.playerId]?.questProgress ?? 0;
+    if (prevLevels.current === null || levelBaselineGame.current !== game) {
+      // (re)baseline on first run OR a game swap — never celebrate the baseline. `prevProgress`
+      // re-baselines IN LOCKSTEP with `prevLevels` here; keep them coupled (decoupling re-introduces
+      // a region-unlock false-fire on a swap, the 14e/14f class).
+      prevLevels.current = lv;
+      prevProgress.current = prog;
+      levelBaselineGame.current = game;
+    } else {
+      for (const u of leveledUp(prevLevels.current, lv))
+        setToast({ id: 'levelup', name: `${u.glyph} ${u.name} up!`, flavor: `you reached ${u.name} ${u.level}`, achieved: () => false });
+      prevLevels.current = lv;
+      // A new region unlocked the moment the frontier index climbs.
+      if (prevProgress.current !== null && prog > prevProgress.current) {
+        const where = REGIONS[prog]?.name ?? 'a new frontier';
+        setToast({ id: 'region-unlock', name: '🗺 New frontier unlocked!', flavor: `${where} lies open — embark when you're ready`, achieved: () => false });
+      }
+      prevProgress.current = prog;
+    }
+    const newly = checkMilestones(game, v, w); // a deed = highest priority, fires last of all
+    if (newly.length > 0) setToast(newly[newly.length - 1]!);
   };
 
   useEffect(() => {
