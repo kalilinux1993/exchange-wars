@@ -358,6 +358,9 @@ export function App({ initial }: { initial?: Game }) {
   // reference is stable and real level-ups still fire.
   const prevLevels = useRef<{ atk: number; def: number; hp: number } | null>(null);
   const levelBaselineGame = useRef<typeof game | null>(null);
+  // Region-unlock celebration (15h): the frontier index when we last looked, re-baselined on a
+  // game swap with the level baseline below — so a deeper adopted save doesn't false-fire.
+  const prevProgress = useRef<number | null>(null);
   // Session P&L baseline (14r): net worth when this session began. App is the only
   // always-mounted owner, so the baseline survives tab switches; it re-captures on a
   // game swap (cloud-adopt / restart) — same identity guard as the level baseline above.
@@ -380,13 +383,21 @@ export function App({ initial }: { initial?: Game }) {
     // Combat level-up: celebrate the moment a skill ticks up. Fires before the
     // milestone toast below, so a deed earned the same tick still wins the slot.
     const lv = levelsOf(game.world.agents[game.playerId]?.combatXp);
+    const prog = game.world.agents[game.playerId]?.questProgress ?? 0;
     if (prevLevels.current === null || levelBaselineGame.current !== game) {
       prevLevels.current = lv; // (re)baseline on first run OR a game swap — never celebrate the baseline
+      prevProgress.current = prog;
       levelBaselineGame.current = game;
     } else {
       for (const u of leveledUp(prevLevels.current, lv))
         setToast({ id: 'levelup', name: `${u.glyph} ${u.name} up!`, flavor: `you reached ${u.name} ${u.level}`, achieved: () => false });
       prevLevels.current = lv;
+      // A new region unlocked the moment the frontier index climbs.
+      if (prevProgress.current !== null && prog > prevProgress.current) {
+        const where = REGIONS[prog]?.name ?? 'a new frontier';
+        setToast({ id: 'region-unlock', name: '🗺 New frontier unlocked!', flavor: `${where} lies open — embark when you're ready`, achieved: () => false });
+      }
+      prevProgress.current = prog;
     }
     const newly = checkMilestones(game, v, w);
     if (newly.length > 0) setToast(newly[newly.length - 1]!);

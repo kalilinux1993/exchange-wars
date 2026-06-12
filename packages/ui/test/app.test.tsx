@@ -225,6 +225,16 @@ describe('UI shell', () => {
     expect(screen.getByText(/Attack up/)).toBeTruthy();
   });
 
+  it('unlocking a new region pops a "New frontier unlocked" toast', () => {
+    const game = freshApp();
+    fireEvent.click(screen.getByText('+1k')); // latch the baseline at the start frontier (progress 0)
+    game.world.agents[game.playerId]!.questProgress = 1; // the frontier advances to region 1
+    fireEvent.click(screen.getByText('+1k')); // detects the climb
+    const toast = screen.getByText(/New frontier unlocked/).closest('.toast, [class*="toast"]') ?? document.body;
+    expect(screen.getByText(/New frontier unlocked/)).toBeTruthy(); // the celebration fired
+    expect(toast.textContent).toContain(REGIONS[1]!.name); // and names the newly-opened region in its flavor
+  });
+
   it('milestones latch once and persist on the save', () => {
     const game = newGame(42);
     const v = playerView(game.world, game.playerId)!;
