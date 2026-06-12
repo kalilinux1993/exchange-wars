@@ -1,7 +1,7 @@
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useState } from 'react';
 import type { Game } from '../game';
-import { fmtCompact, heldPositions, positionConcentration, underwaterSummary } from '../game';
+import { fmtCompact, heldPositions, positionConcentration, underwaterSummary, valueBand } from '../game';
 import { ItemIcon } from './Icon';
 
 /** Distinguishable, theme-fitting segment colours for the allocation bar. */
@@ -32,6 +32,7 @@ export function PositionsPanel({
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
   const wikiOf = new Map(items.map((i) => [i.id, i.wikiId]));
+  const defOf = new Map(items.map((i) => [i.id, i]));
   const priceOf = new Map(view.markets.map((m) => [m.itemId, m.lastPrice]));
   const bidOf = new Map(view.markets.map((m) => [m.itemId, m.bestBid]));
   // Which loser is armed for a cut — a tap arms, a second confirms (no accidental loss-lock).
@@ -106,6 +107,26 @@ export function PositionsPanel({
               <span className="dim small">×{p.units.toLocaleString('en-US')}</span>
               <span className="dim small">
                 {fmtCompact(p.avgCost)}→{p.marked ? fmtCompact(p.mark) : '·'}
+                {p.marked &&
+                  (() => {
+                    const band = valueBand(defOf.get(p.itemId), p.mark);
+                    if (!band) return null;
+                    return (
+                      <span
+                        className="bandtag"
+                        title={
+                          band === 'rich'
+                            ? 'near its cost→value ceiling — ripe to offload'
+                            : band === 'cheap'
+                              ? 'near its floor — room to run before fair value'
+                              : 'mid-band'
+                        }
+                      >
+                        {' '}
+                        {band === 'cheap' ? '🟢' : band === 'rich' ? '🟡' : '⚪'}
+                      </span>
+                    );
+                  })()}
               </span>
               <span className={p.unrealized >= 0 ? 'pct up' : 'pct down'}>
                 {p.unrealized >= 0 ? '+' : ''}

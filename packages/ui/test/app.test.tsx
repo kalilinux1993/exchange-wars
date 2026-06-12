@@ -2132,6 +2132,15 @@ describe('UI shell', () => {
     expect(onSelect).toHaveBeenCalledWith(FIRST.id);
   });
 
+  it('PositionsPanel tags a holding by its value band (rich = ripe to offload)', () => {
+    const game = newGame(42);
+    game.tradeBook = bookFromFills([{ tick: 0, itemId: 'widget', side: 'buy', qty: 10, price: 100 }], 0.02);
+    const items = [{ id: 'widget', name: 'Widget', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
+    const view = { markets: [{ itemId: 'widget', lastPrice: 190 }] } as unknown as PlayerView; // pos 0.9 → rich
+    const { container } = render(<PositionsPanel game={game} view={view} items={items} onSelect={() => {}} />);
+    expect(container.querySelector('.bandtag')!.textContent).toContain('🟡'); // near its ceiling → rich
+  });
+
   it('PositionsPanel shows the empty state with no holdings', () => {
     const view = { markets: [] } as unknown as PlayerView;
     render(<PositionsPanel game={newGame(42)} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} />);
