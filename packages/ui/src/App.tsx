@@ -23,6 +23,7 @@ import { PositionsPanel } from './components/PositionsPanel';
 import { MilestonesPanel } from './components/MilestonesPanel';
 import { RecordsPanel } from './components/RecordsPanel';
 import { ConquestPanel } from './components/ConquestPanel';
+import { BragCard } from './components/BragCard';
 import { DelvePanel } from './components/DelvePanel';
 import { Sparkline } from './components/Sparkline';
 import type { TicketPrefill } from './components/TradeTicket';
@@ -1269,6 +1270,7 @@ export function App({ initial }: { initial?: Game }) {
       </main>
       <main className={room === 'hall' ? 'board' : 'board tabhidden'}>
         <section className="middle">
+          <BragCard game={game} worth={playerWorth(game)} />
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
           <RecordsPanel game={game} />
           <ConquestPanel game={game} />

@@ -24,6 +24,7 @@ import { EmbarkPanel } from '../src/components/EmbarkPanel';
 import { MarketTable } from '../src/components/MarketTable';
 import { WatchlistPanel } from '../src/components/WatchlistPanel';
 import { BandMeter } from '../src/components/BandMeter';
+import { BragCard } from '../src/components/BragCard';
 import { ItemIcon } from '../src/components/Icon';
 import { DelvePanel } from '../src/components/DelvePanel';
 import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
@@ -2179,6 +2180,29 @@ describe('UI shell', () => {
     });
   });
 
+  describe('BragCard', () => {
+    it('renders the run as a card with the wordmark, combat level, net worth, and seed', () => {
+      const { container } = render(<BragCard game={newGame(42)} worth={12_345} />);
+      expect(container.querySelector('.bragcard')).toBeTruthy();
+      expect(container.textContent).toContain('EXCHANGE WARS');
+      expect(container.textContent).toContain('combat level');
+      expect(container.textContent).toContain('net worth (gp)');
+      expect(container.textContent).toContain('seed 42');
+    });
+    it('shows achievement chips for a run with a survived dive + a deed, none on a fresh run', () => {
+      const fresh = render(<BragCard game={newGame(42)} worth={50_000} />);
+      expect(fresh.container.textContent).not.toContain('best haul'); // fresh: no chips
+      fresh.unmount();
+      const game = newGame(42);
+      game.delves = [{ tick: 0, regionId: REGIONS[0]!.id, kills: 2, lootGp: 1840, died: false }];
+      game.milestones = ['first-offer'];
+      const rich = render(<BragCard game={game} worth={50_000} />);
+      expect(rich.container.textContent).toContain('best haul'); // a survived dive → haul chip
+      expect(rich.container.textContent).toContain('survival'); // a clean dive → streak chip
+      expect(rich.container.textContent).toContain('deeds'); // a milestone → deeds chip
+    });
+  });
+
   it('TradeTicket previews the gear upgrade before you buy', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;
@@ -2904,7 +2928,9 @@ describe('UI shell', () => {
     freshApp();
     fireEvent.click(screen.getByRole('button', { name: 'challenge link' }));
     expect(screen.getByText('Challenge link copied')).toBeTruthy();
-    expect(screen.getByText(/seed 42/)).toBeTruthy();
+    // target the toast's distinctive flavor, not a loose /seed 42/ — the always-mounted
+    // Hall now also carries "seed 42 · …" in the Run Card (16o), which would collide.
+    expect(screen.getByText(/seed 42 — same world/)).toBeTruthy();
   });
 
   it('the brag chip copies a run summary when native share is unavailable', () => {
