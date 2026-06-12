@@ -34,14 +34,19 @@ import {
   fmtCompact,
   fmtDuration,
   ghostForRestart,
+  applyFillToBook,
+  bookFromFills,
+  emptyTradeBook,
   HUMAN_START_GP,
   importSaveString,
   loadGame,
   newGame,
   normalizeGame,
   OFFLINE_CAP_TICKS,
+  openFromBook,
   openPosition,
   parseChallengeSeed,
+  realizedFromBook,
   realizedPnL,
   streakAtRisk,
   updateNews,
@@ -248,6 +253,7 @@ describe('UI shell', () => {
       seenEvents: [],
       fills: [],
       fillScanTick: 0,
+      tradeBook: emptyTradeBook(),
       commandLog: [],
       logSince: 0,
     };
@@ -625,10 +631,13 @@ describe('UI shell', () => {
 
   it('ProfitPanel shows realized profit per item and selects on click', () => {
     const game = newGame(42);
-    game.fills = [
-      { tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 },
-      { tick: 1, itemId: FIRST.id, side: 'sell', qty: 10, price: 120 },
-    ];
+    game.tradeBook = bookFromFills(
+      [
+        { tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 },
+        { tick: 1, itemId: FIRST.id, side: 'sell', qty: 10, price: 120 },
+      ],
+      0.02,
+    );
     const onSelect = vi.fn();
     render(<ProfitPanel game={game} items={DEFAULT_ITEMS} onSelect={onSelect} />);
     expect(screen.getByText('+180')).toBeTruthy();
@@ -662,10 +671,38 @@ describe('UI shell', () => {
 
   it('the ticket shows your open-position cost basis for held buys', () => {
     const game = newGame(42);
-    game.fills = [{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }];
+    game.tradeBook = bookFromFills([{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }], 0.02);
     render(<App initial={game} />); // FIRST is the default-selected item
     expect(screen.getByText(/position:/)).toBeTruthy();
     expect(screen.getByText(/@ avg 100/)).toBeTruthy();
+  });
+
+  describe('lifetime trade book', () => {
+    const buy = (itemId: string, qty: number, price: number, tick = 0): Fill => ({ tick, itemId, side: 'buy', qty, price });
+    const sell = (itemId: string, qty: number, price: number, tick = 1): Fill => ({ tick, itemId, side: 'sell', qty, price });
+    it('applyFillToBook accrues realized + open lots incrementally', () => {
+      const book = emptyTradeBook();
+      [buy('a', 10, 100), sell('a', 4, 120), buy('b', 5, 50)].forEach((f) => applyFillToBook(book, f, 0.02));
+      // a: sold 4 @ proceeds 118 → +72 realized; 6 left @ 100 open. b: 5 open @ 50.
+      expect(realizedFromBook(book)).toEqual([{ itemId: 'a', profit: 72, soldUnits: 4 }]);
+      expect(openFromBook(book, 'a')).toEqual({ units: 6, avgCost: 100 });
+      expect(openFromBook(book, 'b')).toEqual({ units: 5, avgCost: 50 });
+    });
+    it('survives the fills window: realized accrues even after fills are capped out', () => {
+      const game = newGame(42);
+      // simulate a completed round-trip recorded long ago, then 60 unrelated fills
+      applyFillToBook(game.tradeBook, buy('gold', 1, 100), 0.02);
+      applyFillToBook(game.tradeBook, sell('gold', 1, 200), 0.02); // +96 realized, banked
+      game.fills = Array.from({ length: 60 }, (_, i) => buy('filler', 1, 1, i)); // window full of noise
+      // the lifetime book still remembers the gold flip even though it's gone from fills
+      expect(realizedFromBook(game.tradeBook).find((p) => p.itemId === 'gold')!.profit).toBe(96);
+    });
+    it('normalizeGame rebuilds the book from fills for pre-book saves', () => {
+      const stale = { ...newGame(42), fills: [buy('x', 3, 100), sell('x', 3, 130)] } as unknown as Game;
+      delete (stale as { tradeBook?: unknown }).tradeBook; // old save: no book
+      const fixed = normalizeGame(stale);
+      expect(realizedFromBook(fixed.tradeBook)[0]).toMatchObject({ itemId: 'x', soldUnits: 3 });
+    });
   });
 
   describe('resolveShortcut', () => {
@@ -849,6 +886,7 @@ describe('UI shell', () => {
       seenEvents: [],
       fills: [],
       fillScanTick: 0,
+      tradeBook: emptyTradeBook(),
       commandLog: [],
       logSince: 0,
       lastSeenMs: Date.now() - 20_000_500, // owes ~20k ticks > sync threshold

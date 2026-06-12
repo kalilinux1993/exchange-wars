@@ -1,13 +1,12 @@
 import type { ItemDef } from '@exchange-wars/engine';
-import { GE_TAX_RATE } from '@exchange-wars/engine';
 import type { Game } from '../game';
-import { fmtCompact, realizedPnL } from '../game';
+import { fmtCompact, realizedFromBook } from '../game';
 
 /**
- * Profit by item (11b): which items your recent flips actually made (or lost)
- * money on — realized round-trips from the fill window, FIFO-matched and
- * tax-netted. The reflective counterpart to TopFlips' "what to do next": this
- * is "what worked". Click a row to load it into the ticket. Pure-derived.
+ * Profit by item (11b; lifetime in 11o): which items your flips actually made
+ * (or lost) money on — realized round-trips from the lifetime trade book,
+ * FIFO-matched and tax-netted. The reflective counterpart to TopFlips' "what to
+ * do next": this is "what worked". Click a row to load it into the ticket.
  */
 export function ProfitPanel({
   game,
@@ -21,7 +20,7 @@ export function ProfitPanel({
   limit?: number;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
-  const pnl = realizedPnL(game.fills, GE_TAX_RATE).slice(0, limit);
+  const pnl = realizedFromBook(game.tradeBook).slice(0, limit);
   return (
     <section className="panel profit">
       <h2>Profit by Item</h2>

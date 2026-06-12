@@ -1,6 +1,6 @@
 // Game bootstrap + persistence. The human is an idle-policy player agent:
 // engine-inert unless automation is purchased, acting only via UI commands.
-import { addAgent, createWorld, EVENT_LABELS, levelsOf, MONSTERS, netWorth, playerView, runTicks } from '@exchange-wars/engine';
+import { addAgent, createWorld, EVENT_LABELS, GE_TAX_RATE, levelsOf, MONSTERS, netWorth, playerView, runTicks } from '@exchange-wars/engine';
 import type { PlayerView, RunLogEntry, WorldEvent, WorldState } from '@exchange-wars/engine';
 
 export interface Game {
@@ -22,6 +22,10 @@ export interface Game {
   fills: Fill[];
   /** Trades-window scan cursor for fill latching. */
   fillScanTick: number;
+  /** Lifetime trade book (FIFO lots + realized P&L), accrued fill-by-fill so
+   * P&L survives the capped fills window. Plain JSON; rebuilt from fills on old
+   * saves. */
+  tradeBook: TradeBook;
   /** Your best previous run on THIS seed — raced as a dim line on the
    * Fortune chart. Determinism makes it a fair ghost. */
   ghost?: GhostRun;
@@ -165,6 +169,9 @@ export function recordFills(game: Game): void {
     }
     game.fills.push(fill);
     tail.push(fill);
+    // Accrue the lifetime book once per genuinely-new fill (this dedupe guard is
+    // what makes "apply each fill exactly once" hold).
+    applyFillToBook((game.tradeBook ??= emptyTradeBook()), fill, GE_TAX_RATE);
   }
   game.fillScanTick = game.world.tick;
   if (game.fills.length > FILLS_CAP) game.fills.splice(0, game.fills.length - FILLS_CAP);
@@ -179,6 +186,72 @@ export interface ItemPnL {
 }
 
 /**
+ * A lifetime trade book: FIFO open buy lots per item, and realized P&L per
+ * item. Accrued one fill at a time (applyFillToBook) so realized profit and
+ * cost basis aren't bounded by the capped fills window. Plain JSON.
+ */
+export interface TradeBook {
+  lots: Record<string, { price: number; qty: number }[]>;
+  realized: Record<string, { profit: number; soldUnits: number }>;
+}
+
+export function emptyTradeBook(): TradeBook {
+  return { lots: {}, realized: {} };
+}
+
+/**
+ * Fold ONE fill into the book (FIFO) — the single source of truth for all P&L.
+ * A buy pushes a lot; a sell consumes the oldest lots, booking realized profit
+ * (per-unit proceeds net the sell tax). A sell with no cost basis is dropped.
+ */
+export function applyFillToBook(book: TradeBook, f: Fill, taxRate: number): void {
+  if (f.side === 'buy') {
+    (book.lots[f.itemId] ??= []).push({ price: f.price, qty: f.qty });
+    return;
+  }
+  const proceeds = f.price - Math.floor(f.price * taxRate); // per-unit, after tax
+  const lots = (book.lots[f.itemId] ??= []);
+  const acc = (book.realized[f.itemId] ??= { profit: 0, soldUnits: 0 });
+  let remaining = f.qty;
+  while (remaining > 0 && lots.length > 0) {
+    const lot = lots[0]!;
+    const take = Math.min(remaining, lot.qty);
+    acc.profit += (proceeds - lot.price) * take;
+    acc.soldUnits += take;
+    lot.qty -= take;
+    remaining -= take;
+    if (lot.qty === 0) lots.shift();
+  }
+}
+
+/** A fresh book folded from a fill list — for migration and the window helpers. */
+export function bookFromFills(fills: Fill[], taxRate: number): TradeBook {
+  const book = emptyTradeBook();
+  for (const f of fills) applyFillToBook(book, f, taxRate);
+  return book;
+}
+
+/** Realized P&L per item from a book, best profit first (id tie-break). */
+export function realizedFromBook(book: TradeBook): ItemPnL[] {
+  return Object.entries(book.realized)
+    .filter(([, v]) => v.soldUnits > 0)
+    .map(([itemId, v]) => ({ itemId, profit: v.profit, soldUnits: v.soldUnits }))
+    .sort((a, b) => b.profit - a.profit || (a.itemId < b.itemId ? -1 : 1));
+}
+
+/** Open bought position in one item from a book: leftover lots, weighted avg. */
+export function openFromBook(book: TradeBook, itemId: string): { units: number; avgCost: number } | null {
+  const lots = book.lots[itemId] ?? [];
+  let units = 0;
+  let cost = 0;
+  for (const lot of lots) {
+    units += lot.qty;
+    cost += lot.qty * lot.price;
+  }
+  return units > 0 ? { units, avgCost: Math.round(cost / units) } : null;
+}
+
+/**
  * Recent *realized* profit per item: FIFO-match each sell fill against the
  * player's earlier buy fills (within the rolling fills window), netting the GE
  * tax on the sale side. Only completed round-trips count — an open position
@@ -187,69 +260,18 @@ export interface ItemPnL {
  * Window-bounded by design (fills are capped) — this is "recent", not lifetime.
  */
 export function realizedPnL(fills: Fill[], taxRate: number): ItemPnL[] {
-  const lots = new Map<string, { price: number; qty: number }[]>(); // FIFO buy queue / item
-  const acc = new Map<string, { profit: number; soldUnits: number }>();
-  for (const f of fills) {
-    // fills arrive in tick order, so the buy queue is naturally FIFO
-    if (f.side === 'buy') {
-      const q = lots.get(f.itemId) ?? [];
-      q.push({ price: f.price, qty: f.qty });
-      lots.set(f.itemId, q);
-      continue;
-    }
-    const proceeds = f.price - Math.floor(f.price * taxRate); // per-unit, after tax
-    const q = lots.get(f.itemId) ?? [];
-    const a = acc.get(f.itemId) ?? { profit: 0, soldUnits: 0 };
-    let remaining = f.qty;
-    while (remaining > 0 && q.length > 0) {
-      const lot = q[0]!;
-      const take = Math.min(remaining, lot.qty);
-      a.profit += (proceeds - lot.price) * take;
-      a.soldUnits += take;
-      lot.qty -= take;
-      remaining -= take;
-      if (lot.qty === 0) q.shift();
-    }
-    acc.set(f.itemId, a); // unmatched (no cost basis) units are simply not counted
-  }
-  return [...acc.entries()]
-    .filter(([, v]) => v.soldUnits > 0)
-    .map(([itemId, v]) => ({ itemId, profit: v.profit, soldUnits: v.soldUnits }))
-    .sort((a, b) => b.profit - a.profit || (a.itemId < b.itemId ? -1 : 1));
+  return realizedFromBook(bookFromFills(fills, taxRate));
 }
 
 /**
- * Your open BOUGHT position in one item: FIFO-match sells against buys (within
- * the fills window) and the leftover buy lots are what you bought and still
- * hold, with a quantity-weighted average cost. The unrealized counterpart to
- * realizedPnL — compare avgCost to the current price to see if you're up. null
- * when nothing bought-and-unsold remains. Excludes loot (no buy fill, no cost
- * basis); window-bounded, so it's your *recent* cost basis, not all-time.
+ * Your open BOUGHT position in one item: FIFO-match sells against buys and the
+ * leftover buy lots are what you bought and still hold, quantity-weighted avg
+ * cost. The unrealized counterpart to realizedPnL — compare avgCost to the
+ * current price to see if you're up. null when nothing bought-and-unsold
+ * remains. Excludes loot (no buy fill, no cost basis). Lots are tax-independent.
  */
 export function openPosition(fills: Fill[], itemId: string): { units: number; avgCost: number } | null {
-  const lots: { price: number; qty: number }[] = [];
-  for (const f of fills) {
-    if (f.itemId !== itemId) continue;
-    if (f.side === 'buy') {
-      lots.push({ price: f.price, qty: f.qty });
-      continue;
-    }
-    let remaining = f.qty;
-    while (remaining > 0 && lots.length > 0) {
-      const lot = lots[0]!;
-      const take = Math.min(remaining, lot.qty);
-      lot.qty -= take;
-      remaining -= take;
-      if (lot.qty === 0) lots.shift();
-    }
-  }
-  let units = 0;
-  let cost = 0;
-  for (const lot of lots) {
-    units += lot.qty;
-    cost += lot.qty * lot.price;
-  }
-  return units > 0 ? { units, avgCost: Math.round(cost / units) } : null;
+  return openFromBook(bookFromFills(fills, 0), itemId);
 }
 
 export interface NewsEntry {
@@ -667,6 +689,7 @@ export function newGame(seed: number): Game {
     seenEvents: [],
     fills: [],
     fillScanTick: 0,
+    tradeBook: emptyTradeBook(),
     commandLog: [],
     logSince: 0,
   };
@@ -755,6 +778,9 @@ export function normalizeGame(game: Game): Game {
     seenEvents: game.seenEvents ?? [],
     fills: game.fills ?? [],
     fillScanTick: game.fillScanTick ?? 0,
+    // Old saves predate the book: rebuild it from whatever fills they kept (the
+    // recent window — full history is gone, but it seeds correctly from there).
+    tradeBook: game.tradeBook ?? bookFromFills(game.fills ?? [], GE_TAX_RATE),
     // Old saves have no log: they stay playable but can't prove their run.
     commandLog: game.commandLog ?? [],
     logSince: game.logSince ?? (game.commandLog === undefined ? game.world.tick : 0),
