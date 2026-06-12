@@ -335,6 +335,11 @@ export function App({ initial }: { initial?: Game }) {
         saveGame(cloud);
         setSelected(cloud.world.items[0]?.id ?? '');
         setAwayDismissed(false);
+        // Adopting a different save = a new run for the daily-record celebration:
+        // re-capture the record to beat + re-arm, so it isn't measured against
+        // the local save's stale best (would false-fire "New daily record!").
+        incomingBest.current = undefined;
+        recordCelebrated.current = false;
         force();
       } else if (local) {
         void pushCloudSave(local);
