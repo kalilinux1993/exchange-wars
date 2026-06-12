@@ -1,7 +1,7 @@
 // Game bootstrap + persistence. The human is an idle-policy player agent:
 // engine-inert unless automation is purchased, acting only via UI commands.
-import { addAgent, createWorld, EVENT_LABELS, GE_TAX_RATE, levelsOf, MONSTERS, netWorth, playerView, runTicks } from '@exchange-wars/engine';
-import type { PlayerView, RunLogEntry, WorldEvent, WorldState } from '@exchange-wars/engine';
+import { addAgent, createWorld, EVENT_LABELS, GE_TAX_RATE, GEAR, levelsOf, MONSTERS, netWorth, playerView, runTicks } from '@exchange-wars/engine';
+import type { GearSlot, PlayerView, RunLogEntry, WorldEvent, WorldState } from '@exchange-wars/engine';
 
 export interface Game {
   world: WorldState;
@@ -618,6 +618,51 @@ export function positionConcentration(positions: HeldPosition[]): Concentration 
  */
 export function lootSpoils(heldIds: string[], isGear: (id: string) => boolean): string[] {
   return heldIds.filter((id) => !isGear(id));
+}
+
+/** How a held gear piece compares to whatever is WORN in its slot. */
+export interface GearDelta {
+  slot: GearSlot;
+  /** Governing-stat change vs the worn piece (weapon→Attack, armor→Defence).
+   * >0 upgrade, <0 downgrade, 0 sidegrade. Nothing worn → the full stat. */
+  delta: number;
+  /** Incidental off-stat change (e.g. a body's small atk) — for the tooltip. */
+  offDelta: number;
+  /** False when your level is below the piece's req — can't realize it yet. */
+  usable: boolean;
+  req: number;
+  skill: 'atk' | 'def';
+  /** The id currently worn in this slot we compared against (null = empty slot). */
+  vs: string | null;
+}
+
+/**
+ * "Is this gear an upgrade?" — the readout that makes buying upgrade gear legible.
+ * Compares a held piece to what's persistently WORN in its slot on the governing
+ * stat (weapon→atk, armor→def); an empty slot means the whole stat is the gain.
+ * Returns null for non-gear. Pure — drives the satchel delta badge.
+ */
+export function gearDelta(
+  itemId: string,
+  worn: Record<string, string>,
+  lvls: { atk: number; def: number },
+): GearDelta | null {
+  const g = GEAR[itemId];
+  if (!g) return null;
+  const skill: 'atk' | 'def' = g.slot === 'weapon' ? 'atk' : 'def';
+  const wornId = worn[g.slot];
+  const cur = wornId ? GEAR[wornId] : undefined;
+  const gov = (x: { atk: number; def: number } | undefined): number => (x ? (skill === 'atk' ? x.atk : x.def) : 0);
+  const off = (x: { atk: number; def: number } | undefined): number => (x ? (skill === 'atk' ? x.def : x.atk) : 0);
+  return {
+    slot: g.slot,
+    delta: gov(g) - gov(cur),
+    offDelta: off(g) - off(cur),
+    usable: lvls[skill] >= g.req,
+    req: g.req,
+    skill,
+    vs: wornId ?? null,
+  };
 }
 
 /** Net worth split by liquidity — the cash-vs-committed-vs-goods lens. */

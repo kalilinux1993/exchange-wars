@@ -1138,6 +1138,17 @@ kbd {
 .equipicon {
   vertical-align: -2px;
 }
+/* upgrade-delta badge on a satchel gear stack — answers "is this better than
+   what I currently wear?" at the point of decision. Colour via .up/.down. */
+.delta {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.delta.lock {
+  color: #c98a3a;
+  cursor: help;
+}
 .skills {
   display: flex;
   gap: 5px;

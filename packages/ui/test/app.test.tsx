@@ -65,6 +65,7 @@ import {
   heldPositions,
   positionConcentration,
   lootSpoils,
+  gearDelta,
   worthBreakdown,
   parseChallengeSeed,
   realizedFromBook,
@@ -861,6 +862,34 @@ describe('UI shell', () => {
     });
   });
 
+  describe('gearDelta', () => {
+    const maxed = { atk: 99, def: 99 };
+    it('reports the full stat as the gain when the slot is empty', () => {
+      const d = gearDelta('rune_2h_sword', {}, maxed); // weapon atk 45, req 14
+      expect(d).toMatchObject({ slot: 'weapon', delta: 45, skill: 'atk', usable: true, vs: null });
+    });
+    it('reports the upgrade over what is worn on the governing stat', () => {
+      // worn adamant_dart (atk 10); rune_2h_sword (atk 45) → +35 Attack
+      const d = gearDelta('rune_2h_sword', { weapon: 'adamant_dart' }, maxed);
+      expect(d).toMatchObject({ delta: 35, skill: 'atk', vs: 'adamant_dart' });
+    });
+    it('reports a downgrade as negative', () => {
+      const d = gearDelta('adamant_dart', { weapon: 'rune_2h_sword' }, maxed); // 10 - 45
+      expect(d!.delta).toBe(-35);
+    });
+    it('marks a piece unusable below its level requirement', () => {
+      const d = gearDelta('rune_2h_sword', {}, { atk: 5, def: 5 }); // req 14
+      expect(d).toMatchObject({ usable: false, req: 14, skill: 'atk' });
+    });
+    it('uses Defence as the governing stat for armor', () => {
+      const d = gearDelta('rune_platebody', { body: 'rune_chainbody' }, maxed); // def 28 - 22
+      expect(d).toMatchObject({ slot: 'body', delta: 6, skill: 'def', vs: 'rune_chainbody' });
+    });
+    it('returns null for non-gear', () => {
+      expect(gearDelta('shark', {}, maxed)).toBeNull();
+    });
+  });
+
   it('"sell the spoils" dumps loot but keeps your gear', () => {
     const game = newGame(42);
     for (let i = 0; i < 200; i++) tickWorld(game.world); // populate NPC bids so items are sellable
@@ -895,6 +924,18 @@ describe('UI shell', () => {
     render(<PlayerPanel game={game} view={view} items={game.world.items} onCommand={onCommand} />);
     fireEvent.click(screen.getByRole('button', { name: 'equip best' }));
     expect(onCommand).toHaveBeenCalledWith({ type: 'equipBest' });
+  });
+
+  it('PlayerPanel shows the upgrade delta on a satchel gear stack', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.combatXp = { atk: xpForLevel(99), def: xpForLevel(99), hp: 0 }; // can wear anything
+    agent.inventory['rune_2h_sword'] = 1; // weapon atk 45
+    agent.worn = { weapon: 'adamant_dart' }; // currently wielding atk 10
+    const onCommand = vi.fn();
+    const view = playerView(game.world, game.playerId)!;
+    render(<PlayerPanel game={game} view={view} items={game.world.items} onCommand={onCommand} />);
+    expect(screen.getByText('⚔+35')).toBeTruthy(); // 45 − 10 = +35 Attack over what's worn
   });
 
   it('PlayerPanel shows equipped gear with an unequip button', () => {

@@ -1,6 +1,6 @@
-import { GEAR } from '@exchange-wars/engine';
+import { GEAR, levelsOf } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
-import { bidWalk, lootSpoils, type Game } from '../game';
+import { bidWalk, gearDelta, lootSpoils, type Game } from '../game';
 import { Icon, itemIcon } from './Icon';
 
 export function PlayerPanel({
@@ -15,6 +15,9 @@ export function PlayerPanel({
   onCommand: (cmd: PlayerCommand) => void;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
+  // Combat levels (display-only read) decide whether a satchel piece is wearable
+  // yet — drives the upgrade-delta badge that makes "is this gear better?" legible.
+  const lvls = levelsOf(game.world.agents[game.playerId]?.combatXp);
   const held = items.filter((i) => (view.inventory[i.id] ?? 0) > 0);
   // Selling at the walk's floor fills the whole walkable qty instantly —
   // realize exactly what the honest mark says the bids would pay (8w).
@@ -59,15 +62,42 @@ export function PlayerPanel({
               <span className="num">
                 {qty.toLocaleString('en-US')} · bids pay ≈{(walk?.gp ?? 0).toLocaleString('en-US')} gp
               </span>
-              {GEAR[i.id] !== undefined && (
-                <button
-                  className="chip"
-                  title={`equip — needs ${GEAR[i.id]!.slot === 'weapon' ? 'Attack' : 'Defence'} ${GEAR[i.id]!.req}`}
-                  onClick={() => onCommand({ type: 'equip', itemId: i.id })}
-                >
-                  equip
-                </button>
-              )}
+              {(() => {
+                const gd = gearDelta(i.id, view.worn, lvls);
+                if (!gd) return null;
+                const sk = gd.skill === 'atk' ? 'Attack' : 'Defence';
+                const glyph = gd.skill === 'atk' ? '⚔' : '🛡';
+                const vsName = gd.vs ? names.get(gd.vs) ?? gd.vs : null;
+                const badge = !gd.usable ? (
+                  <span className="delta lock" title={`hold to equip once you train ${sk} to ${gd.req}`}>
+                    🔒 {gd.skill === 'atk' ? 'Atk' : 'Def'} {gd.req}
+                  </span>
+                ) : gd.delta > 0 ? (
+                  <span className="delta up" title={`+${gd.delta} ${sk}${vsName ? ` over your ${vsName}` : ' — this slot is empty'} if you equip it`}>
+                    {glyph}+{gd.delta}
+                  </span>
+                ) : gd.delta < 0 ? (
+                  <span className="delta down" title={`${gd.delta} ${sk} vs your ${vsName} — a downgrade`}>
+                    {glyph}{gd.delta}
+                  </span>
+                ) : (
+                  <span className="dim small" title={vsName ? `same ${sk} as your ${vsName}` : 'no change'}>
+                    no gain
+                  </span>
+                );
+                return (
+                  <>
+                    {badge}
+                    <button
+                      className="chip"
+                      title={`equip — needs ${sk} ${gd.req}`}
+                      onClick={() => onCommand({ type: 'equip', itemId: i.id })}
+                    >
+                      equip
+                    </button>
+                  </>
+                );
+              })()}
               {walk && (
                 <button className="chip" title={`sell ${walk.qty} into the resting bids (fills instantly)`} onClick={() => dump(i.id)}>
                   sell @ bid
