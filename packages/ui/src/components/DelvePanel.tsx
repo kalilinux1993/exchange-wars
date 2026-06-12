@@ -8,7 +8,16 @@ import { fmtCompact, fmtDuration, recentDelves } from '../game';
  * vanishes the moment you extract or die, so each completed dive (region, kills,
  * loot, survived/died) is latched into Game state when it ends. Newest first.
  */
-export function DelvePanel({ game, limit = 8 }: { game: Game; limit?: number }) {
+export function DelvePanel({
+  game,
+  limit = 8,
+  onPick,
+}: {
+  game: Game;
+  limit?: number;
+  /** Click a row to jump to that region on the Adventure tab ("raid here again"). */
+  onPick?: (regionId: string) => void;
+}) {
   const rows = recentDelves(game.delves, limit);
   const total = game.delves?.length ?? 0;
   return (
@@ -26,10 +35,11 @@ export function DelvePanel({ game, limit = 8 }: { game: Game; limit?: number }) 
             return (
               <li
                 key={`${d.tick}-${i}`}
-                className={d.died ? 'delve died' : 'delve survived'}
+                className={`${d.died ? 'delve died' : 'delve survived'}${onPick ? ' mover' : ''}`}
+                onClick={onPick ? () => onPick(d.regionId) : undefined}
                 title={`${d.died ? 'fell' : 'returned'} in ${region} · ${d.kills} cleared · ${d.lootGp.toLocaleString(
                   'en-US',
-                )} loot gp ${d.died ? 'lost to the dark' : 'banked'}`}
+                )} loot gp ${d.died ? 'lost to the dark' : 'banked'}${onPick ? ' — click to raid here again' : ''}`}
               >
                 <span>
                   {d.died ? '☠' : '🏆'} {region}

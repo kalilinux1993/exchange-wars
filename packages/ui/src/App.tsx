@@ -103,6 +103,7 @@ export function App({ initial }: { initial?: Game }) {
   const [corruptSave, setCorruptSave] = useState<string | null>(() => loadCorruptSave());
   const [lastSync, setLastSync] = useState<number | null>(null);
   const [prefill, setPrefill] = useState<TicketPrefill | null>(null);
+  const [regionPick, setRegionPick] = useState<{ regionId: string; n: number } | null>(null);
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_SEEN_KEY) === null);
   type Room = 'exchange' | 'adventure' | 'hall';
   const [room, setRoom] = useState<Room>(() => {
@@ -145,6 +146,15 @@ export function App({ initial }: { initial?: Game }) {
   const onLevel = (side: 'buy' | 'sell', price: number): void => {
     prefillNonce.current++;
     setPrefill({ side, price, n: prefillNonce.current });
+  };
+  // Jump from a Delve Log entry (Hall) straight to that region on the Adventure
+  // tab — a nonce pulse so repeat clicks on the same region re-fire (mirrors the
+  // ticket prefill). No-op while a dive is in flight (ExpeditionPanel guards it).
+  const regionPickNonce = useRef(0);
+  const jumpToRegion = (regionId: string): void => {
+    regionPickNonce.current++;
+    setRegionPick({ regionId, n: regionPickNonce.current });
+    pickRoom('adventure');
   };
   const sessionRef = useRef<Session | null>(null);
   sessionRef.current = session;
@@ -899,6 +909,7 @@ export function App({ initial }: { initial?: Game }) {
             game={game}
             view={view}
             onCommand={command}
+            regionPick={regionPick}
             onToast={(name, flavor) => setToast({ id: 'expedition', name, flavor, achieved: () => false })}
             onDelveEnd={(record) => {
               const log = (game.delves ??= []);
@@ -919,7 +930,7 @@ export function App({ initial }: { initial?: Game }) {
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
           <RecordsPanel game={game} />
           <ConquestPanel game={game} />
-          <DelvePanel game={game} />
+          <DelvePanel game={game} onPick={jumpToRegion} />
           <AlmanacPanel game={game} />
         </section>
         <section className="middle">

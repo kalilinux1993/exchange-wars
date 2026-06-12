@@ -51,6 +51,7 @@ export function ExpeditionPanel({
   onCommand,
   onToast,
   onDelveEnd,
+  regionPick,
 }: {
   game: Game;
   view: PlayerView;
@@ -58,6 +59,8 @@ export function ExpeditionPanel({
   onToast: (name: string, flavor: string) => void;
   /** Called once when an expedition ends (death or extract) with its Delve Log entry. */
   onDelveEnd?: (record: DelveRecord) => void;
+  /** A nonce-pulsed request (from a Delve Log row) to pre-select a region. */
+  regionPick?: { regionId: string; n: number } | null;
 }) {
   const agent = game.world.agents[game.playerId];
   const exp = agent?.expedition;
@@ -67,6 +70,16 @@ export function ExpeditionPanel({
   const [regionId, setRegionId] = useState(REGIONS[0]!.id);
   const [draft, setDraft] = useState<Record<string, number>>({});
   const [loadouts, setLoadouts] = usePref<Record<string, number>[]>('ew-loadouts', []);
+
+  // Apply a "raid here again" pulse from a Delve Log row — nonce-guarded so the
+  // same region can be re-picked, and so it only fires on a fresh request.
+  const appliedPick = useRef(0);
+  useEffect(() => {
+    if (regionPick && regionPick.n !== appliedPick.current) {
+      appliedPick.current = regionPick.n;
+      setRegionId(regionPick.regionId);
+    }
+  }, [regionPick]);
 
   // Death detection: an expedition that vanishes mid-combat wasn't extracted.
   // The last-render snapshot lets the toast tell the SPECIFIC story — the

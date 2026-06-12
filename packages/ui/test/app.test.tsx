@@ -574,6 +574,21 @@ describe('UI shell', () => {
       expect(screen.getByText('🏆', { exact: false })).toBeTruthy(); // survived row
       expect(screen.getByText('☠', { exact: false })).toBeTruthy(); // died row
     });
+    it('a Delve Log row calls onPick with its region (raid here again)', () => {
+      const game = newGame(42);
+      game.delves = [{ tick: game.world.tick, regionId: REGIONS[2]!.id, kills: 2, lootGp: 500, died: false }];
+      const onPick = vi.fn();
+      render(<DelvePanel game={game} onPick={onPick} />);
+      fireEvent.click(screen.getByText(REGIONS[2]!.name, { exact: false }));
+      expect(onPick).toHaveBeenCalledWith(REGIONS[2]!.id);
+    });
+    it('clicking a Delve Log row jumps to the Adventure tab', () => {
+      const game = newGame(42);
+      game.delves = [{ tick: game.world.tick, regionId: REGIONS[2]!.id, kills: 2, lootGp: 500, died: false }];
+      render(<App initial={game} />); // Hall is tabhidden but in the DOM
+      fireEvent.click(screen.getByTitle(/click to raid here again/)); // unique to a Delve Log row
+      expect(screen.getByRole('tab', { name: /Adventure/ }).getAttribute('aria-selected')).toBe('true');
+    });
   });
 
   describe('combat forecast', () => {
