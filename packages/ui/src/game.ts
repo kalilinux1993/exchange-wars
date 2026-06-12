@@ -590,6 +590,32 @@ export function heldPositions(book: TradeBook, markOf: (itemId: string) => numbe
   return out.sort((a, b) => b.unrealized - a.unrealized || (a.itemId < b.itemId ? -1 : 1));
 }
 
+/** The bleeding side of your book — positions whose paper P&L is underwater. */
+export interface Underwater {
+  count: number; // how many marked positions are below cost
+  paperLoss: number; // summed unrealized of the losers (≤ 0)
+  worst: { itemId: string; unrealized: number } | null; // the deepest single loss
+}
+
+/**
+ * Risk glance over held positions: how many are underwater and by how much, plus
+ * the worst single one. heldPositions sorts best-first, so losers sink below the
+ * fold — this surfaces them as one line without scrolling. Only MARKED positions
+ * count (no live price = unknown P&L, not a loss). Pure.
+ */
+export function underwaterSummary(positions: HeldPosition[]): Underwater {
+  let count = 0;
+  let paperLoss = 0;
+  let worst: { itemId: string; unrealized: number } | null = null;
+  for (const p of positions) {
+    if (!p.marked || p.unrealized >= 0) continue;
+    count += 1;
+    paperLoss += p.unrealized;
+    if (!worst || p.unrealized < worst.unrealized) worst = { itemId: p.itemId, unrealized: p.unrealized };
+  }
+  return { count, paperLoss, worst };
+}
+
 /** Portfolio concentration across held positions — the diversification/risk lens. */
 export interface Concentration {
   weights: { itemId: string; pct: number }[]; // each position's share of total value (0..1), largest first

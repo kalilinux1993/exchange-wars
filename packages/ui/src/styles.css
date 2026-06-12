@@ -1495,6 +1495,12 @@ kbd {
 .mover.flip.unafford {
   opacity: 0.5; /* you can't open one yet — recede it, but keep it readable */
 }
+/* a held position trading below cost — a faint red edge so losers pop even
+   when sorted to the bottom of the list. */
+.mover.underwater {
+  border-left: 2px solid var(--fall);
+  padding-left: 4px;
+}
 
 /* a contract you can deliver right now — a faint green nudge. */
 .contracts li.contract.ready {

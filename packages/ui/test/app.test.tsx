@@ -64,6 +64,7 @@ import {
   openPosition,
   heldPositions,
   positionConcentration,
+  underwaterSummary,
   lootSpoils,
   gearDelta,
   worthBreakdown,
@@ -1476,6 +1477,30 @@ describe('UI shell', () => {
     const view = { markets: [] } as unknown as PlayerView;
     render(<PositionsPanel game={newGame(42)} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} />);
     expect(screen.getByText(/no open positions/i)).toBeTruthy();
+  });
+
+  describe('underwaterSummary', () => {
+    const p = (itemId: string, unrealized: number, marked = true) => ({
+      itemId, unrealized, marked, units: 0, avgCost: 0, mark: 0, value: 0, cost: 0, unrealizedPct: 0,
+    });
+    it('counts and sums only marked losers, finding the worst', () => {
+      const u = underwaterSummary([p('a', 500), p('b', -200), p('c', -1000), p('d', -50, false)]);
+      expect(u.count).toBe(2); // b + c; a is a winner, d is unmarked (no live price)
+      expect(u.paperLoss).toBe(-1200);
+      expect(u.worst).toEqual({ itemId: 'c', unrealized: -1000 });
+    });
+    it('is empty when nothing is underwater', () => {
+      expect(underwaterSummary([p('a', 0), p('b', 300)])).toEqual({ count: 0, paperLoss: 0, worst: null });
+    });
+  });
+
+  it('PositionsPanel flags positions trading below cost', () => {
+    const game = newGame(42);
+    game.tradeBook = bookFromFills([{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }], 0.02);
+    const view = { markets: [{ itemId: FIRST.id, lastPrice: 80 }] } as unknown as PlayerView; // −200 paper
+    const { container } = render(<PositionsPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} />);
+    expect(screen.getByText(/underwater/)).toBeTruthy(); // the risk callout
+    expect(container.querySelector('.mover.underwater')).toBeTruthy(); // the losing row is tinted
   });
 
   describe('blendBuy (average-down preview)', () => {

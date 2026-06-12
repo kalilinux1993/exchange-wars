@@ -1,6 +1,6 @@
 import type { ItemDef, PlayerView } from '@exchange-wars/engine';
 import type { Game } from '../game';
-import { fmtCompact, heldPositions, positionConcentration } from '../game';
+import { fmtCompact, heldPositions, positionConcentration, underwaterSummary } from '../game';
 
 /** Distinguishable, theme-fitting segment colours for the allocation bar. */
 const ALLOC_COLORS = ['#d4a937', '#2dd4bf', '#e07a5f', '#81b29a', '#9a8cff', '#f2cc8f'];
@@ -32,6 +32,7 @@ export function PositionsPanel({
   const totalValue = positions.reduce((s, p) => s + p.value, 0);
   const totalPaper = positions.reduce((s, p) => s + p.unrealized, 0);
   const conc = positionConcentration(positions);
+  const under = underwaterSummary(positions);
   const topName = conc.weights[0] ? (names.get(conc.weights[0].itemId) ?? conc.weights[0].itemId) : '';
   // >50% of your value in one item = concentrated (red); <34% = well spread (green).
   const riskClass = conc.topPct > 0.5 ? 'pct down' : conc.topPct >= 0.34 ? 'dim' : 'pct up';
@@ -68,11 +69,23 @@ export function PositionsPanel({
           <p className="dim small" title="your single biggest exposure — a high share is concentration risk; spread across more items to reduce it">
             {conc.count} position{conc.count === 1 ? '' : 's'} · top <b className={riskClass}>{topName} {pct(conc.topPct).replace('+', '')}</b>
           </p>
+          {under.count > 0 && (
+            <p
+              className="dim small"
+              title={`positions trading below your average cost — paper losses you'd realise if you sold now${
+                under.worst ? `; worst is ${names.get(under.worst.itemId) ?? under.worst.itemId}` : ''
+              }`}
+            >
+              <b className="pct down">
+                ⚠ {under.count} underwater {fmtCompact(under.paperLoss)} paper
+              </b>
+            </p>
+          )}
           <ul className="rows small">
           {shown.map((p) => (
             <li
               key={p.itemId}
-              className="mover"
+              className={`mover${p.marked && p.unrealized < 0 ? ' underwater' : ''}`}
               onClick={() => onSelect(p.itemId)}
               title={`${p.units.toLocaleString('en-US')} held · avg ${p.avgCost.toLocaleString('en-US')} → ${
                 p.marked ? p.mark.toLocaleString('en-US') : 'no live price'
