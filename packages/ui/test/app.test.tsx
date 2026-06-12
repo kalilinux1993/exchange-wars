@@ -59,6 +59,7 @@ import {
   fmtDuration,
   ghostForRestart,
   alertHit,
+  bandAlertHit,
   applyFillToBook,
   blendBuy,
   breakEvenSell,
@@ -765,12 +766,28 @@ describe('UI shell', () => {
         markets: [{ itemId: 'gold_bar', bestBid: 100, bestAsk: 110, lastPrice: 110, ema: 110, volume: 1, bestBidIsMine: false, bestAskIsMine: false }],
       } as unknown as PlayerView;
       const { container } = render(
-        <WatchlistPanel view={v} items={items} watch={['gold_bar']} alerts={{}} sellAlerts={{}} onSelect={() => {}} onRemove={() => {}} onSetAlert={() => {}} onSetSellAlert={() => {}} />,
+        <WatchlistPanel view={v} items={items} watch={['gold_bar']} alerts={{}} sellAlerts={{}} bandAlerts={{}} onSelect={() => {}} onRemove={() => {}} onSetAlert={() => {}} onSetSellAlert={() => {}} onToggleBandAlert={() => {}} />,
       );
       const sig = container.querySelector('.watchsignal');
       expect(sig).toBeTruthy();
       expect(sig!.textContent).toMatch(/flip \+6/); // after-tax margin at bid 100 / ask 110
       expect(sig!.textContent).toContain('🟢'); // lastPrice 110 in band 100..200 → pos 0.1 → cheap
+    });
+
+    it('WatchlistPanel arms a value-band buy-the-dip alert on a banded row', () => {
+      const items = [{ id: 'gold_bar', name: 'Gold bar', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
+      const v = {
+        markets: [{ itemId: 'gold_bar', bestBid: 100, bestAsk: 110, lastPrice: 150, ema: 150, volume: 1, bestBidIsMine: false, bestAskIsMine: false }],
+      } as unknown as PlayerView;
+      const onToggleBandAlert = vi.fn();
+      const { container } = render(
+        <WatchlistPanel view={v} items={items} watch={['gold_bar']} alerts={{}} sellAlerts={{}} bandAlerts={{}} onSelect={() => {}} onRemove={() => {}} onSetAlert={() => {}} onSetSellAlert={() => {}} onToggleBandAlert={onToggleBandAlert} />,
+      );
+      const toggle = container.querySelector('.bandalert') as HTMLButtonElement;
+      expect(toggle).toBeTruthy();
+      expect(toggle.getAttribute('aria-pressed')).toBe('false');
+      fireEvent.click(toggle);
+      expect(onToggleBandAlert).toHaveBeenCalledWith('gold_bar', true); // arms it
     });
 
     it('the "cheap" track shows only items trading in the cheap third of their value band', () => {
@@ -1611,6 +1628,14 @@ describe('UI shell', () => {
       expect(bandPosition(def, 999)).toBe(1); // above ceiling → clamps to 1
       expect(bandPosition({ baseCost: 100, consumeValue: 100 }, 100)).toBeNull(); // no band
       expect(bandPosition(undefined, 100)).toBeNull();
+    });
+    it('bandAlertHit fires exactly in the cheap third of the band', () => {
+      const def = { baseCost: 100, consumeValue: 200 }; // band 100..200; cheap = pos < 0.34
+      expect(bandAlertHit(def, 110)).toBe(true); // pos 0.10 → cheap
+      expect(bandAlertHit(def, 50)).toBe(true); // below floor clamps cheap
+      expect(bandAlertHit(def, 150)).toBe(false); // pos 0.50 → fair
+      expect(bandAlertHit(def, 190)).toBe(false); // pos 0.90 → rich
+      expect(bandAlertHit(undefined, 110)).toBe(false); // no def → never
     });
     it('marketMood counts breadth (traded only) and the cheap/rich value spread', () => {
       const items = [

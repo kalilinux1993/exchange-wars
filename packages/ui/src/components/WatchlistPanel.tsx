@@ -1,5 +1,5 @@
 import type { ItemDef, PlayerView } from '@exchange-wars/engine';
-import { alertHit, flipMargin, valueBand } from '../game';
+import { alertHit, bandPosition, flipMargin, valueBand } from '../game';
 
 /**
  * The watchlist (9w): items the player stars, with live price + trend vs the
@@ -13,20 +13,25 @@ export function WatchlistPanel({
   watch,
   alerts,
   sellAlerts,
+  bandAlerts,
   onSelect,
   onRemove,
   onSetAlert,
   onSetSellAlert,
+  onToggleBandAlert,
 }: {
   view: PlayerView;
   items: ItemDef[];
   watch: string[];
   alerts: Record<string, number>;
   sellAlerts: Record<string, number>;
+  /** Items armed for a value-band "buy the dip" alert (fires when they go cheap). */
+  bandAlerts: Record<string, boolean>;
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   onSetAlert: (id: string, price: number | null) => void;
   onSetSellAlert: (id: string, price: number | null) => void;
+  onToggleBandAlert: (id: string, on: boolean) => void;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
   const defOf = new Map(items.map((i) => [i.id, i]));
@@ -93,6 +98,24 @@ export function WatchlistPanel({
                     onChange={(e) => onSetSellAlert(m.itemId, e.target.value === '' ? null : Number(e.target.value))}
                   />
                 </label>
+                {bandPosition(defOf.get(m.itemId), m.lastPrice) !== null &&
+                  (() => {
+                    const armed = bandAlerts[m.itemId] === true;
+                    return (
+                      <button
+                        className={armed ? 'chip bandalert on' : 'chip bandalert'}
+                        aria-pressed={armed}
+                        title={
+                          armed
+                            ? 'cheap-band alert ON — tap to disarm; fires when this enters its cheap band'
+                            : 'alert me when this drops into its cheap band (a self-adjusting "buy the dip" — no price to set)'
+                        }
+                        onClick={() => onToggleBandAlert(m.itemId, !armed)}
+                      >
+                        🟢{armed ? '✓' : ''}
+                      </button>
+                    );
+                  })()}
                 <button className="chip" title="unstar" onClick={() => onRemove(m.itemId)}>
                   ×
                 </button>

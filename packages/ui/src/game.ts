@@ -1573,6 +1573,17 @@ export function alertHit(last: number, threshold: number, dir: 'below' | 'above'
   return dir === 'below' ? last <= threshold : last >= threshold;
 }
 
+/** A value-band "buy the dip" alert: true when the price has entered the CHEAP
+ * third of the item's cost→value band. Unlike an absolute buy-below alert, this
+ * self-adjusts to fundamentals — no threshold to set or maintain. The single
+ * source App and the watchlist read so "is it cheap?" can't disagree. Pure. */
+export function bandAlertHit(
+  def: { baseCost: number; consumeValue: number } | undefined,
+  lastPrice: number,
+): boolean {
+  return valueBand(def, lastPrice) === 'cheap';
+}
+
 /** Offline earning rate in gp/min (1 offline tick ≡ 1 second, so ticks/60 =
  * minutes away). 0 when no time passed. Pure. */
 export function offlineRatePerMin(delta: number, ticks: number): number {

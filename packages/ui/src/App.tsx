@@ -34,6 +34,7 @@ import { UpgradeShop } from './components/UpgradeShop';
 import { WorthChart } from './components/WorthChart';
 import {
   alertHit,
+  bandAlertHit,
   bumpStreak,
   streakCelebration,
   recordDailyBest,
@@ -129,10 +130,12 @@ export function App({ initial }: { initial?: Game }) {
   };
   const [alerts, setAlerts] = usePref<Record<string, number>>('ew-alerts', {});
   const [sellAlerts, setSellAlerts] = usePref<Record<string, number>>('ew-sell-alerts', {});
+  const [bandAlerts, setBandAlerts] = usePref<Record<string, boolean>>('ew-band-alerts', {});
   const [streak, setStreak] = usePref<DailyStreak | null>('ew-daily-streak', null);
   const [dailyBest, setDailyBest] = usePref<DailyBest | null>('ew-daily-best', null);
   const alertFired = useRef<Set<string>>(new Set());
   const sellFired = useRef<Set<string>>(new Set());
+  const bandFired = useRef<Set<string>>(new Set());
   const setAlert = (id: string, price: number | null): void => {
     const next = { ...alerts };
     if (price === null || !Number.isFinite(price) || price <= 0) delete next[id];
@@ -146,6 +149,13 @@ export function App({ initial }: { initial?: Game }) {
     else next[id] = price;
     setSellAlerts(next);
     sellFired.current.delete(id); // re-arm on edit
+  };
+  const setBandAlert = (id: string, on: boolean): void => {
+    const next = { ...bandAlerts };
+    if (on) next[id] = true;
+    else delete next[id];
+    setBandAlerts(next);
+    bandFired.current.delete(id); // re-arm on toggle
   };
   const closeHelp = (): void => {
     localStorage.setItem(HELP_SEEN_KEY, '1');
@@ -437,6 +447,23 @@ export function App({ initial }: { initial?: Game }) {
         setToast({ id: `sell-alert-${id}`, name: `⏰ ${name} ≥ ${threshold.toLocaleString('en-US')}`, flavor: `now ${last.toLocaleString('en-US')} gp — time to sell?`, achieved: () => false });
       } else if (last < threshold) {
         sellFired.current.delete(id);
+      }
+    }
+    // Value-band "buy the dip" alerts: fire once when an armed item enters the
+    // cheap third of its cost→value band; re-arm when it leaves cheap. No
+    // threshold — the band self-adjusts to fundamentals.
+    for (const id of Object.keys(bandAlerts)) {
+      if (!bandAlerts[id]) continue;
+      const market = v.markets.find((m) => m.itemId === id);
+      const def = game.world.items.find((i) => i.id === id);
+      if (!market || !def) continue;
+      if (bandAlertHit(def, market.lastPrice)) {
+        if (!bandFired.current.has(id)) {
+          bandFired.current.add(id);
+          setToast({ id: `band-alert-${id}`, name: `🟢 ${def.name} is cheap`, flavor: `now ${market.lastPrice.toLocaleString('en-US')} gp — in its cheap band, time to accumulate?`, achieved: () => false });
+        }
+      } else {
+        bandFired.current.delete(id);
       }
     }
   };
@@ -996,10 +1023,12 @@ export function App({ initial }: { initial?: Game }) {
             watch={watch}
             alerts={alerts}
             sellAlerts={sellAlerts}
+            bandAlerts={bandAlerts}
             onSelect={setSelected}
             onRemove={toggleWatch}
             onSetAlert={setAlert}
             onSetSellAlert={setSellAlert}
+            onToggleBandAlert={setBandAlert}
           />
           <NewsLog log={game.newsLog} />
         </section>
