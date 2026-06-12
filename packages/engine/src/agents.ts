@@ -385,10 +385,16 @@ function runFlipper(state: WorldState, agent: AgentState, opts: FlipperOpts): vo
     }
     const held = v.inventory[def.id] ?? 0;
     if (held < 1) continue;
+    const basis = agent.memo[`basis_${def.id}`];
+    // Only liquidate the clerk's OWN stock. It records a `basis` for everything it
+    // buys (and clears it on full exit), so a held item WITHOUT a basis was bought
+    // by the human directly — gear to equip, or goods to keep. Don't sell it out
+    // from under them. (The benchmark only ever holds its own buys, so this gate
+    // is a no-op for it — the balance/sanity gates are unchanged.)
+    if (basis === undefined) continue;
     const m = v.markets.find((x) => x.itemId === def.id);
     if (!m) continue;
     let sellAt = Math.max(1, m.bestAsk !== null ? m.bestAsk - 1 : Math.round(m.ema * 1.03));
-    const basis = agent.memo[`basis_${def.id}`];
     const since = agent.memo[`since_${def.id}`];
     const stale = since !== undefined && state.tick - since > opts.staleHoldTicks;
     if (basis !== undefined && !stale) {
@@ -409,6 +415,12 @@ function runFlipper(state: WorldState, agent: AgentState, opts: FlipperOpts): vo
   for (const m of vBuy.markets) {
     if (m.bestBid === null || m.bestAsk === null) continue;
     if (m.bestAskIsMine) continue; // our own sell is best ask — no flip here
+    // Don't START flipping an item the human already holds without our basis —
+    // it's theirs (gear to equip, an accumulation), not stock to acquire-and-dump.
+    // With the sell-side basis gate, this keeps the clerk fully off player goods.
+    // (No-op for the benchmark: it only ever holds items it bought, which carry a
+    // basis, so this never trips for it — the balance/sanity gates are unchanged.)
+    if ((vBuy.inventory[m.itemId] ?? 0) > 0 && agent.memo[`basis_${m.itemId}`] === undefined) continue;
     if (opts.focusItemId !== null && m.itemId !== opts.focusItemId) continue;
     const def = itemDef(state, m.itemId);
     if (!def || def.volatility > opts.maxVolatility) continue;

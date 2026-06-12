@@ -476,10 +476,11 @@ function runFlipper(state, agent, opts) {
     }
     const held = v.inventory[def.id] ?? 0;
     if (held < 1) continue;
+    const basis = agent.memo[`basis_${def.id}`];
+    if (basis === void 0) continue;
     const m = v.markets.find((x) => x.itemId === def.id);
     if (!m) continue;
     let sellAt = Math.max(1, m.bestAsk !== null ? m.bestAsk - 1 : Math.round(m.ema * 1.03));
-    const basis = agent.memo[`basis_${def.id}`];
     const since = agent.memo[`since_${def.id}`];
     const stale = since !== void 0 && state.tick - since > opts.staleHoldTicks;
     if (basis !== void 0 && !stale) {
@@ -494,6 +495,7 @@ function runFlipper(state, agent, opts) {
   for (const m of vBuy.markets) {
     if (m.bestBid === null || m.bestAsk === null) continue;
     if (m.bestAskIsMine) continue;
+    if ((vBuy.inventory[m.itemId] ?? 0) > 0 && agent.memo[`basis_${m.itemId}`] === void 0) continue;
     if (opts.focusItemId !== null && m.itemId !== opts.focusItemId) continue;
     const def = itemDef(state, m.itemId);
     if (!def || def.volatility > opts.maxVolatility) continue;

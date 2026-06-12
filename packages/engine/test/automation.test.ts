@@ -79,6 +79,22 @@ describe('automation upgrades', () => {
     checkInvariants(state);
   });
 
+  it('GEAR-SAFETY: the clerk never lists gear the player bought (no cost basis)', () => {
+    const state = createWorld({ seed: 42 });
+    const idle = addAgent(state, 'player', 200_000, {});
+    idle.policy = 'idle';
+    applyCommand(state, idle.id, { type: 'buyUpgrade', upgradeId: 'autoFlip' });
+    // The human manually bought upgrade gear — it sits in inventory with NO clerk
+    // basis (the clerk records a basis only for what IT buys). Before the fix the
+    // clerk listed + sold it within a cadence tick. Mint it through the ledger so
+    // conservation holds (a real buy would transfer it; here we just conjure one).
+    idle.inventory['rune_2h_sword'] = 1;
+    state.ledger.itemsMinted['rune_2h_sword'] = (state.ledger.itemsMinted['rune_2h_sword'] ?? 0) + 1;
+    runTicks(state, 3000); // the clerk acts hundreds of times
+    expect(idle.inventory['rune_2h_sword'] ?? 0).toBe(1); // untouched — never listed
+    checkInvariants(state);
+  });
+
   it('tier 1 caps automation at one concurrent flip', () => {
     const TWO: ItemDef[] = [
       { id: 'ore', name: 'Ore', baseCost: 80, consumeValue: 200, volatility: 0.08 },

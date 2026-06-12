@@ -3,7 +3,7 @@
 Live: https://kalilinux1993.github.io/exchange-wars/ · repo github.com/kalilinux1993/exchange-wars
 Deploy: push to main → CI (typecheck + vitest + e2e) auto-deploys Pages. Verifier: `npm run build:fn` + `npx supabase functions deploy verify-score --project-ref chynnshtcjclphlazkmv` (needs SUPABASE_ACCESS_TOKEN) — required in the same phase as any replay-affecting engine change.
 
-> **⚠️ VERIFY-SCORE REDEPLOY PENDING (12b).** The Field Forge / Skarn / Blood Altar content (PR #1) merged to main and changed the expedition replay. `engine.js` in `supabase/functions/verify-score/` is rebuilt and committed, but the live edge function is NOT yet redeployed. **One command when Jesse is present:** `npx supabase functions deploy verify-score --project-ref chynnshtcjclphlazkmv` (needs `SUPABASE_ACCESS_TOKEN`). Impact until then: dormant board (1 test row), soft worth-discrepancy only — no hard rejects.
+> **⚠️ VERIFY-SCORE REDEPLOY PENDING (12b + 13d).** Two replay-affecting engine changes are live but the verifier edge function is NOT yet redeployed: (1) 12b — Field Forge / Skarn / Blood Altar content; (2) **13d — clerk gear-safety fix** (the clerk no longer sells player-bought goods, changing replays for humans with autoFlip + manual holdings). `engine.js` in `supabase/functions/verify-score/` is rebuilt + committed (covers both). **One command:** `npx supabase functions deploy verify-score --project-ref chynnshtcjclphlazkmv` (needs `SUPABASE_ACCESS_TOKEN`). Impact until then: dormant board (1 test row), soft worth-discrepancy only — no hard rejects.
 
 Through brick 59 (10g): RPG layer (8 regions, stats/xp, brews, bounties, sellsword, death ward, 8 event faces), OSRS HUD (map/paperdoll/combat-scene with monster silhouettes + gear-reactive fighter/combat-level/titles), trading cockpit (movers/watchlist/alerts/pulse/sparkline/almanac/abort-all), robustness (error boundary + corrupt-save quarantine), art pipeline. Details in `.phases/` + DEV_GUIDE consolidations (8h–9f, 9g–9w, 9y–10g) + FINDINGS #1–#93.
 
@@ -34,6 +34,10 @@ Through brick 59 (10g): RPG layer (8 regions, stats/xp, brews, bounties, sellswo
 
 ## Trading safety
 - ~~"sell the spoils" bulk button dumped GEAR too (could liquidate the raiding kit)~~ FIXED 12r (`lootSpoils` — bulk keeps gear; per-item sell still sells anything). Optional follow-up: a "sell gear too" override.
+- ~~**CRITICAL (user-reported): the autoFlip CLERK sold player-bought gear before it could be equipped → satchel looked "always empty"**~~ FIXED 13d (engine: the clerk only sells items it has a cost `basis` for = its own flip-stock; won't start a flip on a player holding either). Benchmark/sim byte-identical (hash `fe75df57`). **Replay-affecting → needs the verify-score redeploy above.**
+
+## Jesse feature request — OSRS equipment manager
+The user wants manually-bought gear to appear in an inventory and be **equipped via an OSRS-style equipment manager** (real equip slots). Today gear is "worn" only by packing it into an expedition (auto-equips best per slot via `deriveStats`); there is NO `worn`/equipment field on `AgentState`. A real equip system = an engine field (`agent.worn` per slot, conservation-booked moves inventory↔worn) + `deriveStats` reading `worn` instead of/with the pack + an Equipment panel UI. **Larger engine+UI feature, Jesse-present.** The 13d fix unblocks it (gear now survives in the satchel).
 
 ## Old minor leftovers (non-blocking)
 - Trades window: `shift()` → ring buffer if it ever grows beyond 512.
