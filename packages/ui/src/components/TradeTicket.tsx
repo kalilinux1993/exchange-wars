@@ -2,7 +2,7 @@ import { GE_TAX_RATE } from '@exchange-wars/engine';
 import type { CommandResult, ItemDef, ItemId, PlayerCommand, PlayerView, Side } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { Sparkline } from './Sparkline';
-import { blendBuy, breakEvenSell, gearDelta, priceSwing, valueBand } from '../game';
+import { blendBuy, breakEvenSell, buyConcentration, gearDelta, priceSwing, valueBand } from '../game';
 
 /**
  * Split the resting book into bid/ask proportions for the liquidity bar —
@@ -332,6 +332,30 @@ export function TradeTicket({
                 {blend.avgCost.toLocaleString('en-US')}{' '}
                 <span className="dim">(was {blend.prevAvg.toLocaleString('en-US')})</span>{' '}
                 <span className={blend.delta < 0 ? 'pct up' : 'dim'}>{word}</span>
+              </p>
+            );
+          })()}
+        {side === 'buy' &&
+          valid &&
+          (() => {
+            // Concentration preview: how much of your liquid holdings this buy puts
+            // in one item — the risk lens at the decision point (PositionsPanel shows
+            // it only after the fill). Same thresholds as the allocation bar.
+            const conc = buyConcentration(view, selected, total);
+            if (!conc) return null;
+            const pct = Math.round(conc.pct * 100);
+            const cls = conc.pct > 0.5 ? 'pct down' : conc.pct >= 0.34 ? 'dim' : 'pct up';
+            const name = def?.name ?? selected.replace(/_/g, ' ');
+            return (
+              <p
+                className="dim small concentration"
+                title="how much of your liquid holdings (cash + goods at last price) would sit in this one item if the buy fills — over half in a single item is concentration risk"
+              >
+                after fill:{' '}
+                <b className={cls}>
+                  {name} ≈ {pct}% of holdings
+                </b>
+                {conc.pct > 0.5 && <span className="warn"> · ⚠ concentrated</span>}
               </p>
             );
           })()}

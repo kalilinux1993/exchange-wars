@@ -811,6 +811,37 @@ export function positionConcentration(positions: HeldPosition[]): Concentration 
   return { weights, topPct: weights[0]?.pct ?? 0, count: positions.length };
 }
 
+export interface BuyConcentration {
+  itemValue: number; // this item's value if the pending buy fills (held goods + committed gp)
+  worth: number; // your liquid holdings = cash + held goods marked at last price
+  pct: number; // itemValue / worth, clamped [0,1] — your single-item exposure after the buy
+}
+
+/**
+ * Preview how concentrated a pending BUY would leave you in one item — the risk
+ * lens at the decision point (PositionsPanel shows it only after the fact). `worth`
+ * is liquid holdings (cash + held goods at last price); a buy just swaps cash→goods
+ * so `worth` is unchanged by it, making it the honest denominator. `itemValue` adds
+ * the gp you'd commit (`addCost`) to the item's current held value. Sum of integer
+ * products → order-independent. `null` when you hold nothing (no exposure to size). Pure.
+ */
+export function buyConcentration(
+  view: { gp: number; inventory: Record<string, number>; markets: { itemId: string; lastPrice: number }[] },
+  itemId: string,
+  addCost: number,
+): BuyConcentration | null {
+  const lastOf = new Map(view.markets.map((m) => [m.itemId, m.lastPrice]));
+  let goods = 0;
+  for (const id of Object.keys(view.inventory)) {
+    goods += (view.inventory[id] ?? 0) * (lastOf.get(id) ?? 0);
+  }
+  const worth = view.gp + goods;
+  if (worth <= 0) return null;
+  const heldVal = (view.inventory[itemId] ?? 0) * (lastOf.get(itemId) ?? 0);
+  const itemValue = heldVal + addCost;
+  return { itemValue, worth, pct: Math.max(0, Math.min(1, itemValue / worth)) };
+}
+
 /**
  * From the items you hold, the ones a bulk "sell the spoils" should dump — your
  * GEAR is kept out (it lives in the satchel between raids; one click shouldn't

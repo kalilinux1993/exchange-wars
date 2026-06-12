@@ -81,6 +81,7 @@ import {
   openPosition,
   heldPositions,
   positionConcentration,
+  buyConcentration,
   underwaterSummary,
   lootSpoils,
   gearDelta,
@@ -1165,6 +1166,32 @@ describe('UI shell', () => {
     });
   });
 
+  describe('buyConcentration', () => {
+    const view = (gp: number, inventory: Record<string, number>, lastById: Record<string, number>) =>
+      ({ gp, inventory, markets: Object.entries(lastById).map(([itemId, lastPrice]) => ({ itemId, lastPrice })) }) as never;
+    it('a buy committing ~half your liquid worth into a fresh item reads ~50%', () => {
+      // worth = 2000 cash + 0 goods = 2000 (a buy just swaps cash→goods, so worth is
+      // unchanged); commit 1000 to a fresh item → itemValue 1000 / worth 2000 = 50%.
+      const c = buyConcentration(view(2000, {}, { gold_bar: 100 }), 'gold_bar', 1000);
+      expect(c).not.toBeNull();
+      expect(c!.worth).toBe(2000); // cash + held goods
+      expect(c!.itemValue).toBe(1000); // held (0) + committed
+      expect(c!.pct).toBeCloseTo(0.5);
+    });
+    it('counts existing held goods in both the item value and the worth denominator', () => {
+      // cash 500 + goods (10×100 gold + 5×200 silk = 2000) = 2500 worth; gold held 1000, commit 500 → 1500/2500 = 60%
+      const c = buyConcentration(view(500, { gold_bar: 10, silk: 5 }, { gold_bar: 100, silk: 200 }), 'gold_bar', 500);
+      expect(c!.worth).toBe(2500);
+      expect(c!.itemValue).toBe(1500);
+      expect(c!.pct).toBeCloseTo(0.6);
+    });
+    it('clamps to [0,1] and nulls when you hold nothing of value', () => {
+      expect(buyConcentration(view(0, {}, { gold_bar: 100 }), 'gold_bar', 0)).toBeNull(); // worth 0 → null
+      const big = buyConcentration(view(10, {}, { gold_bar: 100 }), 'gold_bar', 9_999);
+      expect(big!.pct).toBe(1); // committing far past your worth clamps at 100%
+    });
+  });
+
   it('PositionsPanel shows the allocation concentration of your holdings', () => {
     const game = newGame(42);
     const A = DEFAULT_ITEMS[0]!;
@@ -1958,6 +1985,32 @@ describe('UI shell', () => {
     );
     expect(screen.getByText(/equips as/)).toBeTruthy();
     expect(screen.getByText('⚔+35 Attack')).toBeTruthy();
+  });
+
+  it('TradeTicket previews how concentrated a buy would leave you (risk lens)', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    render(
+      <TradeTicket
+        view={view}
+        selected={view.markets[0]!.itemId}
+        items={game.world.items}
+        lvls={{ atk: 99, def: 99 }}
+        prefill={null}
+        onCommand={() => {}}
+        lastResult={null}
+        eventNote={null}
+        recentPrices={[]}
+        position={null}
+        watched={false}
+        onToggleWatch={() => {}}
+      />,
+    );
+    // default side is buy; commit ~all your cash into one item → a concentration warning
+    const price = screen.getAllByRole('textbox')[0]!; // [price, qty]
+    fireEvent.change(price, { target: { value: String(view.gp) } });
+    expect(screen.getByText(/% of holdings/)).toBeTruthy();
+    expect(screen.getByText(/⚠ concentrated/)).toBeTruthy();
   });
 
   it('TradeTicket shows no gear preview for a non-gear commodity', () => {
