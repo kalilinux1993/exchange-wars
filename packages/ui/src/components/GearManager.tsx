@@ -1,6 +1,6 @@
 import { GEAR, levelsOf } from '@exchange-wars/engine';
-import type { AgentState, ItemDef, PlayerCommand } from '@exchange-wars/engine';
-import { gearDelta } from '../game';
+import type { AgentState, ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
+import { bestAffordableUpgrade, gearDelta } from '../game';
 import { Icon, itemIcon } from './Icon';
 
 /** Compact "+A atk +D def" for a gear piece (only the non-zero stats). */
@@ -19,15 +19,20 @@ export function GearManager({
   agent,
   items,
   onCommand,
+  view,
 }: {
   agent: AgentState | undefined;
   items: ItemDef[];
   onCommand: (cmd: PlayerCommand) => void;
+  /** When provided (markets + gp), surfaces the best affordable upgrade to buy. */
+  view?: PlayerView;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
   const inv = agent?.inventory ?? {};
   const worn = agent?.worn ?? {};
   const lvls = levelsOf(agent?.combatXp);
+  // The strongest gear upgrade you could BUY and use right now — names the next move.
+  const pick = view ? bestAffordableUpgrade(worn, lvls, view.gp, view.markets, inv) : null;
   // Owned gear, each with its upgrade verdict, ordered most-actionable-first:
   // wearable upgrades by biggest gain, then sidegrades/downgrades, then the
   // locked (under-level) pieces last — so what's worth equipping is up top.
@@ -51,6 +56,18 @@ export function GearManager({
           </button>
         )}
       </h3>
+      {pick && (
+        <p
+          className="dim small bestbuy"
+          title="the strongest gear upgrade you can afford and use right now, by the best ask on the Exchange — buy it there to equip it"
+        >
+          💰 best buy: <b>{names.get(pick.itemId) ?? pick.itemId}</b>{' '}
+          <span className="pct up">
+            {pick.skill === 'atk' ? '⚔' : '🛡'}+{pick.delta}
+          </span>{' '}
+          · {pick.price.toLocaleString('en-US')} gp on the Exchange
+        </p>
+      )}
       {wornSlots.length > 0 && (
         <ul className="rows small">
           {wornSlots.map(([slot, itemId]) => {

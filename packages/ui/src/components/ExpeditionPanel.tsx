@@ -136,7 +136,7 @@ export function ExpeditionPanel({
           titles={MILESTONES.filter((m) => game.milestones.includes(m.id)).map((m) => m.name)}
           onRest={onRest}
         />
-        <GearManager agent={agent} items={game.world.items} onCommand={onCommand} />
+        <GearManager agent={agent} items={game.world.items} onCommand={onCommand} view={view} />
         {resting && (
           <p className="warn small" title="wounds persist between expeditions — rest (or embark hurt, your gamble)">
             ♥ recovering: {agent!.hp}/{trainedMax} hp — mending as the market ticks

@@ -73,6 +73,7 @@ import {
   underwaterSummary,
   lootSpoils,
   gearDelta,
+  bestAffordableUpgrade,
   worthBreakdown,
   returnOnStake,
   sessionPnL,
@@ -1145,7 +1146,41 @@ describe('UI shell', () => {
     expect(onCommand).toHaveBeenCalledWith({ type: 'equip', itemId: 'rune_2h_sword' });
   });
 
+  describe('bestAffordableUpgrade', () => {
+    const mk = (itemId: string, bestAsk: number | null) => ({ itemId, bestAsk });
+    it('picks the biggest affordable, usable, non-owned gear upgrade', () => {
+      const pick = bestAffordableUpgrade({}, { atk: 99, def: 99 }, 100_000, [mk('rune_2h_sword', 25_000), mk('adamant_dart', 100)], {});
+      expect(pick).toMatchObject({ itemId: 'rune_2h_sword', delta: 45, price: 25_000, skill: 'atk' }); // atk 45 beats the dart's 10
+    });
+    it('falls back to what the purse can actually afford', () => {
+      const pick = bestAffordableUpgrade({}, { atk: 99, def: 99 }, 200, [mk('rune_2h_sword', 25_000), mk('adamant_dart', 100)], {});
+      expect(pick?.itemId).toBe('adamant_dart'); // the rune is out of budget
+    });
+    it('skips gear you already own and items with no live ask to buy into', () => {
+      const pick = bestAffordableUpgrade({}, { atk: 99, def: 99 }, 100_000, [mk('rune_2h_sword', 25_000), mk('adamant_dart', null)], { rune_2h_sword: 1 });
+      expect(pick).toBeNull(); // rune owned (equip it); dart has no ask
+    });
+    it('skips gear above your level and returns null when nothing qualifies', () => {
+      expect(bestAffordableUpgrade({}, { atk: 1, def: 1 }, 100_000, [mk('rune_2h_sword', 25_000)], {})).toBeNull(); // req 14 > Attack 1
+      expect(bestAffordableUpgrade({}, { atk: 99, def: 99 }, 100_000, [], {})).toBeNull(); // empty market
+    });
+  });
+
   describe('GearManager (Adventure-tab equipment manager)', () => {
+    it('recommends the best affordable upgrade from the market, and omits it without a view', () => {
+      const agent = { inventory: {}, worn: {}, combatXp: { atk: xpForLevel(99), def: xpForLevel(99), hp: 0 } } as unknown as AgentState;
+      const items = [{ id: 'rune_2h_sword', name: 'Rune 2h sword' }] as unknown as ItemDef[];
+      const view = { gp: 100_000, markets: [{ itemId: 'rune_2h_sword', bestAsk: 25_000 }] } as unknown as PlayerView;
+      const withView = render(<GearManager agent={agent} items={items} onCommand={() => {}} view={view} />);
+      const line = withView.container.querySelector('.bestbuy');
+      expect(line!.textContent).toMatch(/best buy:.*Rune 2h sword/);
+      expect(line!.textContent).toMatch(/⚔\+45/);
+      expect(line!.textContent).toMatch(/25,000 gp/);
+      withView.unmount();
+      const noView = render(<GearManager agent={agent} items={items} onCommand={() => {}} />);
+      expect(noView.container.querySelector('.bestbuy')).toBeNull(); // no markets → no recommendation
+    });
+
     it('shows each gear piece stats, its requirement, and the upgrade verdict vs what is worn', () => {
       const agent = {
         inventory: { rune_2h_sword: 1 }, // weapon, atk 45, req 14

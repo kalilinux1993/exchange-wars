@@ -790,6 +790,44 @@ export function gearDelta(
   };
 }
 
+/** The single best gear upgrade you can buy and use right now — the advisor's pick. */
+export interface UpgradePick {
+  itemId: string;
+  price: number; // the best ask you'd pay to buy it now
+  delta: number; // governing-stat improvement vs what's worn in that slot
+  skill: 'atk' | 'def';
+  slot: string;
+}
+
+/**
+ * "What should I buy to get stronger?" — scans the GEAR catalog for the biggest gear
+ * upgrade you can AFFORD (a live best-ask within budget), USE (level met), and don't
+ * already OWN (owning it means equip, not buy), measured vs what's worn via `gearDelta`.
+ * Iterates sorted ids for a deterministic tie-break (max delta, then cheaper, then id).
+ * Returns null when nothing qualifies. Pure — markets/inventory injected.
+ */
+export function bestAffordableUpgrade(
+  worn: Record<string, string>,
+  lvls: { atk: number; def: number },
+  gp: number,
+  markets: { itemId: string; bestAsk: number | null }[],
+  inventory: Record<string, number>,
+): UpgradePick | null {
+  const askOf = new Map(markets.map((m) => [m.itemId, m.bestAsk]));
+  let best: UpgradePick | null = null;
+  for (const itemId of Object.keys(GEAR).sort()) {
+    if ((inventory[itemId] ?? 0) > 0) continue; // already own it — equip, don't buy
+    const ask = askOf.get(itemId);
+    if (ask === null || ask === undefined || ask > gp) continue; // must be buyable now, in budget
+    const gd = gearDelta(itemId, worn, lvls);
+    if (!gd || !gd.usable || gd.delta <= 0) continue; // usable + a real upgrade only
+    if (best === null || gd.delta > best.delta || (gd.delta === best.delta && ask < best.price)) {
+      best = { itemId, price: ask, delta: gd.delta, skill: gd.skill, slot: gd.slot };
+    }
+  }
+  return best;
+}
+
 /** Net worth split by liquidity — the cash-vs-committed-vs-goods lens. */
 export interface WorthBreakdown {
   cash: number; // liquid gp on hand
