@@ -1040,6 +1040,27 @@ kbd {
   stroke-width: 1.5;
   opacity: 0.6;
 }
+/* a short pulse on the selection ring when you re-point the map (e.g. a Delve Log
+   "raid again" jump) — draws the eye to where you're now aimed, then settles. */
+@keyframes mapflash {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  45% {
+    transform: scale(1.65);
+    opacity: 0.15;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+}
+.mapnode.flash .mapsel {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mapflash 0.6s ease-out;
+}
 .mapmark {
   font-size: 9px;
   fill: var(--parchment);

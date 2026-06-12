@@ -1,4 +1,5 @@
 import { monsterById, REGIONS } from '@exchange-wars/engine';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * The realm as a node-graph map (9k): eight regions on a winding trail,
@@ -15,6 +16,20 @@ export function RegionMap({
   selected: string;
   onSelect: (id: string) => void;
 }) {
+  // Pulse the node when the selection CHANGES (e.g. a Delve Log "raid again" jump re-points
+  // the map from another tab) so the eye lands on where you're now aimed. Skip the first
+  // mount — only a change should flash, not the static starting region.
+  const [flashing, setFlashing] = useState(false);
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    setFlashing(true);
+    const t = setTimeout(() => setFlashing(false), 600);
+    return () => clearTimeout(t);
+  }, [selected]);
   const W = 320;
   const H = 150;
   // Winding trail: alternate high/low across the width.
@@ -41,7 +56,7 @@ export function RegionMap({
         return (
           <g
             key={r.id}
-            className={`mapnode ${state}${isSel ? ' selected' : ''}`}
+            className={`mapnode ${state}${isSel ? ' selected' : ''}${isSel && flashing ? ' flash' : ''}`}
             onClick={() => i <= progress && onSelect(r.id)}
             style={{ cursor: i <= progress ? 'pointer' : 'not-allowed' }}
           >

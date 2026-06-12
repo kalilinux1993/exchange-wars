@@ -18,6 +18,7 @@ import { resolveShortcut } from '../src/keyboard';
 import { ProfitPanel } from '../src/components/ProfitPanel';
 import { PositionsPanel } from '../src/components/PositionsPanel';
 import { ConquestPanel } from '../src/components/ConquestPanel';
+import { RegionMap } from '../src/components/RegionMap';
 import { MarketTable } from '../src/components/MarketTable';
 import { DelvePanel } from '../src/components/DelvePanel';
 import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
@@ -585,6 +586,17 @@ describe('UI shell', () => {
     expect(r0row.querySelectorAll('.roster-foe.unmet').length).toBe(roster.length - 1); // the rest
     // total glyphs == roster size (deduped)
     expect(r0row.querySelectorAll('.roster-foe').length).toBe(roster.length);
+  });
+
+  it('RegionMap pulses the node when the selection changes, but not on first mount', () => {
+    const a = REGIONS[0]!.id;
+    const b = REGIONS[1]!.id;
+    const { container, rerender } = render(<RegionMap progress={5} selected={a} onSelect={() => {}} />);
+    expect(container.querySelector('.mapnode.flash')).toBeNull(); // static initial region — no pulse
+    rerender(<RegionMap progress={5} selected={b} onSelect={() => {}} />);
+    const flashed = container.querySelector('.mapnode.flash');
+    expect(flashed).toBeTruthy(); // the newly-picked node pulses
+    expect(flashed!.classList.contains('selected')).toBe(true); // and it's the selected one
   });
 
   describe('nextRowIndex (market keyboard nav)', () => {
