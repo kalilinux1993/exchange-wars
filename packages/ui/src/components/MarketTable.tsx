@@ -1,5 +1,6 @@
 import type { ItemDef, ItemId, PlayerView, Trade } from '@exchange-wars/engine';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { nextRowIndex } from '../game';
 
 const SPARK_POINTS = 20;
 
@@ -32,6 +33,7 @@ export function MarketTable({
   selected,
   onSelect,
   eventItems,
+  active = true,
 }: {
   view: PlayerView;
   items: ItemDef[];
@@ -40,6 +42,9 @@ export function MarketTable({
   onSelect: (id: ItemId) => void;
   /** Items with an active world event — marked ⚡ in their row. */
   eventItems: ReadonlySet<string>;
+  /** Whether the Exchange tab is the visible room — gates the j/k keyboard nav so
+   *  the hotkeys don't move the (hidden, still-mounted) market on other tabs. */
+  active?: boolean;
 }) {
   const [filter, setFilter] = useState('');
   const [track, setTrack] = useState<'all' | 'staples' | 'exotics'>('all');
@@ -87,6 +92,29 @@ export function MarketTable({
           if (bv === null) return -1;
           return (av - bv) * sort.dir;
         });
+  // Keyboard nav (j/k or ↑/↓ walk the selection through the *displayed* order, so
+  // it always matches the on-screen sort/filter). Refs keep the once-bound window
+  // listener reading current state without re-binding every render.
+  const navRef = useRef({ sorted, selected, onSelect, active });
+  navRef.current = { sorted, selected, onSelect, active };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      const { sorted: list, selected: sel, onSelect: pick, active: on } = navRef.current;
+      if (!on || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(t.tagName) || t.isContentEditable)) return;
+      const delta = e.key === 'j' || e.key === 'ArrowDown' ? 1 : e.key === 'k' || e.key === 'ArrowUp' ? -1 : 0;
+      if (delta === 0) return;
+      const cur = list.findIndex((m) => m.itemId === sel);
+      const next = nextRowIndex(cur, delta, list.length);
+      if (next >= 0) {
+        e.preventDefault();
+        pick(list[next]!.itemId);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   const arrow = (key: SortKey): string => (sort?.key === key ? (sort.dir === 1 ? ' ▲' : ' ▼') : '');
   return (
     <section className="panel market">
@@ -170,7 +198,7 @@ export function MarketTable({
           ))}
         </tbody>
       </table>
-      <p className="dim small">click a row to load it into the offer ticket</p>
+      <p className="dim small">click a row — or press j / k (↑ / ↓) — to load it into the offer ticket</p>
     </section>
   );
 }

@@ -155,6 +155,17 @@ export function dailyBestView(
   return { best: best.best, atPeak: worth >= best.best };
 }
 
+/**
+ * Clamp a row cursor when walking a list with j/k (or ↑/↓). `cur` may be -1 (the
+ * selected row isn't in the displayed/filtered list) — moving from there lands on
+ * the first row either direction. Clamps at both ends (no wrap, so the list has a
+ * stable top and bottom). -1 when there are no rows. Pure.
+ */
+export function nextRowIndex(cur: number, delta: number, len: number): number {
+  if (len <= 0) return -1;
+  return Math.max(0, Math.min(len - 1, cur + delta));
+}
+
 /** A region's full native roster: its encounter pool + named elite, deduped, order-stable. */
 export function regionRoster(region: { monsters: string[]; elite?: string }): string[] {
   const ids = region.elite ? [...region.monsters, region.elite] : [...region.monsters];

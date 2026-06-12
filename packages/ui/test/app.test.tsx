@@ -18,6 +18,7 @@ import { resolveShortcut } from '../src/keyboard';
 import { ProfitPanel } from '../src/components/ProfitPanel';
 import { PositionsPanel } from '../src/components/PositionsPanel';
 import { ConquestPanel } from '../src/components/ConquestPanel';
+import { MarketTable } from '../src/components/MarketTable';
 import { depthSplit } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
@@ -64,6 +65,7 @@ import {
   dailyBestView,
   regionRoster,
   regionMastery,
+  nextRowIndex,
   totalRealized,
   totalUnrealized,
   updateNews,
@@ -479,6 +481,64 @@ describe('UI shell', () => {
     render(<ConquestPanel game={game} />);
     expect(screen.getByText(r0.name, { exact: false })).toBeTruthy(); // region row present
     expect(screen.getByText(`1/${REGIONS.length} mastered`)).toBeTruthy(); // exactly one conquered
+  });
+
+  describe('nextRowIndex (market keyboard nav)', () => {
+    it('clamps at both ends, no wrap', () => {
+      expect(nextRowIndex(0, 1, 3)).toBe(1);
+      expect(nextRowIndex(2, 1, 3)).toBe(2); // bottom — stays
+      expect(nextRowIndex(0, -1, 3)).toBe(0); // top — stays
+    });
+    it('an unselected cursor (-1) lands on the first row either way', () => {
+      expect(nextRowIndex(-1, 1, 3)).toBe(0);
+      expect(nextRowIndex(-1, -1, 3)).toBe(0);
+    });
+    it('no rows → -1 (nothing to select)', () => {
+      expect(nextRowIndex(0, 1, 0)).toBe(-1);
+    });
+  });
+
+  describe('MarketTable keyboard nav', () => {
+    const mkt = (itemId: string) => ({
+      itemId, bestBid: 1, bestAsk: 2, lastPrice: 1, ema: 1, volume: 0, bestBidIsMine: false, bestAskIsMine: false,
+    });
+    const ids = DEFAULT_ITEMS.slice(0, 3).map((i) => i.id);
+    const view = { markets: ids.map(mkt) } as unknown as PlayerView;
+
+    it('j / k walk the selection through the displayed order, clamped at the ends', () => {
+      const onSelect = vi.fn();
+      const { rerender } = render(
+        <MarketTable view={view} items={DEFAULT_ITEMS} trades={[]} selected={ids[0]!} onSelect={onSelect} eventItems={new Set()} active />,
+      );
+      fireEvent.keyDown(document.body, { key: 'j' });
+      expect(onSelect).toHaveBeenLastCalledWith(ids[1]); // first → second
+      rerender(
+        <MarketTable view={view} items={DEFAULT_ITEMS} trades={[]} selected={ids[2]!} onSelect={onSelect} eventItems={new Set()} active />,
+      );
+      fireEvent.keyDown(document.body, { key: 'ArrowDown' });
+      expect(onSelect).toHaveBeenLastCalledWith(ids[2]); // at the bottom — clamps, no wrap
+      fireEvent.keyDown(document.body, { key: 'k' });
+      expect(onSelect).toHaveBeenLastCalledWith(ids[1]); // last → second
+    });
+
+    it('does nothing when the Exchange tab is not the active room', () => {
+      const onSelect = vi.fn();
+      render(
+        <MarketTable view={view} items={DEFAULT_ITEMS} trades={[]} selected={ids[0]!} onSelect={onSelect} eventItems={new Set()} active={false} />,
+      );
+      fireEvent.keyDown(document.body, { key: 'j' });
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    it('ignores the keys while typing in the filter input', () => {
+      const onSelect = vi.fn();
+      render(
+        <MarketTable view={view} items={DEFAULT_ITEMS} trades={[]} selected={ids[0]!} onSelect={onSelect} eventItems={new Set()} active />,
+      );
+      const filter = screen.getByPlaceholderText(/filter items/i);
+      fireEvent.keyDown(filter, { key: 'j' }); // target is the INPUT — guarded
+      expect(onSelect).not.toHaveBeenCalled();
+    });
   });
 
   it('loadCorruptSave / discardCorruptSave round-trip the quarantine', () => {

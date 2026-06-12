@@ -831,6 +831,7 @@ export function App({ initial }: { initial?: Game }) {
                   .map((e) => e.itemId),
               )
             }
+            active={room === 'exchange'}
           />
           <TopFlips
             view={view}
