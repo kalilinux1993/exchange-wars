@@ -23,6 +23,7 @@ import { DelvePanel } from '../src/components/DelvePanel';
 import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
 import { HelpOverlay } from '../src/components/HelpOverlay';
 import { WealthPanel } from '../src/components/WealthPanel';
+import { UpgradeShop } from '../src/components/UpgradeShop';
 import { PlayerPanel } from '../src/components/PlayerPanel';
 import { depthSplit, TradeTicket } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
@@ -909,6 +910,19 @@ describe('UI shell', () => {
     const view = { gp: 1000, openOrders: [{ side: 'buy', price: 50, remaining: 4 }] } as unknown as PlayerView;
     render(<WealthPanel game={game} view={view} worth={2000} />); // +1000 over the 1000 stake = +100%
     expect(screen.getByText(/\+100%/)).toBeTruthy();
+  });
+
+  it('UpgradeShop shows the purse and how far short you are of an upgrade', () => {
+    const view = {
+      gp: 100, // way short of any upgrade
+      slots: 1,
+      nextSlotCost: 5000,
+      upgrades: {},
+      botConfig: { maxVolatility: null, capitalFraction: null, focusItemId: null },
+    } as unknown as PlayerView;
+    render(<UpgradeShop view={view} items={[]} onCommand={() => {}} />);
+    expect(screen.getByText(/^100 gp$/)).toBeTruthy(); // spendable purse in the header
+    expect(screen.getByText(/need \+4,900/)).toBeTruthy(); // slot shortfall (5,000 − 100)
   });
 
   describe('lootSpoils', () => {

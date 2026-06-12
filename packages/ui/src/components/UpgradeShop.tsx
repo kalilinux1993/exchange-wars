@@ -18,9 +18,20 @@ export function UpgradeShop({
   const tier = view.upgrades['autoFlip'] ?? 0;
   const nextTierCost = PROGRESSION.upgrades.autoFlip.costs[tier];
   const conf = tier > 0 ? TUNING.automation.autoFlip[tier - 1] : undefined;
+  // How far short the purse is of an upgrade — makes the saving goal concrete
+  // instead of just greying the button out (the spend lens, like 13l flips).
+  const need = (cost: number | null | undefined) =>
+    cost != null && Number.isFinite(cost) && view.gp < cost ? (
+      <span className="shortfall" title={`save ${(cost - view.gp).toLocaleString('en-US')} more gp to afford this`}>
+        {' '}
+        need +{(cost - view.gp).toLocaleString('en-US')}
+      </span>
+    ) : null;
   return (
     <section className="panel shop">
-      <h2>Clerk's Counter</h2>
+      <h2>
+        Clerk's Counter <span className="dim small" title="spendable cash — upgrades cost gp, not held goods">{view.gp.toLocaleString('en-US')} gp</span>
+      </h2>
       <div className="upgrade">
         <div>
           <b>Offer slot</b>
@@ -36,6 +47,7 @@ export function UpgradeShop({
         >
           {view.nextSlotCost === null ? 'maxed' : `${view.nextSlotCost.toLocaleString('en-US')} gp`}
         </button>
+        {need(view.nextSlotCost)}
       </div>
       <div className="upgrade">
         <div>
@@ -55,6 +67,7 @@ export function UpgradeShop({
         >
           {nextTierCost === undefined ? 'maxed' : `${nextTierCost.toLocaleString('en-US')} gp`}
         </button>
+        {need(nextTierCost)}
       </div>
       {conf && (
         <p className="dim small" title="the clerk sizes trades by UNIT COUNT, not your purse — so cheap goods mean small gp per flip no matter how rich you are">
@@ -88,6 +101,7 @@ export function UpgradeShop({
             ? 'hired'
             : `${PROGRESSION.upgrades.sellsword.costs[view.upgrades['sellsword'] ?? 0]!.toLocaleString('en-US')} gp`}
         </button>
+        {need(PROGRESSION.upgrades.sellsword.costs[view.upgrades['sellsword'] ?? 0])}
       </div>
       <div className="upgrade">
         <div>
@@ -109,6 +123,7 @@ export function UpgradeShop({
             ? 'warded'
             : `${PROGRESSION.upgrades.deathWard.costs[view.upgrades['deathWard'] ?? 0]!.toLocaleString('en-US')} gp`}
         </button>
+        {need(PROGRESSION.upgrades.deathWard.costs[view.upgrades['deathWard'] ?? 0])}
       </div>
       <h3>Clerk Orders</h3>
       {tier === 0 ? (
