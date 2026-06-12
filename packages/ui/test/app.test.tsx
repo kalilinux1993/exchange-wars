@@ -2466,6 +2466,24 @@ describe('UI shell', () => {
     expect(container.querySelector('.pct')!.textContent).toMatch(/[▲▼]\s*\d+%/);
   });
 
+  it('the extract button shows the loot it would bank (the push-your-luck stake)', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.expedition = {
+      regionId: 'lumbridge_plains',
+      rngState: 1,
+      hp: 50,
+      pack: {},
+      packGp: 5000, // 5,000 gp of loot gathered, no forced combat → free to extract
+      cleared: 3,
+      combat: null, // between fights — free to extract
+    };
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const extract = screen.getByRole('button', { name: /extract · bank 5,000 gp/ });
+    expect(extract.className).toContain('hasloot'); // emphasised as the payoff action
+  });
+
   it('the combat scene renders the foe and animates a hit splat per round', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;

@@ -589,7 +589,8 @@ export function ExpeditionPanel({
             </button>
           ))}
           <button
-            className="chip"
+            className={`chip extract${exp.packGp > 0 ? ' hasloot' : ''}`}
+            title="leaving banks your loot and returns your packed kit safely — push deeper for more, but a death down here loses the whole haul"
             onClick={() => {
               const gp = exp.packGp;
               const kills = exp.cleared;
@@ -600,7 +601,7 @@ export function ExpeditionPanel({
               );
             }}
           >
-            extract (keep everything)
+            {exp.packGp > 0 ? `extract · bank ${exp.packGp.toLocaleString('en-US')} gp` : 'extract (keep your kit)'}
           </button>
         </div>
       )}
