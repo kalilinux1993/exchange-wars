@@ -278,6 +278,36 @@ export function raidTotalsByRegion(delves: DelveRecord[] | undefined): RegionRai
   return list.sort((a, b) => b.net - a.net || b.runs - a.runs || (a.regionId < b.regionId ? -1 : 1));
 }
 
+/** The reward side of a region: what its roster pays out. The forward complement to the
+ * backward-looking `raidTotalsByRegion` (history) — used pre-embark to weigh loot vs danger. */
+export interface RegionLoot {
+  gpLo: number; // smallest single-kill gp floor across the roster
+  gpHi: number; // largest single-kill gp ceiling across the roster
+  drops: { itemId: string; chance: number }[]; // distinct drops at their BEST chance, likeliest first
+}
+
+/**
+ * Aggregate a region roster's loot: the gp-per-kill range its foes carry, and every distinct item
+ * they can drop kept at its best chance across the roster, sorted likeliest-first (id tie-break).
+ * Structural roster param so this stays engine-import-free and pure. Empty roster → zeros / [].
+ */
+export function regionLoot(
+  roster: { gp: [number, number]; drops: { itemId: string; chance: number }[] }[],
+): RegionLoot {
+  let gpLo = Infinity;
+  let gpHi = 0;
+  const best = new Map<string, number>();
+  for (const m of roster) {
+    gpLo = Math.min(gpLo, m.gp[0]);
+    gpHi = Math.max(gpHi, m.gp[1]);
+    for (const d of m.drops) best.set(d.itemId, Math.max(best.get(d.itemId) ?? 0, d.chance));
+  }
+  const drops = [...best.entries()]
+    .map(([itemId, chance]) => ({ itemId, chance }))
+    .sort((a, b) => b.chance - a.chance || (a.itemId < b.itemId ? -1 : 1));
+  return { gpLo: gpLo === Infinity ? 0 : gpLo, gpHi, drops };
+}
+
 /** A player's PEAK dives — the "best ever" markers the lifetime aggregates don't capture. */
 export interface DiveRecords {
   /** Most loot banked from a single SURVIVED dive (a death forfeits the loot — not a haul). */

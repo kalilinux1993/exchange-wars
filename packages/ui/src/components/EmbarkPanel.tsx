@@ -1,7 +1,7 @@
 import { CONSUMABLES, deriveStats, GEAR, levelsOf, maxHpFor, monsterById, REGIONS, regionIndex } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { combatForecast, embarkPrep, type Game } from '../game';
+import { combatForecast, embarkPrep, regionLoot, type Game } from '../game';
 import { usePref } from '../usePref';
 import { ItemIcon } from './Icon';
 import { RegionMap } from './RegionMap';
@@ -119,6 +119,33 @@ export function EmbarkPanel({
                 {' '}· 💧 drains loot
               </span>
             ) : null}
+          </p>
+        );
+      })()}
+      {(() => {
+        // The REWARD side of the decision (complements the danger line above): the
+        // region's gp/kill range and its notable drops, so "worth the risk?" weighs
+        // payoff, not just survival. Roster ids are engine-internal → monsterById safe.
+        const region = REGIONS[regionIndex(regionId)]!;
+        const roster = (region.elite ? [...region.monsters, region.elite] : region.monsters).map(monsterById);
+        const loot = regionLoot(roster);
+        const TOP = 4;
+        return (
+          <p className="dim small" title="the reward side: gp each kill carries here, and the items this region's foes can drop (each shown at its best chance) — weigh it against the danger above">
+            loot: ≈<b className="up">{loot.gpLo.toLocaleString('en-US')}–{loot.gpHi.toLocaleString('en-US')}</b> gp/kill
+            {loot.drops.length > 0 && (
+              <>
+                {' · drops '}
+                {loot.drops.slice(0, TOP).map((dr, i) => (
+                  <span key={dr.itemId} className="dropchip" title={`${Math.round(dr.chance * 100)}% from a kill`}>
+                    {i > 0 ? ' ' : ''}
+                    <ItemIcon id={dr.itemId} wikiId={wikiOf.get(dr.itemId)} size={12} className="itemicon" />{' '}
+                    {(names.get(dr.itemId) ?? dr.itemId).toLowerCase()}
+                  </span>
+                ))}
+                {loot.drops.length > TOP && <span className="dim"> +{loot.drops.length - TOP} more</span>}
+              </>
+            )}
           </p>
         );
       })()}

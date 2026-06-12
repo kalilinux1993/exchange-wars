@@ -1065,6 +1065,10 @@ kbd {
   stroke: none;
   opacity: 0.6;
 }
+/* a region's notable-drop chip on the embark loot line — keep the icon + name together */
+.dropchip {
+  white-space: nowrap;
+}
 .mapnode.locked .maphalo {
   opacity: 0.3;
 }

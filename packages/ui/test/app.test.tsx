@@ -116,6 +116,7 @@ import {
   recentDelves,
   raidTotals,
   raidTotalsByRegion,
+  regionLoot,
   diveRecords,
   isNewBestHaul,
   totalRealized,
@@ -736,6 +737,19 @@ describe('UI shell', () => {
     expect(onCommand).not.toHaveBeenCalled(); // an inactive tab ignores the keys
   });
 
+  it('EmbarkPanel shows the loot upside (gp/kill range) beside the danger read', () => {
+    const game = newGame(42);
+    game.world.agents[game.playerId]!.questProgress = 5;
+    const view = playerView(game.world, game.playerId)!;
+    const { container } = render(
+      <EmbarkPanel game={game} view={view} items={game.world.items} onCommand={() => {}} active />,
+    );
+    const loot = within(container).getByText(/loot:/);
+    expect(loot).toBeTruthy();
+    expect(loot.textContent).toMatch(/gp\/kill/); // a gp-per-kill range is shown
+    expect(loot.textContent).toMatch(/drops/); // and the region's notable drops
+  });
+
   describe('nextRowIndex (market keyboard nav)', () => {
     it('clamps at both ends, no wrap', () => {
       expect(nextRowIndex(0, 1, 3)).toBe(1);
@@ -1056,6 +1070,18 @@ describe('UI shell', () => {
       ]);
       expect(r[0]).toMatchObject({ regionId: B, runs: 1, deaths: 0, net: 1000 }); // best net first
       expect(r[1]).toMatchObject({ regionId: A, runs: 2, deaths: 1, banked: 500, lost: 200, net: 300 });
+    });
+    it('regionLoot ranges the roster gp and dedups drops at their best chance, likeliest first', () => {
+      const roster = [
+        { gp: [10, 100] as [number, number], drops: [{ itemId: 'bones', chance: 0.5 }, { itemId: 'rune', chance: 0.1 }] },
+        { gp: [40, 600] as [number, number], drops: [{ itemId: 'bones', chance: 0.9 }, { itemId: 'gem', chance: 0.2 }] },
+      ];
+      const loot = regionLoot(roster);
+      expect(loot.gpLo).toBe(10); // smallest floor across the roster
+      expect(loot.gpHi).toBe(600); // largest ceiling
+      expect(loot.drops[0]).toEqual({ itemId: 'bones', chance: 0.9 }); // dedup → best chance, likeliest first
+      expect(loot.drops.map((d) => d.itemId)).toEqual(['bones', 'gem', 'rune']); // 0.9, 0.2, 0.1
+      expect(regionLoot([])).toEqual({ gpLo: 0, gpHi: 0, drops: [] }); // empty roster
     });
     it('DelvePanel shows a per-region breakdown once 2+ regions are raided, hidden below', () => {
       const game = newGame(42);
