@@ -73,6 +73,7 @@ import {
   gearDelta,
   worthBreakdown,
   returnOnStake,
+  sessionPnL,
   parseChallengeSeed,
   realizedFromBook,
   tradeRecord,
@@ -979,6 +980,22 @@ describe('UI shell', () => {
     });
   });
 
+  describe('sessionPnL', () => {
+    it('reports worth change vs the session baseline as gp and fraction', () => {
+      expect(sessionPnL(1250, 1000)).toEqual({ delta: 250, pct: 0.25, up: true });
+    });
+    it('reports a drawdown as negative, up=false', () => {
+      const s = sessionPnL(800, 1000);
+      expect(s.delta).toBe(-200);
+      expect(s.pct).toBeCloseTo(-0.2, 5);
+      expect(s.up).toBe(false);
+    });
+    it('flat session is up with delta 0; a zero baseline guards the divide', () => {
+      expect(sessionPnL(1000, 1000)).toEqual({ delta: 0, pct: 0, up: true });
+      expect(sessionPnL(500, 0)).toEqual({ delta: 500, pct: 0, up: true });
+    });
+  });
+
   it('WealthPanel shows the value of equipped kit', () => {
     const game = newGame(42);
     const npc = game.world.agents.find((a) => a.kind !== 'player')!;
@@ -990,6 +1007,22 @@ describe('UI shell', () => {
     const view = playerView(game.world, game.playerId)!;
     const { container } = render(<WealthPanel game={game} view={view} worth={50_000} />);
     expect(container.textContent).toContain('equipped kit'); // the worn weapon's value is surfaced
+  });
+
+  it('WealthPanel shows this-session P&L vs the load-time baseline, omits it when flat', () => {
+    const game = newGame(42);
+    const view = { gp: 1000, openOrders: [{ side: 'buy', price: 50, remaining: 4 }] } as unknown as PlayerView;
+    // worth 2000 vs a session baseline of 1500 → +500 (+33%) this session
+    const up = render(<WealthPanel game={game} view={view} worth={2000} sessionStartWorth={1500} />);
+    const line = up.container.querySelector('p.session');
+    expect(line).toBeTruthy();
+    expect(line!.textContent).toMatch(/this session/);
+    expect(line!.textContent).toMatch(/↑ \+/);
+    expect(line!.textContent).toMatch(/\(\+33%\)/);
+    up.unmount();
+    // baseline == worth → no movement → the line is omitted
+    const flat = render(<WealthPanel game={game} view={view} worth={2000} sessionStartWorth={2000} />);
+    expect(flat.container.querySelector('p.session')).toBeNull();
   });
 
   it('WealthPanel shows return on the starting stake', () => {

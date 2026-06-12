@@ -356,6 +356,11 @@ export function App({ initial }: { initial?: Game }) {
   // reference is stable and real level-ups still fire.
   const prevLevels = useRef<{ atk: number; def: number; hp: number } | null>(null);
   const levelBaselineGame = useRef<typeof game | null>(null);
+  // Session P&L baseline (14r): net worth when this session began. App is the only
+  // always-mounted owner, so the baseline survives tab switches; it re-captures on a
+  // game swap (cloud-adopt / restart) — same identity guard as the level baseline above.
+  const sessionBaseWorth = useRef<number | null>(null);
+  const sessionBaseGame = useRef<typeof game | null>(null);
   const refreshProgress = (notifyFills = false): void => {
     const v = playerView(game.world, game.playerId);
     if (!v) return;
@@ -961,7 +966,15 @@ export function App({ initial }: { initial?: Game }) {
         </section>
         <section className="middle">
           <PlayerPanel game={game} view={view} items={game.world.items} onCommand={command} />
-          <WealthPanel game={game} view={view} worth={playerWorth(game)} />
+          {(() => {
+            const w = playerWorth(game);
+            // Lazy-capture the session baseline; re-baseline on a game swap (new session).
+            if (sessionBaseWorth.current === null || sessionBaseGame.current !== game) {
+              sessionBaseWorth.current = w;
+              sessionBaseGame.current = game;
+            }
+            return <WealthPanel game={game} view={view} worth={w} sessionStartWorth={sessionBaseWorth.current} />;
+          })()}
           <TradeFeed
             trades={game.world.trades}
             fills={game.fills}

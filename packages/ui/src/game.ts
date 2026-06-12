@@ -839,6 +839,17 @@ export function returnOnStake(startGp: number, worth: number): StakeReturn {
   return { delta, pct: startGp > 0 ? delta / startGp : 0, up: delta >= 0 };
 }
 
+/**
+ * Net-worth change THIS session — vs a `baseline` worth captured when the app was
+ * opened (App owns the baseline and re-captures it on a game swap). The short-term
+ * "am I up since I sat down?" read, distinct from `returnOnStake`'s lifetime figure.
+ * Same shape as a stake return; `pct` guards a zero baseline. Pure.
+ */
+export function sessionPnL(worth: number, baseline: number): StakeReturn {
+  const delta = worth - baseline;
+  return { delta, pct: baseline > 0 ? delta / baseline : 0, up: delta >= 0 };
+}
+
 /** How a buy reshapes a position you already hold — the average-down preview. */
 export interface BlendedBuy {
   units: number; // resulting total units
