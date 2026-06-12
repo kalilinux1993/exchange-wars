@@ -20,6 +20,7 @@ import { PositionsPanel } from '../src/components/PositionsPanel';
 import { ConquestPanel } from '../src/components/ConquestPanel';
 import { RegionMap } from '../src/components/RegionMap';
 import { CombatScene, arenaTheme } from '../src/components/CombatScene';
+import { EmbarkPanel } from '../src/components/EmbarkPanel';
 import { MarketTable } from '../src/components/MarketTable';
 import { DelvePanel } from '../src/components/DelvePanel';
 import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
@@ -621,6 +622,26 @@ describe('UI shell', () => {
     const flashed = container.querySelector('.mapnode.flash');
     expect(flashed).toBeTruthy(); // the newly-picked node pulses
     expect(flashed!.classList.contains('selected')).toBe(true); // and it's the selected one
+  });
+
+  it('EmbarkPanel: ←/→ move the region and Enter embarks, gated to the active tab', () => {
+    const game = newGame(42);
+    game.world.agents[game.playerId]!.questProgress = 5; // several regions unlocked
+    const view = playerView(game.world, game.playerId)!;
+    const onCommand = vi.fn();
+    const { rerender } = render(
+      <EmbarkPanel game={game} view={view} items={game.world.items} onCommand={onCommand} active />,
+    );
+    expect(screen.getByText('soft hills, soft monsters')).toBeTruthy(); // region 0 selected
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(screen.getByText('it smells like XP down here')).toBeTruthy(); // moved to region 1
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(onCommand).toHaveBeenCalledWith(expect.objectContaining({ type: 'startExpedition' }));
+
+    onCommand.mockClear();
+    rerender(<EmbarkPanel game={game} view={view} items={game.world.items} onCommand={onCommand} active={false} />);
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(onCommand).not.toHaveBeenCalled(); // an inactive tab ignores the keys
   });
 
   describe('nextRowIndex (market keyboard nav)', () => {

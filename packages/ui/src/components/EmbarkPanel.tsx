@@ -19,6 +19,7 @@ export function EmbarkPanel({
   items,
   onCommand,
   regionPick,
+  active,
 }: {
   game: Game;
   view: PlayerView;
@@ -26,6 +27,8 @@ export function EmbarkPanel({
   onCommand: (cmd: PlayerCommand) => void;
   /** A nonce-pulsed request (from a Delve Log row) to pre-select a region. */
   regionPick?: { regionId: string; n: number } | null;
+  /** True when the Adventure tab is the active room — gates the keyboard nav. */
+  active?: boolean;
 }) {
   const agent = game.world.agents[game.playerId];
   const progress = agent?.questProgress ?? 0;
@@ -45,6 +48,38 @@ export function EmbarkPanel({
       setRegionId(regionPick.regionId);
     }
   }, [regionPick]);
+
+  // Embark on the current region with the packed draft — the ONE embark path, shared by
+  // the EMBARK button and the Enter key so they can never diverge. Guarded by the same
+  // locked check (can't dive a region above your progress).
+  const doEmbark = (): void => {
+    if (regionIndex(regionId) > progress) return;
+    const pack: Record<string, number> = {};
+    for (const [id, qty] of Object.entries(draft)) if (qty > 0) pack[id] = qty;
+    onCommand({ type: 'startExpedition', regionId, pack });
+    setDraft({});
+  };
+
+  // Keyboard nav (14w): ←/→ move the selected region among the unlocked ones, Enter embarks.
+  // Active only on the Adventure tab and out of a dive; never hijacks typing in a field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (!active || agent?.expedition) return;
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        const cur = regionIndex(regionId);
+        const next = e.key === 'ArrowLeft' ? Math.max(0, cur - 1) : Math.min(progress, cur + 1);
+        setRegionId(REGIONS[next]!.id);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        doEmbark();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active, agent?.expedition, regionId, progress, draft, onCommand]);
 
   // No embarking while you're out — the field shows in the Expeditions panel.
   if (agent?.expedition) return null;
@@ -248,16 +283,7 @@ export function EmbarkPanel({
           );
         })}
       </ul>
-      <button
-        className="submit buy"
-        disabled={locked}
-        onClick={() => {
-          const pack: Record<string, number> = {};
-          for (const [id, qty] of Object.entries(draft)) if (qty > 0) pack[id] = qty;
-          onCommand({ type: 'startExpedition', regionId, pack });
-          setDraft({});
-        }}
-      >
+      <button className="submit buy" disabled={locked} onClick={doEmbark} title="or press Enter">
         embark{locked ? ' (locked)' : ''}
       </button>
     </section>
