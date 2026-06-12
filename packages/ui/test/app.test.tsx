@@ -39,6 +39,7 @@ import {
   newGame,
   normalizeGame,
   OFFLINE_CAP_TICKS,
+  openPosition,
   parseChallengeSeed,
   realizedPnL,
   streakAtRisk,
@@ -637,6 +638,33 @@ describe('UI shell', () => {
   it('ProfitPanel shows the empty state before any completed flip', () => {
     render(<ProfitPanel game={newGame(42)} items={DEFAULT_ITEMS} onSelect={() => {}} />);
     expect(screen.getByText(/no completed flips yet/i)).toBeTruthy();
+  });
+
+  describe('openPosition', () => {
+    const buy = (itemId: string, qty: number, price: number, tick = 0): Fill => ({ tick, itemId, side: 'buy', qty, price });
+    const sell = (itemId: string, qty: number, price: number, tick = 1): Fill => ({ tick, itemId, side: 'sell', qty, price });
+    it('leftover buy lots are the open position, quantity-weighted avg cost', () => {
+      // buy 10@100, sell 4 → 6 held @ 100
+      expect(openPosition([buy('a', 10, 100), sell('a', 4, 150)], 'a')).toEqual({ units: 6, avgCost: 100 });
+      // buy 5@100 + 5@200, sell 3 (eats first lot) → 2@100 + 5@200 = 7 @ avg 171
+      expect(openPosition([buy('a', 5, 100), buy('a', 5, 200), sell('a', 3, 150)], 'a')).toEqual({
+        units: 7,
+        avgCost: 171, // round(1200/7)
+      });
+    });
+    it('null when fully sold or never bought, and ignores other items', () => {
+      expect(openPosition([buy('a', 5, 100), sell('a', 5, 999)], 'a')).toBeNull();
+      expect(openPosition([sell('a', 3, 100)], 'a')).toBeNull(); // loot/orphan sell, no basis
+      expect(openPosition([buy('b', 5, 100)], 'a')).toBeNull(); // different item
+    });
+  });
+
+  it('the ticket shows your open-position cost basis for held buys', () => {
+    const game = newGame(42);
+    game.fills = [{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }];
+    render(<App initial={game} />); // FIRST is the default-selected item
+    expect(screen.getByText(/position:/)).toBeTruthy();
+    expect(screen.getByText(/@ avg 100/)).toBeTruthy();
   });
 
   describe('resolveShortcut', () => {

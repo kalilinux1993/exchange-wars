@@ -218,6 +218,40 @@ export function realizedPnL(fills: Fill[], taxRate: number): ItemPnL[] {
     .sort((a, b) => b.profit - a.profit || (a.itemId < b.itemId ? -1 : 1));
 }
 
+/**
+ * Your open BOUGHT position in one item: FIFO-match sells against buys (within
+ * the fills window) and the leftover buy lots are what you bought and still
+ * hold, with a quantity-weighted average cost. The unrealized counterpart to
+ * realizedPnL — compare avgCost to the current price to see if you're up. null
+ * when nothing bought-and-unsold remains. Excludes loot (no buy fill, no cost
+ * basis); window-bounded, so it's your *recent* cost basis, not all-time.
+ */
+export function openPosition(fills: Fill[], itemId: string): { units: number; avgCost: number } | null {
+  const lots: { price: number; qty: number }[] = [];
+  for (const f of fills) {
+    if (f.itemId !== itemId) continue;
+    if (f.side === 'buy') {
+      lots.push({ price: f.price, qty: f.qty });
+      continue;
+    }
+    let remaining = f.qty;
+    while (remaining > 0 && lots.length > 0) {
+      const lot = lots[0]!;
+      const take = Math.min(remaining, lot.qty);
+      lot.qty -= take;
+      remaining -= take;
+      if (lot.qty === 0) lots.shift();
+    }
+  }
+  let units = 0;
+  let cost = 0;
+  for (const lot of lots) {
+    units += lot.qty;
+    cost += lot.qty * lot.price;
+  }
+  return units > 0 ? { units, avgCost: Math.round(cost / units) } : null;
+}
+
 export interface NewsEntry {
   tick: number;
   text: string;

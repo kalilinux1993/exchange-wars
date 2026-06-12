@@ -42,6 +42,7 @@ import {
   loadCorruptSave,
   loadGame,
   newGame,
+  openPosition,
   recordFills,
   playerWorth,
   recordWorth,
@@ -792,6 +793,7 @@ export function App({ initial }: { initial?: Game }) {
             onCommand={command}
             lastResult={lastResult}
             recentPrices={game.world.trades.filter((t) => t.itemId === selected).map((t) => t.price).slice(-48)}
+            position={openPosition(game.fills, selected)}
             watched={watch.includes(selected)}
             onToggleWatch={() => toggleWatch(selected)}
             eventNote={(() => {

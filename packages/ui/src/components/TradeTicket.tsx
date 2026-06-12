@@ -30,6 +30,7 @@ export function TradeTicket({
   lastResult,
   eventNote,
   recentPrices,
+  position,
   watched,
   onToggleWatch,
 }: {
@@ -43,6 +44,8 @@ export function TradeTicket({
   eventNote: string | null;
   /** Recent trade prices for the selected item (oldest→newest), for the sparkline. */
   recentPrices: number[];
+  /** Your open bought position (units + avg cost) in this item, or null. */
+  position: { units: number; avgCost: number } | null;
   watched: boolean;
   onToggleWatch: () => void;
 }) {
@@ -170,6 +173,26 @@ export function TradeTicket({
                 <span className="dseg ask" style={{ width: `${d.askPct}%` }} />
               </div>
             </div>
+          );
+        })()}
+      {position &&
+        (() => {
+          const cur = market?.lastPrice ?? 0;
+          const pct = position.avgCost > 0 && cur > 0 ? (cur - position.avgCost) / position.avgCost : 0;
+          return (
+            <p
+              className="dim small position"
+              title="your average cost for the units you bought and still hold (recent fills) — green = unrealized profit at the current price, before the sell tax"
+            >
+              position: <b>{position.units.toLocaleString('en-US')}</b> @ avg{' '}
+              {position.avgCost.toLocaleString('en-US')}
+              {cur > 0 && (
+                <span className={pct >= 0 ? 'pct up' : 'pct down'}>
+                  {' '}· {pct >= 0 ? '+' : ''}
+                  {(pct * 100).toFixed(1)}% now
+                </span>
+              )}
+            </p>
           );
         })()}
       <div className="sides">
