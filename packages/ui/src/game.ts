@@ -1652,6 +1652,49 @@ export function bandAlertHit(
   return valueBand(def, lastPrice) === 'cheap';
 }
 
+/** A captured market event with the item price at the moment it became active. */
+export interface CapturedEvent {
+  itemId: string;
+  kind: WorldEvent['kind'];
+  startPrice: number;
+}
+/** How an event resolved: the item's price move over its lifetime. */
+export interface EventRecap {
+  itemId: string;
+  kind: WorldEvent['kind'];
+  startPrice: number;
+  endPrice: number;
+  pct: number; // (end - start) / start
+}
+
+/**
+ * Reconcile the set of market events seen active last tick against the set active now: newly-active
+ * events get captured at their current price; events that were captured but are no longer active have
+ * ENDED, so they're returned as recaps (start price vs current price) and dropped from the map. Pure —
+ * the caller holds `captured` in a ref and resets it on a game swap (so a swap never recaps stale events).
+ */
+export function reconcileEvents(
+  captured: Record<string, CapturedEvent>,
+  activeEvents: { id: string; itemId: string; kind: WorldEvent['kind'] }[],
+  priceOf: (itemId: string) => number,
+): { recaps: EventRecap[]; captured: Record<string, CapturedEvent> } {
+  const activeIds = new Set(activeEvents.map((e) => e.id));
+  const next: Record<string, CapturedEvent> = { ...captured };
+  for (const e of activeEvents) {
+    if (!next[e.id]) next[e.id] = { itemId: e.itemId, kind: e.kind, startPrice: priceOf(e.itemId) };
+  }
+  const recaps: EventRecap[] = [];
+  for (const id of Object.keys(captured).sort()) {
+    if (activeIds.has(id)) continue;
+    const c = captured[id]!;
+    const endPrice = priceOf(c.itemId);
+    const pct = c.startPrice > 0 ? (endPrice - c.startPrice) / c.startPrice : 0;
+    recaps.push({ itemId: c.itemId, kind: c.kind, startPrice: c.startPrice, endPrice, pct });
+    delete next[id];
+  }
+  return { recaps, captured: next };
+}
+
 /** Offline earning rate in gp/min (1 offline tick ≡ 1 second, so ticks/60 =
  * minutes away). 0 when no time passed. Pure. */
 export function offlineRatePerMin(delta: number, ticks: number): number {

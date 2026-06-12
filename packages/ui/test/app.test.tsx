@@ -46,6 +46,7 @@ import {
   finishOfflineProgress,
   biggestMover,
   heldMover,
+  reconcileEvents,
   bumpStreak,
   streakCelebration,
   checkMilestones,
@@ -422,6 +423,25 @@ describe('UI shell', () => {
       expect(heldMover(before, markets, { held: 5 })!.pct).toBeCloseTo(0.1);
       expect(heldMover(before, markets, {})).toBeNull(); // hold nothing → no personal mover
       expect(heldMover(before, markets, { held: 0 })).toBeNull(); // a zero balance is not a holding
+    });
+    it('reconcileEvents captures new events, recaps ended ones with the price move, and cleans up', () => {
+      const price: Record<string, number> = { gold: 100 };
+      const priceOf = (id: string) => price[id] ?? 0;
+      // a craze on gold becomes active → captured at 100, no recap yet
+      const r1 = reconcileEvents({}, [{ id: 'e1', itemId: 'gold', kind: 'demand_surge' }], priceOf);
+      expect(r1.recaps).toEqual([]);
+      expect(r1.captured.e1).toMatchObject({ itemId: 'gold', kind: 'demand_surge', startPrice: 100 });
+      // the craze pushed gold to 150, then ended (no longer active) → one recap, +50%
+      price.gold = 150;
+      const r2 = reconcileEvents(r1.captured, [], priceOf);
+      expect(r2.recaps).toHaveLength(1);
+      expect(r2.recaps[0]).toMatchObject({ itemId: 'gold', kind: 'demand_surge', startPrice: 100, endPrice: 150 });
+      expect(r2.recaps[0]!.pct).toBeCloseTo(0.5);
+      expect(r2.captured.e1).toBeUndefined(); // dropped once recapped
+      // a still-active event is not recapped and stays captured at its original start price
+      const r3 = reconcileEvents(r1.captured, [{ id: 'e1', itemId: 'gold', kind: 'demand_surge' }], priceOf);
+      expect(r3.recaps).toEqual([]);
+      expect(r3.captured.e1!.startPrice).toBe(100); // not re-captured at the new price
     });
   });
 

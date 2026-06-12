@@ -35,6 +35,8 @@ import { WorthChart } from './components/WorthChart';
 import {
   alertHit,
   bandAlertHit,
+  reconcileEvents,
+  type CapturedEvent,
   bumpStreak,
   streakCelebration,
   recordDailyBest,
@@ -136,6 +138,10 @@ export function App({ initial }: { initial?: Game }) {
   const alertFired = useRef<Set<string>>(new Set());
   const sellFired = useRef<Set<string>>(new Set());
   const bandFired = useRef<Set<string>>(new Set());
+  // Market-event capture for end recaps (15z): the price each active event began at, keyed by event id.
+  // `captureGame` guards a game swap so a cloud-adopt/restart never recaps the old game's events.
+  const eventCapture = useRef<Record<string, CapturedEvent>>({});
+  const eventCaptureGame = useRef<Game | null>(null);
   const setAlert = (id: string, price: number | null): void => {
     const next = { ...alerts };
     if (price === null || !Number.isFinite(price) || price <= 0) delete next[id];
@@ -465,6 +471,29 @@ export function App({ initial }: { initial?: Game }) {
       } else {
         bandFired.current.delete(id);
       }
+    }
+    // Event-end recaps (15z): close the lifecycle the chips open. Swap-guard first
+    // so a cloud-adopt/restart never recaps the old game's events (the 14e/14f class).
+    if (eventCaptureGame.current !== game) {
+      eventCapture.current = {};
+      eventCaptureGame.current = game;
+    }
+    const activeEvents = (game.world.events ?? [])
+      .filter((e) => e.startTick <= game.world.tick && e.endTick > game.world.tick)
+      .map((e) => ({ id: e.id, itemId: e.itemId, kind: e.kind }));
+    const priceOf = (itemId: string): number => v.markets.find((m) => m.itemId === itemId)?.lastPrice ?? 0;
+    const { recaps, captured } = reconcileEvents(eventCapture.current, activeEvents, priceOf);
+    eventCapture.current = captured;
+    if (recaps.length > 0) {
+      const r = recaps[recaps.length - 1]!; // last-writer-wins, like the other refreshProgress toasts
+      const name = game.world.items.find((i) => i.id === r.itemId)?.name ?? r.itemId;
+      const up = r.pct >= 0;
+      setToast({
+        id: `event-end-${r.itemId}`,
+        name: `⚡ ${name} ${EVENT_LABELS[r.kind]} ended`,
+        flavor: `settled ${r.startPrice.toLocaleString('en-US')}→${r.endPrice.toLocaleString('en-US')} (${up ? '+' : ''}${Math.round(r.pct * 100)}%)`,
+        achieved: () => false,
+      });
     }
   };
 
