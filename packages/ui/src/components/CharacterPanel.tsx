@@ -1,8 +1,8 @@
-import { combatLevel, deriveStats, GEAR, levelsOf, maxHpFor, xpForLevel } from '@exchange-wars/engine';
+import { combatLevel, deriveStats, GEAR, levelsOf, maxHpFor, REST_REGEN_TICKS, xpForLevel } from '@exchange-wars/engine';
 import type { GearSlot } from '@exchange-wars/engine';
 import type { AgentState } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { leveledUp } from '../game';
+import { healEta, leveledUp } from '../game';
 import { Icon, itemIcon } from './Icon';
 
 const TITLE_KEY = 'ew-title';
@@ -128,6 +128,9 @@ export function CharacterPanel({
   const eff = deriveStats(agent?.inventory ?? {}, lvls, agent?.worn);
   const locked = lockedUpgrades(agent?.inventory ?? {}, lvls, kit);
   const hp = agent?.hp ?? trainedMax;
+  // Wounds only mend out of the field (+1 hp / REST_REGEN_TICKS) — so the rest
+  // ETA shows only when wounded AND not on a dive: fast-forward this to heal.
+  const restEta = agent?.hp !== undefined && !agent?.expedition ? healEta(hp, trainedMax, REST_REGEN_TICKS) : null;
   const cmb = combatLevel(agent?.combatXp);
   const [title, setTitle] = useState<string>(() => {
     try {
@@ -241,6 +244,11 @@ export function CharacterPanel({
           <span className="num">
             {hp}/{trainedMax}
           </span>
+          {restEta !== null && (
+            <span className="dim small resteta" title="wounds mend only out of the field — fast-forward this many ticks to reach full hp before your next dive">
+              · ≈{restEta.toLocaleString('en-US')} ticks to heal
+            </span>
+          )}
         </div>
       </div>
     </div>

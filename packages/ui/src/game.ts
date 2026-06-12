@@ -323,6 +323,15 @@ export function leveledUp(
   return COMBAT_SKILLS.filter((s) => now[s.skill] > prev[s.skill]).map((s) => ({ ...s, level: now[s.skill] }));
 }
 
+/**
+ * Ticks for a resting (out-of-field) player to mend back to full — `+1 hp every
+ * regenTicks`, so `(max − hp) × regenTicks`. Null when already full (not wounded).
+ * Informs "rest vs embark hurt": fast-forward this many ticks to heal. Pure.
+ */
+export function healEta(hp: number, max: number, regenTicks: number): number | null {
+  return hp < max ? (max - hp) * regenTicks : null;
+}
+
 /** A pre-embark readiness warning, tagged by what would fix it. */
 export interface EmbarkWarning {
   kind: 'antifire' | 'food';

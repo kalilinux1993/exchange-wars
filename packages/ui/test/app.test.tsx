@@ -76,6 +76,7 @@ import {
   recordFills,
   recentFlips,
   leveledUp,
+  healEta,
   fillSummary,
   fillToastFlavor,
   realizedPnL,
@@ -1856,6 +1857,24 @@ describe('UI shell', () => {
     expect(equiplist.textContent).not.toContain('Dragon longsword'); // the satchel-best is NOT
     // effective Attack = base 5 + (99-1) levels + worn atk 10 = 113 (worn, not the dragon's 50)
     expect(document.querySelector('.effstats')!.textContent).toMatch(/⚔113/);
+  });
+
+  describe('healEta', () => {
+    it('ticks to full at +1 hp per regen window; null when full', () => {
+      expect(healEta(40, 50, 3)).toBe(30); // 10 missing × 3 ticks
+      expect(healEta(50, 50, 3)).toBeNull();
+      expect(healEta(51, 50, 3)).toBeNull(); // over-full guard
+    });
+  });
+
+  it('CharacterPanel shows a rest ETA when wounded out of the field, none at full', () => {
+    const wounded = { inventory: {}, combatXp: { atk: 0, def: 0, hp: 0 }, hp: 40 } as unknown as AgentState;
+    const { unmount } = render(<CharacterPanel agent={wounded} names={new Map()} />);
+    expect(screen.getByText(/ticks to heal/)).toBeTruthy();
+    unmount();
+    const full = { inventory: {}, combatXp: { atk: 0, def: 0, hp: 0 } } as unknown as AgentState; // hp absent = full
+    render(<CharacterPanel agent={full} names={new Map()} />);
+    expect(screen.queryByText(/ticks to heal/)).toBeNull();
   });
 
   it('CharacterPanel flashes a skill cell the moment it levels up', () => {
