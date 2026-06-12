@@ -20,12 +20,15 @@ export function GearManager({
   items,
   onCommand,
   view,
+  onBuy,
 }: {
   agent: AgentState | undefined;
   items: ItemDef[];
   onCommand: (cmd: PlayerCommand) => void;
   /** When provided (markets + gp), surfaces the best affordable upgrade to buy. */
   view?: PlayerView;
+  /** Jump to the Exchange with this item loaded — makes the "best buy" one-click actionable. */
+  onBuy?: ((itemId: string) => void) | undefined;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
   const inv = agent?.inventory ?? {};
@@ -66,6 +69,11 @@ export function GearManager({
             {pick.skill === 'atk' ? '⚔' : '🛡'}+{pick.delta}
           </span>{' '}
           · {pick.price.toLocaleString('en-US')} gp on the Exchange
+          {onBuy && (
+            <button className="chip" title="open this item on the Exchange, ready to buy" onClick={() => onBuy(pick.itemId)}>
+              → buy
+            </button>
+          )}
         </p>
       )}
       {wornSlots.length > 0 && (

@@ -55,6 +55,7 @@ export function ExpeditionPanel({
   onRest,
   onToast,
   onDelveEnd,
+  onBuy,
 }: {
   game: Game;
   view: PlayerView;
@@ -64,6 +65,8 @@ export function ExpeditionPanel({
   onToast: (name: string, flavor: string) => void;
   /** Called once when an expedition ends (death or extract) with its Delve Log entry. */
   onDelveEnd?: (record: DelveRecord) => void;
+  /** Jump to the Exchange with an item loaded — powers the GearManager "best buy → buy". */
+  onBuy?: (itemId: string) => void;
 }) {
   const agent = game.world.agents[game.playerId];
   const exp = agent?.expedition;
@@ -136,7 +139,7 @@ export function ExpeditionPanel({
           titles={MILESTONES.filter((m) => game.milestones.includes(m.id)).map((m) => m.name)}
           onRest={onRest}
         />
-        <GearManager agent={agent} items={game.world.items} onCommand={onCommand} view={view} />
+        <GearManager agent={agent} items={game.world.items} onCommand={onCommand} view={view} onBuy={onBuy} />
         {resting && (
           <p className="warn small" title="wounds persist between expeditions — rest (or embark hurt, your gamble)">
             ♥ recovering: {agent!.hp}/{trainedMax} hp — mending as the market ticks

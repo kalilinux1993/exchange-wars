@@ -1022,6 +1022,10 @@ export function App({ initial }: { initial?: Game }) {
             view={view}
             onCommand={command}
             onRest={fastForward}
+            onBuy={(id) => {
+              setSelected(id);
+              pickRoom('exchange');
+            }}
             onToast={(name, flavor) => setToast({ id: 'expedition', name, flavor, achieved: () => false })}
             onDelveEnd={(record) => {
               const log = (game.delves ??= []);

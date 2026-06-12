@@ -1264,6 +1264,21 @@ describe('UI shell', () => {
       expect(noView.container.querySelector('.bestbuy')).toBeNull(); // no markets → no recommendation
     });
 
+    it('the best-buy "→ buy" chip jumps to that item (calls onBuy), and is absent without onBuy', () => {
+      const agent = { inventory: {}, worn: {}, combatXp: { atk: xpForLevel(99), def: xpForLevel(99), hp: 0 } } as unknown as AgentState;
+      const items = [{ id: 'rune_2h_sword', name: 'Rune 2h sword' }] as unknown as ItemDef[];
+      const view = { gp: 100_000, markets: [{ itemId: 'rune_2h_sword', bestAsk: 25_000 }] } as unknown as PlayerView;
+      const onBuy = vi.fn();
+      const withBuy = render(<GearManager agent={agent} items={items} onCommand={() => {}} view={view} onBuy={onBuy} />);
+      fireEvent.click(within(withBuy.container.querySelector('.bestbuy') as HTMLElement).getByRole('button', { name: '→ buy' }));
+      expect(onBuy).toHaveBeenCalledWith('rune_2h_sword');
+      withBuy.unmount();
+      // No onBuy → the recommendation still shows, but there's no buy chip
+      const noBuy = render(<GearManager agent={agent} items={items} onCommand={() => {}} view={view} />);
+      expect(noBuy.container.querySelector('.bestbuy')).toBeTruthy();
+      expect(within(noBuy.container.querySelector('.bestbuy') as HTMLElement).queryByRole('button')).toBeNull();
+    });
+
     it('shows each gear piece stats, its requirement, and the upgrade verdict vs what is worn', () => {
       const agent = {
         inventory: { rune_2h_sword: 1 }, // weapon, atk 45, req 14
