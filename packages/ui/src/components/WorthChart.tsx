@@ -1,3 +1,5 @@
+import { fmtCompact, fmtDuration, nextRoundTarget, worthRate } from '../game';
+
 /** Ghost worth at a tick: linear interpolation; clamps to the endpoints. */
 export function ghostWorthAt(history: { tick: number; worth: number }[], tick: number): number {
   if (history.length === 0) return 0;
@@ -51,6 +53,10 @@ export function WorthChart({
   const toPts = (h: { tick: number; worth: number }[]) =>
     h.map((p) => `${x(p.tick).toFixed(1)},${y(p.worth).toFixed(1)}`).join(' ');
   const last = history[history.length - 1]!.worth;
+  // Projection: at the recent gp/min rate, when do you cross the next round number?
+  const rate = worthRate(history);
+  const target = nextRoundTarget(last);
+  const etaMin = rate && rate.perMin > 0 ? (target - last) / rate.perMin : null;
   return (
     <section className="panel chart">
       <h2>Fortune</h2>
@@ -101,6 +107,11 @@ export function WorthChart({
               </>
             );
           })()}
+        {etaMin !== null && (
+          <span className="eta" title="at your recent gp/min rate, when you'd reach the next round number">
+            {' '}· ≈{fmtDuration(Math.round(etaMin * 60))} to {fmtCompact(target)}
+          </span>
+        )}
       </p>
     </section>
   );

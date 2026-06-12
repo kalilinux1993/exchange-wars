@@ -43,6 +43,7 @@ import {
   importSaveString,
   loadGame,
   newGame,
+  nextRoundTarget,
   normalizeGame,
   OFFLINE_CAP_TICKS,
   openFromBook,
@@ -1113,6 +1114,26 @@ describe('UI shell', () => {
     const newly = checkMilestones(game, view, 0);
     expect(newly.map((m) => m.id)).toContain('first-blood');
     expect(game.milestoneTicks!['first-blood']).toBe(1234);
+  });
+
+  describe('nextRoundTarget', () => {
+    it('finds the next 1/2/5 × 10^k above n', () => {
+      expect(nextRoundTarget(55_000)).toBe(100_000);
+      expect(nextRoundTarget(1_200_000)).toBe(2_000_000);
+      expect(nextRoundTarget(6_000_000)).toBe(10_000_000);
+      expect(nextRoundTarget(150_000)).toBe(200_000);
+      expect(nextRoundTarget(0.5)).toBe(1);
+    });
+  });
+
+  it('WorthChart projects an ETA to the next round number when growing', () => {
+    const history = [
+      { tick: 0, worth: 100_000 },
+      { tick: 600, worth: 150_000 }, // +50k over 600 ticks = +5,000/min
+    ];
+    render(<WorthChart history={history} startGp={100_000} ghost={null} />);
+    // last 150k → target 200k; (200k − 150k) / 5,000 = 10 min
+    expect(screen.getByText(/≈10m to 200K/)).toBeTruthy();
   });
 
   it('WorthChart marks earned deeds on the curve, skipping off-range ticks', () => {

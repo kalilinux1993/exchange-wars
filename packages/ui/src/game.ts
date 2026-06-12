@@ -664,6 +664,21 @@ export function fmtCompact(n: number): string {
   return Math.abs(n) < 10_000 ? n.toLocaleString('en-US') : COMPACT_FMT.format(n);
 }
 
+/**
+ * The next "nice" round number above n — the smallest of {1,2,5}×10^k that
+ * strictly exceeds n. A motivating target for the worth projection: 55k → 100k,
+ * 1.2M → 2M, 6M → 10M, 200k → 500k. Pure.
+ */
+export function nextRoundTarget(n: number): number {
+  if (n < 1) return 1;
+  const k = Math.floor(Math.log10(n));
+  for (const mult of [1, 2, 5]) {
+    const t = mult * 10 ** k;
+    if (t > n) return t;
+  }
+  return 10 ** (k + 1);
+}
+
 /** Record a net-worth sample if enough ticks have passed since the last one. */
 export function recordWorth(game: Game, worth: number): void {
   const h = game.worthHistory;
