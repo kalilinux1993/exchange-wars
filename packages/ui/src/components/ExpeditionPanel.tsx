@@ -185,16 +185,17 @@ export function ExpeditionPanel({
         <p className="dim small">{REGIONS[regionIndex(regionId)]?.flavor}</p>
         {(() => {
           const d = regionDanger(REGIONS[regionIndex(regionId)]!);
+          const eff = deriveStats(agent?.inventory ?? {}, lvls);
+          const atkBad = d.atk > eff.def; // their hits land hard through your armour
+          const defBad = d.def >= eff.atk; // your hits barely dent them
           return (
             <p
               className="dim small"
-              title="the hardest-hitting foe that stalks this region — weigh it against your own Attack/Defence above"
+              title={`the hardest foe here vs your in-battle ⚔${eff.atk} 🛡${eff.def} — red means this foe stat beats yours (⚔ red: they hit through your defence; 🛡 red: your attack barely lands)`}
             >
-              danger: foes up to{' '}
-              <b className="down">
-                ⚔{d.atk} 🛡{d.def}
-              </b>{' '}
-              · {d.hp} hp{d.elite ? ' · ☠ a named terror lurks here' : ''}
+              danger: foes up to <b className={atkBad ? 'down' : 'up'}>⚔{d.atk}</b>{' '}
+              <b className={defBad ? 'down' : 'up'}>🛡{d.def}</b> · {d.hp} hp
+              {d.elite ? ' · ☠ a named terror lurks here' : ''}
             </p>
           );
         })()}

@@ -711,8 +711,11 @@ describe('UI shell', () => {
   });
 
   it('the expedition panel warns how hard a region hits before you embark', () => {
-    freshApp(); // Adventure room is mounted; default region selected
+    freshApp(); // Adventure room mounted; lumbridge selected; fresh player (eff ⚔5 🛡2)
     expect(screen.getByText(/danger: foes up to/)).toBeTruthy();
+    // lumbridge goblin atk 4 > your def 2 → red; def 1 < your atk 5 → green
+    expect(screen.getByText('⚔4').className).toContain('down');
+    expect(screen.getByText('🛡1').className).toContain('up');
   });
 
   it('RecordsPanel renders the adventurer record in the hall', () => {
