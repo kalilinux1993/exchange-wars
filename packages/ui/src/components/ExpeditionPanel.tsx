@@ -128,17 +128,24 @@ export function ExpeditionPanel({
       // the sellsword stats + away-bar summary). Vanishing mid-combat = death;
       // otherwise a clean extract. Both get a Delve Log entry; death also toasts.
       const died = prev.inCombat;
-      onDelveEnd?.(summarizeDelve(prev.snapshot, died, game.world.tick));
+      const where = REGIONS[regionIndex(prev.snapshot.regionId)]?.name ?? 'the depths';
       if (died) {
         const r = deathRecap(game.world.items, prev.snapshot.pack, prev.snapshot.packGp);
-        const where = REGIONS[regionIndex(prev.snapshot.regionId)]?.name ?? 'the depths';
         const keptLine = r.kept.length > 0 ? `kept: ${r.kept.join(', ')}` : 'you carried nothing worth keeping';
         const lostLine =
           r.lostUnits > 0 || r.lostGp > 0
             ? ` — the dark kept ${r.lostUnits} item${r.lostUnits === 1 ? '' : 's'} and ${r.lostGp.toLocaleString('en-US')} loot gp`
             : '';
         onToast(`You died in ${where}`, `${keptLine}${lostLine}`);
+      } else if (prev.snapshot.packGp > 0 || prev.snapshot.cleared > 0) {
+        // A clean extract — the positive close to the death recap. Fired BEFORE onDelveEnd so a
+        // record haul's "New best haul!" toast (from App's onDelveEnd) lands on top.
+        onToast(
+          `🎒 Returned from ${where}`,
+          `banked ${prev.snapshot.packGp.toLocaleString('en-US')} loot gp · ${prev.snapshot.cleared} cleared`,
+        );
       }
+      onDelveEnd?.(summarizeDelve(prev.snapshot, died, game.world.tick));
     }
     prevRef.current = now;
     // eslint-disable-next-line react-hooks/exhaustive-deps

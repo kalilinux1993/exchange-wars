@@ -949,6 +949,21 @@ describe('UI shell', () => {
       expect(onDelveEnd).toHaveBeenCalledTimes(1);
       expect(onToast).toHaveBeenCalled(); // "You died in …"
     });
+    it('a PLAYER dive that ends OUT of combat (extract) toasts a return recap', () => {
+      const game = newGame(42);
+      const agent = game.world.agents[game.playerId]!;
+      (agent as { expedition?: unknown }).expedition = {
+        regionId: REGIONS[0]!.id, rngState: 1, hp: 30, pack: {}, packGp: 1500, cleared: 4, combat: null, journal: [],
+      };
+      const onDelveEnd = vi.fn();
+      const onToast = vi.fn();
+      const view = playerView(game.world, game.playerId)!;
+      const { rerender } = render(<ExpeditionPanel game={game} view={view} onCommand={() => {}} onToast={onToast} onDelveEnd={onDelveEnd} />);
+      delete (agent as { expedition?: unknown }).expedition; // extracted — vanished OUT of combat
+      rerender(<ExpeditionPanel game={game} view={view} onCommand={() => {}} onToast={onToast} onDelveEnd={onDelveEnd} />);
+      expect(onDelveEnd).toHaveBeenCalledTimes(1);
+      expect(onToast).toHaveBeenCalledWith(expect.stringMatching(/Returned from/), expect.stringMatching(/1,500 loot gp.*4 cleared/));
+    });
     it('a SELLSWORD dive (sharing the slot) is NOT logged or toasted as the player', () => {
       const { game, agent } = startDive(true); // the hunt is on → the slot is the sellsword's
       const onDelveEnd = vi.fn();
