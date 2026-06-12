@@ -16,8 +16,12 @@ import {
   maxHpFor,
   monsterById,
   expeditionSeed,
+  BLOOD_ATK,
+  BLOOD_HP,
   COURIER_CUT,
   COURIER_FRACTION,
+  FORGE_ATK,
+  FORGE_COST,
   GAMBLE_STAKE,
   IMP_PRIZE,
   MERCHANT_MARKUP,
@@ -365,6 +369,8 @@ export function rollEncounter(
     if (rIdx >= 1) kinds.push('spar');
     if (rIdx >= 2) kinds.push('toll');
     if (rIdx >= 2) kinds.push('courier');
+    if (rIdx >= 2) kinds.push('forge');
+    if (rIdx >= 2) kinds.push('altar');
     if (rIdx >= 3) kinds.push('merchant');
     const kind = rng.pick(kinds);
     const prompt =
@@ -382,7 +388,11 @@ export function rollEncounter(
                   ? `a toll-keeper rattles his cup — ${TOLL_COST} gp for word of a nearby stash?`
                   : kind === 'courier'
                     ? `a strongbox courier offers to ship half your loot home, safe from death — for a ${Math.round(COURIER_CUT * 100)}% cut?`
-                    : 'a soot-cloaked merchant offers a shark at triple price — pay up?';
+                    : kind === 'forge'
+                      ? `a wandering smith fires a field forge — ${FORGE_COST} gp to whet your blade for +${FORGE_ATK} Attack the rest of this dive?`
+                      : kind === 'altar'
+                        ? `a blood altar pulses — spill ${BLOOD_HP} health for +${BLOOD_ATK} Attack the rest of this dive?`
+                        : 'a soot-cloaked merchant offers a shark at triple price — pay up?';
     exp.event = { kind, prompt };
   }
   exp.rngState = rng.state();
@@ -693,6 +703,32 @@ export function applyCommand(state: WorldState, playerId: number, cmd: PlayerCom
           state.ledger.itemsMinted['shark'] = (state.ledger.itemsMinted['shark'] ?? 0) + 1;
           exp.pack['shark'] = (exp.pack['shark'] ?? 0) + 1;
           journal.push(`the merchant takes ${price} gp and hands over a shark`);
+        }
+      } else if (ev.kind === 'forge') {
+        // A gp sink that aids raiding: buy a dive-long Attack boost with loot
+        // gp — the same exp.boost the brews grant, composing with them (take
+        // the better atk, keep any def boost already up). His fee leaves the world.
+        if (exp.packGp < FORGE_COST) {
+          journal.push('the smith eyes your purse and lets the fire die');
+        } else {
+          exp.packGp -= FORGE_COST;
+          state.ledger.gpBurned += FORGE_COST;
+          const prevDef = exp.boost?.def ?? 0;
+          exp.boost = { atk: Math.max(exp.boost?.atk ?? 0, FORGE_ATK), def: prevDef };
+          journal.push(`the smith whets your blade — +${FORGE_ATK} Attack until you surface`);
+        }
+      } else if (ev.kind === 'altar') {
+        // The forge's inverse: pay HEALTH for a dive-long Attack boost. Refused
+        // unless you can spare the blood (hp must EXCEED the cost), so it never
+        // kills you outright — the risk is the buffer you give up. No ledger
+        // change (hp + boost only); composes with brews like the forge.
+        if (exp.hp <= BLOOD_HP) {
+          journal.push('the altar hungers for more blood than you can spare');
+        } else {
+          exp.hp -= BLOOD_HP;
+          const prevDef = exp.boost?.def ?? 0;
+          exp.boost = { atk: Math.max(exp.boost?.atk ?? 0, BLOOD_ATK), def: prevDef };
+          journal.push(`you spill ${BLOOD_HP} hp on the altar — +${BLOOD_ATK} Attack until you surface`);
         }
       } else {
         if (exp.packGp < GAMBLE_STAKE) {

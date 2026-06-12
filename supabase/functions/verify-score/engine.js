@@ -600,6 +600,10 @@ var MONSTERS = [
   { id: "abyssal_leech", name: "Abyssal leech", hp: 60, atk: 18, def: 10, gp: [100, 300], leech: 40, drops: [{ itemId: "blood_rune", chance: 0.35 }] },
   { id: "abyssal_demon", name: "Abyssal demon", hp: 130, atk: 30, def: 18, gp: [400, 1e3], leech: 80, drops: [{ itemId: "death_rune", chance: 0.6 }, { itemId: "dragon_dart", chance: 0.2 }] },
   // The named elites — never in a region pool; their region spawns them.
+  // Skarn (11g): the FIRST elite, stalking the Wilderness Ruins — gives mid-game
+  // raiders a jackpot before the deep three. Tier between fire_giant and Vorkanth;
+  // pays in Wilderness rune-gear, NOT the deep elites' 16.7k bone (no mid printer).
+  { id: "skarn", name: "Skarn, the Ruin-Walker", hp: 130, atk: 24, def: 13, gp: [800, 2200], elite: true, drops: [{ itemId: "blood_rune", chance: 0.6 }, { itemId: "rune_battleaxe", chance: 0.2 }, { itemId: "rune_platebody", chance: 0.1 }] },
   { id: "vorkanth", name: "Vorkanth, Elder of the Maw", hp: 180, atk: 30, def: 16, gp: [1500, 4e3], dragonfire: true, elite: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "dragon_med_helm", chance: 0.25 }, { itemId: "dragon_platelegs", chance: 0.15 }] },
   { id: "zukrath", name: "Zukrath, the Inferno Sovereign", hp: 260, atk: 36, def: 20, gp: [3e3, 8e3], dragonfire: true, elite: true, drops: [{ itemId: "superior_dragon_bones", chance: 1 }, { itemId: "prayer_regeneration_potion_4", chance: 0.3 }, { itemId: "dragon_longsword", chance: 0.2 }] },
   // dragon_plateskirt (121k baseCost) lives ONLY here — the Abyss jackpot.
@@ -612,7 +616,7 @@ var REGIONS = [
   { id: "varrock_sewers", name: "Varrock Sewers", flavor: "it smells like XP down here", monsters: ["goblin", "skeleton"] },
   { id: "edgeville_dungeon", name: "Edgeville Dungeon", flavor: "the giants pay well", monsters: ["skeleton", "hill_giant"] },
   { id: "brimhaven_caverns", name: "Brimhaven Caverns", flavor: "moss, mould, and money", monsters: ["moss_giant", "hill_giant"] },
-  { id: "wilderness_ruins", name: "Wilderness Ruins", flavor: "demons hoard runes", monsters: ["lesser_demon", "fire_giant"] },
+  { id: "wilderness_ruins", name: "Wilderness Ruins", flavor: "demons hoard runes \u2014 and something worse walks here", monsters: ["lesser_demon", "fire_giant"], elite: "skarn" },
   { id: "dragons_maw", name: "The Dragon's Maw", flavor: "bring antifire or bring regrets", monsters: ["green_dragon", "fire_giant"], elite: "vorkanth" },
   // 8t: the 99-track. EVERYTHING here breathes fire — the antifire ticket is
   // not optional, and the fights are long enough that the trained stats from
@@ -642,6 +646,10 @@ var MERCHANT_MARKUP = 3;
 var SPAR_XP = 25;
 var SPAR_BRUISES = [5, 12];
 var TOLL_COST = 150;
+var FORGE_COST = 300;
+var FORGE_ATK = 8;
+var BLOOD_HP = 20;
+var BLOOD_ATK = 14;
 var COURIER_FRACTION = 0.5;
 var COURIER_CUT = 0.2;
 var CACHE_ITEM_CHANCE = 0.25;
@@ -1301,9 +1309,11 @@ function rollEncounter(state, agent, exp) {
     if (rIdx >= 1) kinds.push("spar");
     if (rIdx >= 2) kinds.push("toll");
     if (rIdx >= 2) kinds.push("courier");
+    if (rIdx >= 2) kinds.push("forge");
+    if (rIdx >= 2) kinds.push("altar");
     if (rIdx >= 3) kinds.push("merchant");
     const kind = rng.pick(kinds);
-    const prompt = kind === "shrine" ? "a shrine hums in the dark \u2014 tithe a quarter of your loot gp for full healing?" : kind === "gamble" ? `a goblin rattles a cup of dice \u2014 stake ${GAMBLE_STAKE} loot gp, double or nothing?` : kind === "imp" ? "an imp scampers past with a bulging coin pouch \u2014 give chase?" : kind === "portal" ? `a humming portal opens \u2014 beyond it, ${REGIONS[rIdx + 1].name}. step through?` : kind === "spar" ? "a grizzled swordmaster bars the path, blade flat \u2014 take a lesson in bruises?" : kind === "toll" ? `a toll-keeper rattles his cup \u2014 ${TOLL_COST} gp for word of a nearby stash?` : kind === "courier" ? `a strongbox courier offers to ship half your loot home, safe from death \u2014 for a ${Math.round(COURIER_CUT * 100)}% cut?` : "a soot-cloaked merchant offers a shark at triple price \u2014 pay up?";
+    const prompt = kind === "shrine" ? "a shrine hums in the dark \u2014 tithe a quarter of your loot gp for full healing?" : kind === "gamble" ? `a goblin rattles a cup of dice \u2014 stake ${GAMBLE_STAKE} loot gp, double or nothing?` : kind === "imp" ? "an imp scampers past with a bulging coin pouch \u2014 give chase?" : kind === "portal" ? `a humming portal opens \u2014 beyond it, ${REGIONS[rIdx + 1].name}. step through?` : kind === "spar" ? "a grizzled swordmaster bars the path, blade flat \u2014 take a lesson in bruises?" : kind === "toll" ? `a toll-keeper rattles his cup \u2014 ${TOLL_COST} gp for word of a nearby stash?` : kind === "courier" ? `a strongbox courier offers to ship half your loot home, safe from death \u2014 for a ${Math.round(COURIER_CUT * 100)}% cut?` : kind === "forge" ? `a wandering smith fires a field forge \u2014 ${FORGE_COST} gp to whet your blade for +${FORGE_ATK} Attack the rest of this dive?` : kind === "altar" ? `a blood altar pulses \u2014 spill ${BLOOD_HP} health for +${BLOOD_ATK} Attack the rest of this dive?` : "a soot-cloaked merchant offers a shark at triple price \u2014 pay up?";
     exp.event = { kind, prompt };
   }
   exp.rngState = rng.state();
@@ -1576,6 +1586,25 @@ function applyCommand(state, playerId, cmd) {
           state.ledger.itemsMinted["shark"] = (state.ledger.itemsMinted["shark"] ?? 0) + 1;
           exp.pack["shark"] = (exp.pack["shark"] ?? 0) + 1;
           journal.push(`the merchant takes ${price} gp and hands over a shark`);
+        }
+      } else if (ev.kind === "forge") {
+        if (exp.packGp < FORGE_COST) {
+          journal.push("the smith eyes your purse and lets the fire die");
+        } else {
+          exp.packGp -= FORGE_COST;
+          state.ledger.gpBurned += FORGE_COST;
+          const prevDef = exp.boost?.def ?? 0;
+          exp.boost = { atk: Math.max(exp.boost?.atk ?? 0, FORGE_ATK), def: prevDef };
+          journal.push(`the smith whets your blade \u2014 +${FORGE_ATK} Attack until you surface`);
+        }
+      } else if (ev.kind === "altar") {
+        if (exp.hp <= BLOOD_HP) {
+          journal.push("the altar hungers for more blood than you can spare");
+        } else {
+          exp.hp -= BLOOD_HP;
+          const prevDef = exp.boost?.def ?? 0;
+          exp.boost = { atk: Math.max(exp.boost?.atk ?? 0, BLOOD_ATK), def: prevDef };
+          journal.push(`you spill ${BLOOD_HP} hp on the altar \u2014 +${BLOOD_ATK} Attack until you surface`);
         }
       } else {
         if (exp.packGp < GAMBLE_STAKE) {

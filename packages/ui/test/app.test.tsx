@@ -771,8 +771,8 @@ describe('UI shell', () => {
   describe('regionDanger', () => {
     it('reports the hardest-hitting foe in a region (pool + elite)', () => {
       const wild = REGIONS.find((r) => r.id === 'wilderness_ruins')!;
-      // fire_giant (atk19/def11/hp85) out-threats lesser_demon; no elite on main
-      expect(regionDanger(wild)).toEqual({ atk: 19, def: 11, hp: 85, elite: false });
+      // Skarn elite (atk24/def13/hp130) out-threats the fire_giant pool (atk19/def11)
+      expect(regionDanger(wild)).toEqual({ atk: 24, def: 13, hp: 130, elite: true });
       const maw = REGIONS.find((r) => r.id === 'dragons_maw')!;
       expect(regionDanger(maw).elite).toBe(true); // Vorkanth stalks the Maw
       expect(regionDanger(maw).atk).toBeGreaterThanOrEqual(30); // the Elder out-hits the dragons

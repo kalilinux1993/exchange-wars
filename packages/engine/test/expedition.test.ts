@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyCommand, MASTERY_BASE, type PlayerCommand } from '../src/commands';
 import { hashState } from '../src/hash';
 import { checkInvariants } from '../src/invariants';
-import { levelsOf, maxHpFor, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS, SPAR_XP, TOLL_COST, xpForLevel } from '../src/quest';
+import { BLOOD_ATK, BLOOD_HP, FORGE_ATK, FORGE_COST, levelsOf, maxHpFor, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS, SPAR_XP, TOLL_COST, xpForLevel } from '../src/quest';
 import { addAgent, BOUNTY_CHECK_TICKS, createWorld, tickWorld } from '../src/sim';
 import type { WorldState } from '../src/types';
 
@@ -237,6 +237,80 @@ describe('expeditions', () => {
     const before = exp.packGp;
     ok(state, id, { type: 'choose', accept: false });
     expect(exp.packGp).toBe(before);
+  });
+
+  it('field forge: loot gp buys a dive-long Attack boost, fully conserved', () => {
+    const { state, id } = fixture(7);
+    const agent = state.agents[id]!;
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    const exp = agent.expedition!;
+    exp.packGp += 1_000;
+    state.ledger.gpMinted += 1_000;
+
+    // Accept: fee leaves the world, a +FORGE_ATK dive-long boost goes up.
+    const burnBefore = state.ledger.gpBurned;
+    exp.event = { kind: 'forge', prompt: 'test forge' };
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.packGp).toBe(1_000 - FORGE_COST);
+    expect(state.ledger.gpBurned).toBe(burnBefore + FORGE_COST);
+    expect(exp.boost).toEqual({ atk: FORGE_ATK, def: 0 });
+    checkInvariants(state);
+
+    // Composes with an existing brew boost: keeps the better atk + any def up.
+    exp.boost = { atk: FORGE_ATK + 5, def: 10 };
+    exp.event = { kind: 'forge', prompt: 'test forge' };
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.boost).toEqual({ atk: FORGE_ATK + 5, def: 10 }); // not downgraded
+    checkInvariants(state);
+
+    // Too poor: no charge, no boost, nothing burned, still conserved.
+    const f = fixture(8);
+    const a2 = f.state.agents[f.id]!;
+    ok(f.state, f.id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    const e2 = a2.expedition!;
+    e2.packGp += 100; // < FORGE_COST
+    f.state.ledger.gpMinted += 100;
+    const burn2 = f.state.ledger.gpBurned;
+    e2.event = { kind: 'forge', prompt: 'test forge' };
+    ok(f.state, f.id, { type: 'choose', accept: true });
+    expect(e2.packGp).toBe(100);
+    expect(f.state.ledger.gpBurned).toBe(burn2);
+    expect(e2.boost ?? null).toBeNull();
+    checkInvariants(f.state);
+  });
+
+  it('blood altar: spill health for an Attack boost, refused if you cannot spare it, ledger-free', () => {
+    const { state, id } = fixture(7);
+    const agent = state.agents[id]!;
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    const exp = agent.expedition!;
+    const ledgerBefore = JSON.stringify(state.ledger);
+
+    // Healthy: pay BLOOD_HP, gain +BLOOD_ATK dive-long; no ledger change at all.
+    exp.hp = BLOOD_HP + 30;
+    exp.event = { kind: 'altar', prompt: 'test altar' };
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.hp).toBe(30);
+    expect(exp.boost).toEqual({ atk: BLOOD_ATK, def: 0 });
+    expect(JSON.stringify(state.ledger)).toBe(ledgerBefore); // hp + boost only — nothing minted/burned
+    checkInvariants(state);
+
+    // Composes with a brew boost: better atk wins, def preserved.
+    exp.hp = BLOOD_HP + 30;
+    exp.boost = { atk: BLOOD_ATK + 5, def: 10 };
+    exp.event = { kind: 'altar', prompt: 'test altar' };
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.boost).toEqual({ atk: BLOOD_ATK + 5, def: 10 }); // not downgraded
+    expect(exp.hp).toBe(30); // still paid the blood
+
+    // Can't spare it (hp <= cost): refused — no hp lost, no boost, never lethal.
+    exp.hp = BLOOD_HP; // exactly the cost → too little
+    delete exp.boost;
+    exp.event = { kind: 'altar', prompt: 'test altar' };
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.hp).toBe(BLOOD_HP); // unchanged — you kept your blood
+    expect(exp.boost ?? null).toBeNull();
+    checkInvariants(state);
   });
 
   it('new faces in the dark: portal hops a region, merchant sells dear, imp gambles your blood', () => {
@@ -555,6 +629,39 @@ describe('expeditions', () => {
       }
     }
     expect(met).toBe(true); // 10% per Maw monster across 100 seeds × 6 steps
+  });
+
+  it('Skarn stalks the Wilderness Ruins as the first elite, yields elite credit, conserved', () => {
+    expect(REGIONS[4]!.id).toBe('wilderness_ruins');
+    expect(REGIONS[4]!.elite).toBe('skarn');
+    let met = false;
+    for (let seed = 1; seed <= 100 && !met; seed++) {
+      const { state, id } = fixture(seed);
+      const agent = state.agents[id]!;
+      agent.questProgress = REGIONS.length - 1; // every region open
+      ok(state, id, { type: 'startExpedition', regionId: 'wilderness_ruins', pack: {} });
+      for (let i = 0; i < 6 && agent.expedition; i++) {
+        const exp = agent.expedition;
+        if (exp.combat) {
+          if (exp.combat.monsterId === 'skarn') {
+            met = true;
+            expect(exp.combat.log[0]).toContain('SKARN');
+            // Arm + qualify, put the Ruin-Walker at 1 hp so the first blow fells him.
+            agent.combatXp = { atk: xpForLevel(14), def: 0 };
+            exp.pack['rune_2h_sword'] = 1;
+            state.ledger.itemsMinted['rune_2h_sword'] = (state.ledger.itemsMinted['rune_2h_sword'] ?? 0) + 1;
+            exp.combat.monsterHp = 1;
+            for (let r = 0; r < 10 && agent.expedition?.combat; r++) ok(state, id, { type: 'fight' });
+            expect(state.stats.eliteSlain).toBe(1);
+            checkInvariants(state); // kill mints gp + drops through the ledger
+            break;
+          }
+          ok(state, id, { type: 'fleeCombat' });
+        } else if (exp.event) ok(state, id, { type: 'choose', accept: false });
+        else ok(state, id, { type: 'advance' });
+      }
+    }
+    expect(met).toBe(true); // 10% per Wilderness monster across 100 seeds × 6 steps
   });
 
   it('a combat brew buffs your stats for the whole dive, conserved, refreshes not stacks', () => {
