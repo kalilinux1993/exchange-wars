@@ -21,6 +21,7 @@ import { ConquestPanel } from '../src/components/ConquestPanel';
 import { MarketTable } from '../src/components/MarketTable';
 import { DelvePanel } from '../src/components/DelvePanel';
 import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
+import { GearManager } from '../src/components/GearManager';
 import { HelpOverlay } from '../src/components/HelpOverlay';
 import { WealthPanel } from '../src/components/WealthPanel';
 import { UpgradeShop } from '../src/components/UpgradeShop';
@@ -1035,6 +1036,51 @@ describe('UI shell', () => {
     render(<PlayerPanel game={game} view={view} items={game.world.items} onCommand={onCommand} />);
     fireEvent.click(screen.getByRole('button', { name: 'equip' }));
     expect(onCommand).toHaveBeenCalledWith({ type: 'equip', itemId: 'rune_2h_sword' });
+  });
+
+  describe('GearManager (Adventure-tab equipment manager)', () => {
+    it('shows each gear piece stats, its requirement, and the upgrade verdict vs what is worn', () => {
+      const agent = {
+        inventory: { rune_2h_sword: 1 }, // weapon, atk 45, req 14
+        worn: { weapon: 'adamant_dart' }, // wearing atk 10
+        combatXp: { atk: xpForLevel(99), def: xpForLevel(99), hp: 0 },
+      } as unknown as AgentState;
+      const items = [
+        { id: 'rune_2h_sword', name: 'Rune 2h sword' },
+        { id: 'adamant_dart', name: 'Adamant dart' },
+      ] as unknown as ItemDef[];
+      const onCommand = vi.fn();
+      render(<GearManager agent={agent} items={items} onCommand={onCommand} />);
+      expect(screen.getByText(/⚔\+45 · needs Attack 14/)).toBeTruthy(); // stats + requirement
+      expect(screen.getByText(/↑ \+35 atk/)).toBeTruthy(); // upgrade vs worn (45 − 10)
+      fireEvent.click(screen.getByRole('button', { name: 'equip' }));
+      expect(onCommand).toHaveBeenCalledWith({ type: 'equip', itemId: 'rune_2h_sword' });
+    });
+
+    it('marks an under-level piece locked, and a weaker piece a downgrade', () => {
+      const agent = {
+        inventory: { rune_2h_sword: 1, adamant_dart: 1 }, // req 14 (locked) + req 1
+        worn: { weapon: 'rune_dart' }, // atk 16 worn (rune_dart req 4)
+        combatXp: { atk: xpForLevel(5), def: xpForLevel(5), hp: 0 }, // Attack 5
+      } as unknown as AgentState;
+      const items = [
+        { id: 'rune_2h_sword', name: 'Rune 2h sword' },
+        { id: 'adamant_dart', name: 'Adamant dart' },
+        { id: 'rune_dart', name: 'Rune dart' },
+      ] as unknown as ItemDef[];
+      render(<GearManager agent={agent} items={items} onCommand={() => {}} />);
+      expect(screen.getByText(/🔒 Attack 14/)).toBeTruthy(); // rune_2h_sword too high a level
+      expect(screen.getByText(/↓ -6 atk/)).toBeTruthy(); // adamant dart (10) below worn rune_dart (16)
+    });
+
+    it('lists worn gear with an unequip action', () => {
+      const agent = { inventory: {}, worn: { weapon: 'rune_2h_sword' }, combatXp: { atk: 0, def: 0, hp: 0 } } as unknown as AgentState;
+      const items = [{ id: 'rune_2h_sword', name: 'Rune 2h sword' }] as unknown as ItemDef[];
+      const onCommand = vi.fn();
+      render(<GearManager agent={agent} items={items} onCommand={onCommand} />);
+      fireEvent.click(screen.getByRole('button', { name: 'unequip' }));
+      expect(onCommand).toHaveBeenCalledWith({ type: 'unequip', slot: 'weapon' });
+    });
   });
 
   it('PlayerPanel equips your best gear in one click', () => {

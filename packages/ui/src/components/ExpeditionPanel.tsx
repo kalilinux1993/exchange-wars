@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import { combatForecast, deathRecap, embarkPrep, MILESTONES, summarizeDelve, type DelveRecord, type Game } from '../game';
 import { usePref } from '../usePref';
 import { CharacterPanel } from './CharacterPanel';
+import { GearManager } from './GearManager';
 import { CombatScene } from './CombatScene';
 import { Icon, itemIcon } from './Icon';
 import { MonsterGlyph } from './MonsterBody';
@@ -165,6 +166,7 @@ export function ExpeditionPanel({
           titles={MILESTONES.filter((m) => game.milestones.includes(m.id)).map((m) => m.name)}
           onRest={onRest}
         />
+        <GearManager agent={agent} items={game.world.items} onCommand={onCommand} />
         {resting && (
           <p className="warn small" title="wounds persist between expeditions — rest (or embark hurt, your gamble)">
             ♥ recovering: {agent!.hp}/{trainedMax} hp — mending as the market ticks
