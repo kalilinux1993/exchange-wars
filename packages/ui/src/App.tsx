@@ -343,8 +343,13 @@ export function App({ initial }: { initial?: Game }) {
   }, [session]);
 
   // Previous combat levels, for the level-up celebration. Lazy init (null) so
-  // loading a save with existing levels doesn't fire a phantom toast.
+  // loading a save with existing levels doesn't fire a phantom toast. Keyed to
+  // the game OBJECT: a swap (cloud-save adoption / restart / challenge link)
+  // re-baselines silently, so adopting a higher-level cloud save never fires a
+  // false "level up!" — within one game the agent is mutated in place, so the
+  // reference is stable and real level-ups still fire.
   const prevLevels = useRef<{ atk: number; def: number; hp: number } | null>(null);
+  const levelBaselineGame = useRef<typeof game | null>(null);
   const refreshProgress = (notifyFills = false): void => {
     const v = playerView(game.world, game.playerId);
     if (!v) return;
@@ -362,8 +367,9 @@ export function App({ initial }: { initial?: Game }) {
     // Combat level-up: celebrate the moment a skill ticks up. Fires before the
     // milestone toast below, so a deed earned the same tick still wins the slot.
     const lv = levelsOf(game.world.agents[game.playerId]?.combatXp);
-    if (prevLevels.current === null) {
-      prevLevels.current = lv;
+    if (prevLevels.current === null || levelBaselineGame.current !== game) {
+      prevLevels.current = lv; // (re)baseline on first run OR a game swap — never celebrate the baseline
+      levelBaselineGame.current = game;
     } else {
       for (const u of leveledUp(prevLevels.current, lv))
         setToast({ id: 'levelup', name: `${u.glyph} ${u.name} up!`, flavor: `you reached ${u.name} ${u.level}`, achieved: () => false });

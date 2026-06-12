@@ -1904,12 +1904,23 @@ describe('UI shell', () => {
   });
 
   it('CharacterPanel flashes a skill cell the moment it levels up', () => {
-    const at = (atkXp: number) =>
-      ({ inventory: {}, combatXp: { atk: atkXp, def: 0, hp: 0 } }) as unknown as AgentState;
-    const { container, rerender } = render(<CharacterPanel agent={at(0)} names={new Map()} />);
+    // The engine mutates the SAME agent in place on a level-up — mirror that
+    // (a NEW agent object would be a save swap, which must NOT flash; see below).
+    const agent = { inventory: {}, combatXp: { atk: 0, def: 0, hp: 0 } } as unknown as AgentState;
+    const { container, rerender } = render(<CharacterPanel agent={agent} names={new Map()} />);
     expect(container.querySelector('.skillcell.flash')).toBeNull(); // first render = baseline, no flash
-    rerender(<CharacterPanel agent={at(xpForLevel(5))} names={new Map()} />); // Attack 1 → 5
+    agent.combatXp = { atk: xpForLevel(5), def: 0, hp: 0 }; // Attack 1 → 5, same object
+    rerender(<CharacterPanel agent={agent} names={new Map()} />);
     expect(container.querySelector('.skillcell.flash')).toBeTruthy();
+  });
+
+  it('CharacterPanel does NOT flash on an agent SWAP (save load), only a real level-up', () => {
+    const a1 = { inventory: {}, combatXp: { atk: 0, def: 0, hp: 0 } } as unknown as AgentState;
+    const { container, rerender } = render(<CharacterPanel agent={a1} names={new Map()} />);
+    // A DIFFERENT agent object at a higher level = adopting a save, not leveling.
+    const a2 = { inventory: {}, combatXp: { atk: xpForLevel(20), def: 0, hp: 0 } } as unknown as AgentState;
+    rerender(<CharacterPanel agent={a2} names={new Map()} />);
+    expect(container.querySelector('.skillcell.flash')).toBeNull(); // re-baselined — no false celebration
   });
 
   it('a #seed link starts fresh visitors on that seed directly', () => {

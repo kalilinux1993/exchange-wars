@@ -114,10 +114,15 @@ export function CharacterPanel({
   // sheet on an already-leveled character doesn't flash. Combat (xp gain) runs
   // on this tab, so the flash fires right where the player is watching.
   const prevLvls = useRef<{ atk: number; def: number; hp: number } | null>(null);
+  const prevAgent = useRef<AgentState | undefined>(undefined);
   const [flash, setFlash] = useState<Record<'atk' | 'def' | 'hp', boolean>>({ atk: false, def: false, hp: false });
   useEffect(() => {
-    if (prevLvls.current === null) {
+    // (Re)baseline on first render OR an agent swap (game load/restart) — a new
+    // character must not flash its inherited levels. Within one game the agent
+    // is mutated in place, so the ref is stable and real level-ups still flash.
+    if (prevLvls.current === null || prevAgent.current !== agent) {
       prevLvls.current = lvls;
+      prevAgent.current = agent;
       return;
     }
     const rose = leveledUp(prevLvls.current, lvls);
