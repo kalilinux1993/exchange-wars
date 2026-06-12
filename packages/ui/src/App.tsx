@@ -14,6 +14,7 @@ import { ContractsBoard } from './components/ContractsBoard';
 import { NewsLog } from './components/NewsLog';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { MarketTable } from './components/MarketTable';
+import { FirstSteps } from './components/FirstSteps';
 import { TopFlips } from './components/TopFlips';
 import { ProfitPanel } from './components/ProfitPanel';
 import { MilestonesPanel } from './components/MilestonesPanel';
@@ -750,6 +751,7 @@ export function App({ initial }: { initial?: Game }) {
           inactive ones hide via .tabhidden — display rules beat `hidden`. */}
       <main className={room === 'exchange' ? 'board' : 'board tabhidden'}>
         <section className="middle">
+          <FirstSteps game={game} view={view} />
           <MarketTable
             view={view}
             items={game.world.items}

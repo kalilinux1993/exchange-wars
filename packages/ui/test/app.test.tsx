@@ -19,6 +19,7 @@ import { ProfitPanel } from '../src/components/ProfitPanel';
 import { depthSplit } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
+import { FirstSteps, firstSteps } from '../src/components/FirstSteps';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { WorthChart, ghostWorthAt } from '../src/components/WorthChart';
 import { chooseSave, sanitizeHandle, type Session } from '../src/cloud';
@@ -1134,6 +1135,35 @@ describe('UI shell', () => {
     const marks = document.querySelectorAll('.deedmark');
     expect(marks.length).toBe(1);
     expect(marks[0]!.querySelector('title')!.textContent).toContain('Dragon Slayer');
+  });
+
+  describe('firstSteps / Getting Started', () => {
+    const allDone = (): Game => {
+      const game = newGame(42);
+      game.fills = [{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 1, price: 1 }];
+      applyCommand(game.world, game.playerId, { type: 'buyUpgrade', upgradeId: 'autoFlip' }); // real path
+      game.world.stats.monstersSlain = 1;
+      game.world.tick = SPRINT_TICKS;
+      return game;
+    };
+    it('derives each step from game state', () => {
+      const fresh = newGame(42);
+      expect(firstSteps(fresh, playerView(fresh.world, fresh.playerId)!).every((s) => !s.done)).toBe(true);
+      const done = allDone();
+      expect(firstSteps(done, playerView(done.world, done.playerId)!).every((s) => s.done)).toBe(true);
+    });
+    it('guides new players, hides when dismissed', () => {
+      const game = newGame(42);
+      render(<FirstSteps game={game} view={playerView(game.world, game.playerId)!} />);
+      expect(screen.getByText('Getting Started')).toBeTruthy();
+      fireEvent.click(screen.getByText('dismiss'));
+      expect(screen.queryByText('Getting Started')).toBeNull();
+    });
+    it('hides once every step is done', () => {
+      const game = allDone();
+      render(<FirstSteps game={game} view={playerView(game.world, game.playerId)!} />);
+      expect(screen.queryByText('Getting Started')).toBeNull();
+    });
   });
 
   it('MilestonesPanel shows the latest earned deed with its timing', () => {

@@ -721,6 +721,15 @@ th.num {
   animation: rise 360ms ease-out backwards;
 }
 
+/* Getting Started checklist — left-aligned check + label, not space-between. */
+.firststeps .step {
+  justify-content: flex-start;
+  gap: 8px;
+}
+.firststeps .chip {
+  margin-top: 8px;
+}
+
 /* keycap pills in the help guide */
 kbd {
   font: inherit;
