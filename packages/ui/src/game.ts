@@ -356,10 +356,12 @@ export interface Fill {
 
 const FILLS_CAP = 50;
 
-/** Latch the player's fills out of the rolling trades window. */
-export function recordFills(game: Game): void {
+/** Latch the player's fills out of the rolling trades window; return the
+ *  genuinely-new ones this scan (so the caller can notify on resting fills). */
+export function recordFills(game: Game): Fill[] {
   const trades = game.world.trades;
   const tail = game.fills.slice(-20);
+  const fresh: Fill[] = [];
   for (const t of trades) {
     if (t.tick < game.fillScanTick) continue;
     const isBuy = t.buyerId === game.playerId;
@@ -381,12 +383,28 @@ export function recordFills(game: Game): void {
     }
     game.fills.push(fill);
     tail.push(fill);
+    fresh.push(fill);
     // Accrue the lifetime book once per genuinely-new fill (this dedupe guard is
     // what makes "apply each fill exactly once" hold).
     applyFillToBook((game.tradeBook ??= emptyTradeBook()), fill, GE_TAX_RATE);
   }
   game.fillScanTick = game.world.tick;
   if (game.fills.length > FILLS_CAP) game.fills.splice(0, game.fills.length - FILLS_CAP);
+  return fresh;
+}
+
+/** A one-line "your offers filled" summary (units bought/sold), or null if none. */
+export function fillSummary(fills: Fill[]): string | null {
+  let bought = 0;
+  let sold = 0;
+  for (const f of fills) {
+    if (f.side === 'buy') bought += f.qty;
+    else sold += f.qty;
+  }
+  const parts: string[] = [];
+  if (bought > 0) parts.push(`bought ${bought.toLocaleString('en-US')}`);
+  if (sold > 0) parts.push(`sold ${sold.toLocaleString('en-US')}`);
+  return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 export interface ItemPnL {

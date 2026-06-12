@@ -56,6 +56,7 @@ import {
   offlineRatePerMin,
   openFromBook,
   recordFills,
+  fillSummary,
   playerWorth,
   recordWorth,
   saveGame,
@@ -340,13 +341,20 @@ export function App({ initial }: { initial?: Game }) {
     });
   }, [session]);
 
-  const refreshProgress = (): void => {
+  const refreshProgress = (notifyFills = false): void => {
     const v = playerView(game.world, game.playerId);
     if (!v) return;
     const w = playerWorth(game);
     recordWorth(game, w);
     updateNews(game);
-    recordFills(game);
+    const newFills = recordFills(game);
+    // Resting orders fill silently during ticks — surface them at LIVE speed only
+    // (bulk/offline fills are summarized elsewhere). Lowest-priority toast: the
+    // milestone/alert toasts below run after and override it on a busy tick.
+    if (notifyFills) {
+      const fs = fillSummary(newFills);
+      if (fs) setToast({ id: 'fills', name: '🪙 your offers filled', flavor: fs, achieved: () => false });
+    }
     const newly = checkMilestones(game, v, w);
     if (newly.length > 0) setToast(newly[newly.length - 1]!);
     // Price alerts: fire once when a watched item drops to its threshold;
@@ -406,7 +414,7 @@ export function App({ initial }: { initial?: Game }) {
     const id = setInterval(
       () => {
         tickWorld(game.world);
-        refreshProgress();
+        refreshProgress(speed <= 1); // notify on resting fills only at live speed
         force();
       },
       Math.max(16, Math.round(1000 / speed)),

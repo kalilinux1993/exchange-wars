@@ -69,6 +69,8 @@ import {
   parseChallengeSeed,
   realizedFromBook,
   tradeRecord,
+  recordFills,
+  fillSummary,
   realizedPnL,
   streakAtRisk,
   recordDailyBest,
@@ -1332,6 +1334,36 @@ describe('UI shell', () => {
     fireEvent.click(screen.getByText('sell 7'));
     expect(screen.getByText('sell').className).toContain('active'); // side toggled to sell
     expect((screen.getByLabelText(/qty/i) as HTMLInputElement).value).toBe('7'); // full position
+  });
+
+  describe('fill notification', () => {
+    it('fillSummary aggregates buys + sells, null when empty', () => {
+      expect(fillSummary([])).toBeNull();
+      expect(fillSummary([{ tick: 0, itemId: 'a', side: 'buy', qty: 5, price: 10 }])).toBe('bought 5');
+      expect(
+        fillSummary([
+          { tick: 0, itemId: 'a', side: 'buy', qty: 5, price: 10 },
+          { tick: 0, itemId: 'b', side: 'sell', qty: 3, price: 20 },
+          { tick: 0, itemId: 'a', side: 'buy', qty: 2, price: 10 },
+        ]),
+      ).toBe('bought 7 · sold 3');
+    });
+    it('recordFills returns the newly-latched player fills', () => {
+      const game = newGame(42);
+      game.world.trades.push({
+        tick: game.world.tick,
+        itemId: FIRST.id,
+        buyerId: game.playerId,
+        sellerId: 999,
+        qty: 5,
+        price: 100,
+      } as (typeof game.world.trades)[number]);
+      const fresh = recordFills(game);
+      expect(fresh).toHaveLength(1);
+      expect(fresh[0]).toMatchObject({ itemId: FIRST.id, side: 'buy', qty: 5, price: 100 });
+      // idempotent: a re-scan of the same trades window latches nothing new
+      expect(recordFills(game)).toHaveLength(0);
+    });
   });
 
   describe('lifetime trade book', () => {
