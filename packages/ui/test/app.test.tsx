@@ -669,6 +669,20 @@ describe('UI shell', () => {
       expect(screen.getByRole('columnheader', { name: /margin/ })).toBeTruthy();
       expect(screen.getByText('+77')).toBeTruthy(); // 1000/1100 → buy 1001, sell 1099, +77 after 2% tax
     });
+
+    it('the "flippable" track keeps only items with a positive after-tax margin', () => {
+      const row = (itemId: string, bid: number, ask: number) => ({
+        itemId, bestBid: bid, bestAsk: ask, lastPrice: bid, ema: bid, volume: 0, bestBidIsMine: false, bestAskIsMine: false,
+      });
+      const view = { markets: [row('wide', 1000, 1100), row('thin', 100, 101)] } as unknown as PlayerView;
+      const items = [{ id: 'wide', name: 'Wide Spread' }, { id: 'thin', name: 'Thin Spread' }] as unknown as ItemDef[];
+      const { container } = render(<MarketTable view={view} items={items} trades={[]} selected="wide" onSelect={() => {}} eventItems={new Set()} active />);
+      expect(container.querySelectorAll('tbody tr').length).toBe(2); // both shown in "all"
+      fireEvent.click(within(container).getByRole('button', { name: 'flippable' }));
+      const rows = container.querySelectorAll('tbody tr');
+      expect(rows.length).toBe(1); // only the wide spread clears the tax
+      expect(rows[0]!.textContent).toContain('Wide Spread');
+    });
   });
 
   describe('Delve Log', () => {

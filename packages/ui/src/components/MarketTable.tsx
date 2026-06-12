@@ -59,7 +59,7 @@ export function MarketTable({
   active?: boolean;
 }) {
   const [filter, setFilter] = useState('');
-  const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear'>('all');
+  const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear' | 'flippable'>('all');
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
   const toggleSort = (key: SortKey): void =>
     setSort((s) => (s && s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 }));
@@ -71,15 +71,19 @@ export function MarketTable({
     sparks.set(t.itemId, arr);
   }
   const needle = filter.trim().toLowerCase();
-  const inTrack = (id: ItemId): boolean => {
+  const inTrack = (m: { itemId: ItemId; bestBid: number | null; bestAsk: number | null }): boolean => {
     if (track === 'all') return true;
-    if (track === 'gear') return GEAR[id] !== undefined; // the equippable items only
-    const exotic = (defs.get(id)?.volatility ?? 0) >= EXOTIC_VOL;
+    if (track === 'gear') return GEAR[m.itemId] !== undefined; // the equippable items only
+    if (track === 'flippable') {
+      const mg = flipMargin(m);
+      return mg !== null && mg > 0; // a positive after-tax spread right now
+    }
+    const exotic = (defs.get(m.itemId)?.volatility ?? 0) >= EXOTIC_VOL;
     return track === 'exotics' ? exotic : !exotic;
   };
   const shown = view.markets.filter(
     (m) =>
-      inTrack(m.itemId) &&
+      inTrack(m) &&
       (needle === '' || (defs.get(m.itemId)?.name ?? m.itemId).toLowerCase().includes(needle)),
   );
   const numOf = (m: (typeof shown)[number]): number | null => {
@@ -148,7 +152,7 @@ export function MarketTable({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-        {(['all', 'staples', 'exotics', 'gear'] as const).map((t) => (
+        {(['all', 'staples', 'exotics', 'gear', 'flippable'] as const).map((t) => (
           <button key={t} className={track === t ? 'chip active' : 'chip'} onClick={() => setTrack(t)}>
             {t}
           </button>
