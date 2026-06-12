@@ -25,6 +25,7 @@ import { DelvePanel } from './components/DelvePanel';
 import { Sparkline } from './components/Sparkline';
 import type { TicketPrefill } from './components/TradeTicket';
 import { PlayerPanel } from './components/PlayerPanel';
+import { WealthPanel } from './components/WealthPanel';
 import { TradeFeed } from './components/TradeFeed';
 import { TradeTicket } from './components/TradeTicket';
 import { UpgradeShop } from './components/UpgradeShop';
@@ -894,6 +895,7 @@ export function App({ initial }: { initial?: Game }) {
         </section>
         <section className="middle">
           <PlayerPanel game={game} view={view} items={game.world.items} onCommand={command} />
+          <WealthPanel game={game} view={view} worth={playerWorth(game)} />
           <TradeFeed
             trades={game.world.trades}
             fills={game.fills}

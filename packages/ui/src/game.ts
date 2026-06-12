@@ -487,6 +487,30 @@ export function positionConcentration(positions: HeldPosition[]): Concentration 
   return { weights, topPct: weights[0]?.pct ?? 0, count: positions.length };
 }
 
+/** Net worth split by liquidity — the cash-vs-committed-vs-goods lens. */
+export interface WorthBreakdown {
+  cash: number; // liquid gp on hand
+  buyOrders: number; // gp escrowed in resting buy offers (cancelable back to cash)
+  holdings: number; // items (inventory + sell escrow) at liquidation value
+  total: number; // = playerWorth
+}
+
+/**
+ * Decompose net worth into cash, buy-order escrow, and holdings. `cash` and the
+ * buy escrow (Σ remaining×price over resting buys) come straight off the view;
+ * holdings is the RESIDUAL (`total − cash − buyOrders`), so the split sums to
+ * `total` exactly without re-deriving the engine's bid-walk valuation. Note
+ * `total` (netWorth) excludes expedition loot — that's at-risk, not yet banked.
+ * Pure.
+ */
+export function worthBreakdown(view: PlayerView, total: number): WorthBreakdown {
+  const cash = view.gp;
+  const buyOrders = view.openOrders
+    .filter((o) => o.side === 'buy')
+    .reduce((s, o) => s + o.remaining * o.price, 0);
+  return { cash, buyOrders, holdings: Math.max(0, total - cash - buyOrders), total };
+}
+
 /** How a buy reshapes a position you already hold — the average-down preview. */
 export interface BlendedBuy {
   units: number; // resulting total units

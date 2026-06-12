@@ -20,6 +20,7 @@ import { PositionsPanel } from '../src/components/PositionsPanel';
 import { ConquestPanel } from '../src/components/ConquestPanel';
 import { MarketTable } from '../src/components/MarketTable';
 import { DelvePanel } from '../src/components/DelvePanel';
+import { WealthPanel } from '../src/components/WealthPanel';
 import { depthSplit } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
@@ -60,6 +61,7 @@ import {
   openPosition,
   heldPositions,
   positionConcentration,
+  worthBreakdown,
   parseChallengeSeed,
   realizedFromBook,
   realizedPnL,
@@ -648,6 +650,34 @@ describe('UI shell', () => {
     render(<PositionsPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} />);
     expect(screen.getByText(/2 positions/)).toBeTruthy();
     expect(screen.getByText(/75\.0%/)).toBeTruthy(); // top concentration
+  });
+
+  describe('worthBreakdown', () => {
+    it('splits net worth into cash, buy-order escrow, and holdings (residual)', () => {
+      const view = {
+        gp: 1000,
+        openOrders: [
+          { side: 'buy', price: 50, remaining: 4 }, // 200 escrow
+          { side: 'sell', price: 80, remaining: 3 }, // ignored — sell escrow lives in holdings
+        ],
+      } as unknown as PlayerView;
+      const b = worthBreakdown(view, 1500);
+      expect(b).toEqual({ cash: 1000, buyOrders: 200, holdings: 300, total: 1500 });
+      expect(b.cash + b.buyOrders + b.holdings).toBe(b.total); // splits sum to the whole
+    });
+    it('clamps a negative residual to zero', () => {
+      const view = { gp: 1000, openOrders: [] } as unknown as PlayerView;
+      expect(worthBreakdown(view, 800).holdings).toBe(0);
+    });
+  });
+
+  it('WealthPanel shows the net-worth composition by liquidity', () => {
+    const game = newGame(42);
+    const view = { gp: 1000, openOrders: [{ side: 'buy', price: 50, remaining: 4 }] } as unknown as PlayerView;
+    render(<WealthPanel game={game} view={view} worth={2000} />); // cash 50% · offers 10% · goods 40%
+    expect(screen.getByText(/net/)).toBeTruthy();
+    expect(screen.getByText('cash', { exact: false })).toBeTruthy();
+    expect(screen.getByText('40%')).toBeTruthy(); // goods share
   });
 
   it('loadCorruptSave / discardCorruptSave round-trip the quarantine', () => {
