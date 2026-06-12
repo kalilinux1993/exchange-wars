@@ -1,6 +1,40 @@
 # Dev Guide
 
-> **Consolidation gap:** phases **10h–13c** are documented in `.phases/` + FINDINGS #94–#167 but not yet folded here (pre-existing debt from the autonomous build loop). The 13d–13y arc below is consolidated; 10h–13c await a future pass.
+> **Consolidation gap:** phases **10h–13c** are documented in `.phases/` + FINDINGS #94–#167 but not yet folded here (pre-existing debt from the autonomous build loop). The 13z–16b and 13d–13y arcs below are consolidated; 10h–13c await a future pass.
+
+## Phases 13z–16b consolidated — value-band suite, adventure risk⟷reward, atmosphere, lifecycle recaps, leaderboard (2026-06-12)
+
+Per-phase detail in `.phases/` and FINDINGS #190–#241; ~50 bricks. **UI-only EXCEPT 14j** (`netWorth` now counts equipped gear at liquidation value — already in the pending `verify-score` redeploy batch `12b+13d+13e+13f+13r+14j`); every other brick is display/notification logic over `applyCommand`, no engine change. All new pure helpers live in `packages/ui/src/game.ts` and are unit-pinned in `packages/ui/test/app.test.tsx` (suite grew ~340→359).
+
+### Threat-surfacing arc (13z–14c) — know-your-enemy across all three reads
+Foe ⚔/🛡 danger-coloured vs your effective stats + 🔥 dragonfire in the live combat readout (13z); a "💧−N gp/round" leech marker on the combat foe line (14a) and surfaced pre-embark in `regionDanger.leech` (14b); met-monster Bestiary rows show ⚔/🛡/hp + 💧leech (14c). The embark-decision triad (danger ⟷ battle power ⟷ rounds forecast) + the in-fight push/flee read are complete (FINDINGS #190–#195 era).
+
+### The value-band suite — one fundamental signal, six surfaces
+`valueBand(def, lastPrice)` → cheap/fair/rich (extracted from the ticket's inline cheap/fair/rich as the single source, 15f) over `bandPosition(def, lastPrice)` → the clamped 0..1 fraction (extracted 15q so a glance and a sort can't disagree). Surfaced on: a "cheap" MarketTable track (15f); the `marketMood(markets, items)` breadth line (15g); the WatchlistPanel decision row (15i, with `flipMargin` also extracted to game.ts as the single source for the market column + watch row); the Open-Positions band tag (15o); a **sortable** MarketTable band column (15q); and as an active signal — `bandAlertHit` → a threshold-free "buy the dip" alert (15s, a `bandAlerts` pref + 🟢 watch toggle, copying the price-alert one-shot/re-arm pattern). FINDINGS #228–#232, #237's "personalization is a filter" cousin.
+
+### Adventure risk⟷reward + the trade↔farm link
+- **Embark loot upside** (15u): `regionLoot(roster)` → gp/kill range + distinct drops at best chance — the REWARD half beside the danger read (the forward complement to 15c's historical `raidTotalsByRegion`). Scoped to an honest range+list, NOT a speculative EV (FINDINGS #234).
+- **Wounded nudge** (15w): the embark forecast runs at full hp, but you can embark hurt out of a prior dive — a "⚠ you're at {hp}/{max} hp — you'll dive hurt" warning + a one-tap rest-to-full (reuses `healEta`/`REST_REGEN_TICKS`/`onRest=fastForward`; the embark twin of the mid-dive push-read 13p). `agent.hp` defined = wounded (engine deletes it at full). FINDINGS #236.
+- **Item→source index** (15v): `itemSources(itemId, monsters, regions)` reverse-indexes the drop tables (monster→region via `region.monsters`/`elite`) → a "🗡 farm: {monster} {chance}% · {region}" ticket line, gated to drop-items. Closes the trade↔farm cross-reference both ways (15u region→items, 15v item→region) off one table indexed twice (FINDINGS #235).
+
+### Per-region atmosphere arc (combat → map → embark)
+`arenaTheme(regionId)` (CombatScene, 14u) tints the combat backdrop; carried to the RegionMap node halos (15t, an additive `.maphalo` element behind the state-coloured circle so cleared/frontier/locked coding survives) and the embark `.region-readout` (15y, a transparent tinted wrapper around the danger/loot/forecast block; hex8 low-alpha for legibility). All three adventure surfaces now share green-plains→ember-Maw→void-Abyss. FINDINGS #233, #238.
+
+### Lifecycle recaps + personal feedback
+- **Extract recap** (15n): a "🎒 Returned from {region}" toast on a clean extract — the positive close to the death recap; ordered before `onDelveEnd` so a record haul's "New best haul!" wins.
+- **Event-end recap** (15z): `reconcileEvents(captured, activeNow, priceOf)` — a pure set-diff that captures each event's price when it goes active and recaps the move when it ends (App holds the map in a ref, swap-guarded); closes the event lifecycle the 15l chips open (FINDINGS #239).
+- **Away held-mover** (15x): `heldMover(before, markets, inventory)` = `biggestMover` over the held subset → a "💼 your {item} ±X%" away-bar line, deduped vs the market `topMover` — personalization via a filter (FINDINGS #237). Away-FILLS stay engine-gated (the 512-trade window evicts them, 15q investigation).
+
+### Pre-trade risk + retention/celebration
+- **Buy concentration** (15r): `buyConcentration(view, itemId, addCost)` → after-fill "{item} ≈ X% of holdings ⚠"; worth = cash + held goods, UNCHANGED by a buy (a swap), so it's the exact denominator (FINDINGS #231). Reuses the PositionsPanel risk thresholds.
+- **Celebration swap-guard class** (14e/14f): mount-lazy baseline refs (level-up, daily-record) re-baseline on a game/agent identity change so adopting a higher save doesn't fire a false celebration — the reflex now applied to every cross-tick ref: region-unlock (15h), streak (15m), best-haul (15e, detected at the `onDelveEnd` append point — no ref needed), and the event-capture ref (15z).
+
+### Leaderboard — a two-tense competitive board (Phase 16)
+`rankGap(rows, meRank)` → gp + handle of the rank directly above your SUBMITTED score (16a); `provisionalRank(rows, myWorth)` (`>=` so a tie sits below the incumbent) → a LIVE "if the sprint ended now you'd sit #N", gated to `tick < SPRINT_TICKS` where current worth honestly equals a sprint score (16b). Where you ARE + where you're HEADED. First leaderboard touch since 11q's `myRank`. FINDINGS #240/#241.
+
+### Maintenance + a logged robustness gap
+- **Citation audit** (15p): the codebase's one source-comment file:line citation (`game.ts` → the engine damage formula) had drifted `quest.ts:394→407`; fixed + re-verified `expectedHit` still mirrors `damage()`'s mean. Historical FINDINGS citations left as point-in-time records (FINDINGS #229).
+- **Stale `monsterById` (found 15t, NOT fixed):** `monsterById(id)` throws on an unknown id (`quest.ts:374`); persisted state (`exp.combat.monsterId`, a bounty's `monsterId`) could carry an id a later engine version removed, and the engine TICK calls it during combat resolution too — so a UI render-guard alone is insufficient. Clean fix = load-boundary quarantine in `normalizeGame` (engine-touching → Jesse-gated). Realized probability ~nil today (content has been additive). → NEXT_STEPS robustness, FINDINGS #233.
 
 ## Phases 13d–13y consolidated — equipment manager + decision-support polish + RPG juice (2026-06-12)
 
