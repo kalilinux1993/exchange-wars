@@ -2,7 +2,7 @@ import { GE_TAX_RATE } from '@exchange-wars/engine';
 import type { CommandResult, ItemDef, ItemId, PlayerCommand, PlayerView, Side } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { Sparkline } from './Sparkline';
-import { blendBuy } from '../game';
+import { blendBuy, breakEvenSell } from '../game';
 
 /**
  * Split the resting book into bid/ask proportions for the liquidity bar —
@@ -287,6 +287,22 @@ export function TradeTicket({
                 {blend.avgCost.toLocaleString('en-US')}{' '}
                 <span className="dim">(was {blend.prevAvg.toLocaleString('en-US')})</span>{' '}
                 <span className={blend.delta < 0 ? 'pct up' : 'dim'}>{word}</span>
+              </p>
+            );
+          })()}
+        {side === 'sell' &&
+          position &&
+          (() => {
+            const floor = breakEvenSell(position.avgCost, GE_TAX_RATE);
+            const below = valid && p < floor;
+            return (
+              <p
+                className="dim small breakeven"
+                title="the lowest price that recovers your average cost after the 2% sell tax — sell under this and the tax turns the trade into a loss"
+              >
+                break-even ≥ <b>{floor.toLocaleString('en-US')}</b>/unit{' '}
+                <span className="dim">(avg {position.avgCost.toLocaleString('en-US')} + 2% tax)</span>
+                {below && <span className="warn"> · below break-even</span>}
               </p>
             );
           })()}

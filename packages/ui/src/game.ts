@@ -427,6 +427,21 @@ export function blendBuy(
 }
 
 /**
+ * The least whole sell price that recovers `avgCost` per unit after the GE sell
+ * tax — your break-even floor. The tax is `floor(price * taxRate)` (integer gp),
+ * NOT a clean `price * (1 - taxRate)`, so `avgCost / (1 - taxRate)` overshoots:
+ * we take that as an upper estimate then tighten to the true minimum integer
+ * where `price - floor(price * taxRate) >= avgCost`. Pure. 0 for a zero basis.
+ */
+export function breakEvenSell(avgCost: number, taxRate: number): number {
+  if (avgCost <= 0) return 0;
+  let p = Math.ceil(avgCost / (1 - taxRate));
+  while (p > 1 && p - 1 - Math.floor((p - 1) * taxRate) >= avgCost) p--; // tighten down
+  while (p - Math.floor(p * taxRate) < avgCost) p++; // safety: ensure it clears
+  return p;
+}
+
+/**
  * Recent *realized* profit per item: FIFO-match each sell fill against the
  * player's earlier buy fills (within the rolling fills window), netting the GE
  * tax on the sale side. Only completed round-trips count — an open position

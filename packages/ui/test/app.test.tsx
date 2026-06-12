@@ -44,6 +44,7 @@ import {
   alertHit,
   applyFillToBook,
   blendBuy,
+  breakEvenSell,
   bookFromFills,
   emptyTradeBook,
   HUMAN_START_GP,
@@ -867,6 +868,36 @@ describe('UI shell', () => {
     fireEvent.change(screen.getByLabelText(/price/i), { target: { value: '80' } }); // buy 1 @ 80 → avg 98
     expect(screen.getByText(/after this buy/i)).toBeTruthy();
     expect(screen.getByText(/averaging down/i)).toBeTruthy();
+  });
+
+  describe('breakEvenSell', () => {
+    it('is the least integer price clearing avg cost after the floor-rounded 2% tax', () => {
+      expect(breakEvenSell(100, 0.02)).toBe(102); // 102 − floor(2.04)=2 → 100, exactly cost
+      expect(breakEvenSell(50, 0.02)).toBe(51);
+      expect(breakEvenSell(1000, 0.02)).toBe(1020);
+    });
+    it('the returned price recovers cost; one gp under does not', () => {
+      const tax = 0.02;
+      for (const cost of [37, 100, 250, 999, 5000]) {
+        const be = breakEvenSell(cost, tax);
+        expect(be - Math.floor(be * tax)).toBeGreaterThanOrEqual(cost);
+        expect(be - 1 - Math.floor((be - 1) * tax)).toBeLessThan(cost);
+      }
+    });
+    it('zero basis → zero', () => {
+      expect(breakEvenSell(0, 0.02)).toBe(0);
+    });
+  });
+
+  it('the ticket shows the break-even sell floor for a held position, and warns below it', () => {
+    const game = newGame(42);
+    game.tradeBook = bookFromFills([{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }], 0.02);
+    render(<App initial={game} />); // FIRST selected, position 10 @ 100
+    fireEvent.click(screen.getByText('sell')); // flip the ticket to the sell side
+    expect(screen.getByText(/break-even ≥/)).toBeTruthy();
+    expect(screen.getByText('102')).toBeTruthy(); // avg 100 grossed up past the floor tax
+    fireEvent.change(screen.getByLabelText(/price/i), { target: { value: '50' } }); // under break-even
+    expect(screen.getByText(/below break-even/)).toBeTruthy();
   });
 
   describe('openPosition', () => {
