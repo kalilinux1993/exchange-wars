@@ -21,6 +21,7 @@ import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
 import { FirstSteps, firstSteps } from '../src/components/FirstSteps';
 import { ContractsBoard, contractPremium } from '../src/components/ContractsBoard';
+import { BountyBoard } from '../src/components/BountyBoard';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { WorthChart, ghostWorthAt } from '../src/components/WorthChart';
 import { chooseSave, sanitizeHandle, type Session } from '../src/cloud';
@@ -1116,6 +1117,18 @@ describe('UI shell', () => {
     const newly = checkMilestones(game, view, 0);
     expect(newly.map((m) => m.id)).toContain('first-blood');
     expect(game.milestoneTicks!['first-blood']).toBe(1234);
+  });
+
+  it('BountyBoard shows reward-per-kill and a progress bar', () => {
+    const game = newGame(42);
+    game.world.bounties = [{ id: 1, monsterId: 'goblin', qty: 4, rewardGp: 2_000, baseline: 0, expiresTick: 5_000 }];
+    game.world.stats.killsByMonster = { goblin: 2 };
+    game.world.tick = 100;
+    render(<BountyBoard game={game} onCommand={() => {}} />);
+    expect(screen.getByText(/≈500\/kill/)).toBeTruthy(); // 2,000 / 4
+    const fill = document.querySelector('.bountybar > span') as HTMLElement;
+    expect(fill).toBeTruthy();
+    expect(fill.style.width).toBe('50%'); // 2 of 4 slain
   });
 
   describe('contractPremium', () => {

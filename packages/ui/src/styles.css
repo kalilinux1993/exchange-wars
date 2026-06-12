@@ -1446,6 +1446,27 @@ kbd {
   background: rgba(127, 217, 138, 0.08);
 }
 
+/* bounty progress bar — glanceable "how close to the kill order". */
+.bountyinfo {
+  display: block;
+}
+.bountybar {
+  display: block;
+  height: 3px;
+  margin-top: 3px;
+  border-radius: 2px;
+  background: var(--ink);
+  overflow: hidden;
+}
+.bountybar > span {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+}
+.bounties li.bounty.done .bountybar > span {
+  background: var(--rise);
+}
+
 /* your own row on the Sprint Board — a subtle gold highlight. */
 .sprintboard li.you {
   background: rgba(212, 169, 55, 0.1);
