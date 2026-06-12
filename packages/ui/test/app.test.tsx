@@ -107,6 +107,7 @@ import {
   recentDelves,
   raidTotals,
   raidTotalsByRegion,
+  diveRecords,
   totalRealized,
   totalUnrealized,
   updateNews,
@@ -1730,6 +1731,21 @@ describe('UI shell', () => {
     });
   });
 
+  describe('diveRecords (peak dives)', () => {
+    it('best haul counts only survived dives; most kills counts any dive', () => {
+      expect(diveRecords(undefined)).toEqual({ bestHaul: null, mostKills: null });
+      const A = REGIONS[0]!.id;
+      const B = REGIONS[1]!.id;
+      const r = diveRecords([
+        { tick: 0, regionId: A, kills: 2, lootGp: 500, died: false },
+        { tick: 1, regionId: B, kills: 9, lootGp: 9000, died: true }, // huge loot but DIED → not a haul; most kills though
+        { tick: 2, regionId: A, kills: 3, lootGp: 800, died: false },
+      ]);
+      expect(r.bestHaul).toEqual({ regionId: A, lootGp: 800 }); // 800 banked beats 500; the 9000 was forfeited
+      expect(r.mostKills).toEqual({ regionId: B, kills: 9 }); // the deadly dive still cleared the most
+    });
+  });
+
   describe('depthSplit', () => {
     it('splits the resting book into bid/ask percentages, null when empty', () => {
       expect(depthSplit(100, 100)).toEqual({ bidPct: 50, askPct: 50 });
@@ -2290,6 +2306,17 @@ describe('UI shell', () => {
     expect(screen.getByText(/Adventurer.s Record/)).toBeTruthy();
     expect(screen.getByText('Bounties claimed')).toBeTruthy();
     expect(screen.getByText('Bestiary met')).toBeTruthy();
+    expect(screen.queryByText('Best single haul')).toBeNull(); // no dives yet → no peak rows
+  });
+
+  it('RecordsPanel adds peak-dive rows once the Delve Log has dives', () => {
+    const game = newGame(42);
+    game.delves = [{ tick: 0, regionId: REGIONS[0]!.id, kills: 5, lootGp: 1500, died: false }];
+    render(<RecordsPanel game={game} />);
+    expect(screen.getByText('Best single haul')).toBeTruthy();
+    expect(screen.getByText('Most cleared in a dive')).toBeTruthy();
+    const haulRow = screen.getByText('Best single haul').closest('li')!;
+    expect(haulRow.textContent).toContain(REGIONS[0]!.name); // the haul names its region
   });
 
   it('CharacterPanel renders the "train to unlock" hints for gated gear', () => {

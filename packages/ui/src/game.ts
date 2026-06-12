@@ -264,6 +264,25 @@ export function raidTotalsByRegion(delves: DelveRecord[] | undefined): RegionRai
   return list.sort((a, b) => b.net - a.net || b.runs - a.runs || (a.regionId < b.regionId ? -1 : 1));
 }
 
+/** A player's PEAK dives — the "best ever" markers the lifetime aggregates don't capture. */
+export interface DiveRecords {
+  /** Most loot banked from a single SURVIVED dive (a death forfeits the loot — not a haul). */
+  bestHaul: { regionId: string; lootGp: number } | null;
+  /** Most encounters cleared in one dive (counts even a dive you fell on — you still cleared them). */
+  mostKills: { regionId: string; kills: number } | null;
+}
+
+/** The biggest single haul and the deepest single clear from the Delve Log. Pure. */
+export function diveRecords(delves: DelveRecord[] | undefined): DiveRecords {
+  let bestHaul: DiveRecords['bestHaul'] = null;
+  let mostKills: DiveRecords['mostKills'] = null;
+  for (const d of delves ?? []) {
+    if (!d.died && (bestHaul === null || d.lootGp > bestHaul.lootGp)) bestHaul = { regionId: d.regionId, lootGp: d.lootGp };
+    if (mostKills === null || d.kills > mostKills.kills) mostKills = { regionId: d.regionId, kills: d.kills };
+  }
+  return { bestHaul, mostKills };
+}
+
 /** A region's full native roster: its encounter pool + named elite, deduped, order-stable. */
 export function regionRoster(region: { monsters: string[]; elite?: string }): string[] {
   const ids = region.elite ? [...region.monsters, region.elite] : [...region.monsters];

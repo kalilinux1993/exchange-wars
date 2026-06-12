@@ -1,7 +1,7 @@
 import type { SimStats } from '@exchange-wars/engine';
-import { MONSTERS, REGIONS } from '@exchange-wars/engine';
+import { MONSTERS, REGIONS, regionIndex } from '@exchange-wars/engine';
 import type { Game } from '../game';
-import { fmtCompact } from '../game';
+import { diveRecords, fmtCompact } from '../game';
 
 export interface RecordRow {
   label: string;
@@ -46,6 +46,21 @@ export function recordRows(st: SimStats): RecordRow[] {
 
 export function RecordsPanel({ game }: { game: Game }) {
   const rows = recordRows(game.world.stats);
+  const peak = diveRecords(game.delves);
+  const regionName = (id: string): string => REGIONS[regionIndex(id)]?.name ?? id;
+  if (peak.bestHaul) {
+    rows.push({
+      label: 'Best single haul',
+      value: `${fmtCompact(peak.bestHaul.lootGp)} (${regionName(peak.bestHaul.regionId)})`,
+      title: `${peak.bestHaul.lootGp.toLocaleString('en-US')} gp banked from one dive in ${regionName(peak.bestHaul.regionId)}`,
+    });
+  }
+  if (peak.mostKills) {
+    rows.push({
+      label: 'Most cleared in a dive',
+      value: `${peak.mostKills.kills.toLocaleString('en-US')} (${regionName(peak.mostKills.regionId)})`,
+    });
+  }
   return (
     <section className="panel records">
       <h2>Adventurer's Record</h2>
