@@ -497,6 +497,13 @@ describe('UI shell', () => {
     });
   });
 
+  it('shows a net-worth trajectory sparkline once history accrues', () => {
+    freshApp(); // one worth sample at boot → no trajectory yet
+    expect(screen.queryByLabelText('net worth trend')).toBeNull();
+    fireEvent.click(screen.getByText('+1k')); // +1000 ticks → a 2nd worth sample
+    expect(screen.getByLabelText('net worth trend')).toBeTruthy();
+  });
+
   it('compacts the masthead rate cue for large earning rates', () => {
     const game = newGame(42);
     game.lastSeenMs = Date.now();

@@ -215,6 +215,19 @@ body {
   cursor: help;
 }
 
+/* net-worth trajectory sparkline — sits inline with the purse numbers. */
+.worthspark {
+  align-self: center;
+  display: inline-flex;
+  width: 72px;
+  height: 18px;
+  cursor: help;
+}
+.worthspark .sparkline {
+  width: 72px;
+  height: 18px;
+}
+
 .controls {
   display: flex;
   gap: 6px;

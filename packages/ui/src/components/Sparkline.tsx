@@ -3,7 +3,17 @@
  * presentation: scales the series to the box, colours by net direction.
  * Fewer than 2 points → a dim hint (nothing to draw yet).
  */
-export function Sparkline({ prices, width = 150, height = 28 }: { prices: number[]; width?: number; height?: number }) {
+export function Sparkline({
+  prices,
+  width = 150,
+  height = 28,
+  ariaLabel = 'recent trend',
+}: {
+  prices: number[];
+  width?: number;
+  height?: number;
+  ariaLabel?: string;
+}) {
   if (prices.length < 2) {
     return <p className="dim small">no recent trades to chart</p>;
   }
@@ -20,7 +30,7 @@ export function Sparkline({ prices, width = 150, height = 28 }: { prices: number
     .join(' ');
   const up = prices[n - 1]! >= prices[0]!;
   return (
-    <svg className="sparkline" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="recent trend" preserveAspectRatio="none">
+    <svg className="sparkline" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={ariaLabel} preserveAspectRatio="none">
       <polyline points={pts} fill="none" className={up ? 'spark up' : 'spark down'} strokeWidth={1.5} />
     </svg>
   );

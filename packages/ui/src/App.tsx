@@ -18,6 +18,7 @@ import { TopFlips } from './components/TopFlips';
 import { ProfitPanel } from './components/ProfitPanel';
 import { MilestonesPanel } from './components/MilestonesPanel';
 import { RecordsPanel } from './components/RecordsPanel';
+import { Sparkline } from './components/Sparkline';
 import type { TicketPrefill } from './components/TradeTicket';
 import { PlayerPanel } from './components/PlayerPanel';
 import { TradeFeed } from './components/TradeFeed';
@@ -629,6 +630,16 @@ export function App({ initial }: { initial?: Game }) {
               </span>
             );
           })()}
+          {game.worthHistory.length >= 2 && (
+            <span className="worthspark" title="your net-worth trajectory this run">
+              <Sparkline
+                prices={game.worthHistory.map((h) => h.worth)}
+                width={72}
+                height={18}
+                ariaLabel="net worth trend"
+              />
+            </span>
+          )}
         </div>
       </header>
       {(() => {
