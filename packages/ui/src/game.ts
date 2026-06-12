@@ -376,6 +376,23 @@ export function isNewBestHaul(priorDelves: DelveRecord[] | undefined, record: De
   return prior !== null && record.lootGp > prior.lootGp;
 }
 
+/** A consecutive-clean-extraction streak: how many dives you've survived in a row right now, and the
+ * longest such run ever. A death resets the trailing run (but never lowers the best). The risk-management
+ * counterpart to the daily login streak — a number a careful extract protects. Pure; one pass. */
+export interface DiveStreak {
+  current: number; // trailing dives survived in a row (0 if your last dive died, or no dives yet)
+  best: number; // longest consecutive-survived run in the whole history
+}
+export function diveStreak(delves: DelveRecord[] | undefined): DiveStreak {
+  let run = 0;
+  let best = 0;
+  for (const d of delves ?? []) {
+    run = d.died ? 0 : run + 1;
+    if (run > best) best = run;
+  }
+  return { current: run, best }; // at loop end, `run` is the trailing (current) streak
+}
+
 /** A region's full native roster: its encounter pool + named elite, deduped, order-stable. */
 export function regionRoster(region: { monsters: string[]; elite?: string }): string[] {
   const ids = region.elite ? [...region.monsters, region.elite] : [...region.monsters];

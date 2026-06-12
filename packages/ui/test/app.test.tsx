@@ -122,6 +122,7 @@ import {
   regionLoot,
   itemSources,
   diveRecords,
+  diveStreak,
   isNewBestHaul,
   totalRealized,
   totalUnrealized,
@@ -2118,6 +2119,15 @@ describe('UI shell', () => {
       expect(isNewBestHaul(prior, rec(500, false))).toBe(false); // under the prior best
       expect(isNewBestHaul(prior, rec(9999, true))).toBe(false); // a death forfeits the loot — not a haul
       expect(isNewBestHaul(undefined, rec(500, false))).toBe(false); // no prior best → first dive sets the bar, no toast
+    });
+    it('diveStreak counts the trailing survived run; a death resets current but not best', () => {
+      const A = REGIONS[0]!.id;
+      const d = (died: boolean) => ({ tick: 0, regionId: A, kills: 1, lootGp: 100, died });
+      expect(diveStreak(undefined)).toEqual({ current: 0, best: 0 });
+      expect(diveStreak([d(false), d(false), d(false)])).toEqual({ current: 3, best: 3 }); // three clean
+      expect(diveStreak([d(false), d(false), d(true)])).toEqual({ current: 0, best: 2 }); // died last → current 0, best 2 survives
+      expect(diveStreak([d(false), d(false), d(true), d(false)])).toEqual({ current: 1, best: 2 }); // rebuilding: trailing 1, best still 2
+      expect(diveStreak([d(true), d(false), d(false), d(false), d(false)])).toEqual({ current: 4, best: 4 }); // a death early, then a long clean run
     });
   });
 

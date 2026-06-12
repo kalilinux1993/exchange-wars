@@ -1,6 +1,6 @@
 import { REGIONS, regionIndex } from '@exchange-wars/engine';
 import type { Game } from '../game';
-import { fmtCompact, fmtDuration, raidTotals, raidTotalsByRegion, recentDelves } from '../game';
+import { diveStreak, fmtCompact, fmtDuration, raidTotals, raidTotalsByRegion, recentDelves } from '../game';
 
 /**
  * Delve Log (12i): a persistent chronicle of finished expeditions — the
@@ -21,6 +21,7 @@ export function DelvePanel({
   const rows = recentDelves(game.delves, limit);
   const t = raidTotals(game.delves);
   const byRegion = raidTotalsByRegion(game.delves);
+  const streak = diveStreak(game.delves);
   return (
     <section className="panel delvelog">
       <h2>
@@ -37,6 +38,16 @@ export function DelvePanel({
                 <b className="pct down">{fmtCompact(t.lost)}</b> lost
               </>
             )}
+          </span>
+        )}
+        {streak.best > 0 && (
+          <span
+            className="dim small divestreak"
+            title="dives survived in a row right now (and your best run ever) — a death breaks the streak; the careful-extraction reward"
+          >
+            {' · '}
+            <b className={streak.current > 0 ? 'pct up' : 'dim'}>🔥 {streak.current} clean</b>
+            {streak.best > streak.current && <span className="dim"> (best {streak.best})</span>}
           </span>
         )}
       </h2>
