@@ -32,7 +32,7 @@ import { WealthPanel } from '../src/components/WealthPanel';
 import { UpgradeShop } from '../src/components/UpgradeShop';
 import { PlayerPanel } from '../src/components/PlayerPanel';
 import { depthSplit, TradeTicket } from '../src/components/TradeTicket';
-import { LeaderboardPanel, myRank, rankGap } from '../src/components/LeaderboardPanel';
+import { LeaderboardPanel, myRank, rankGap, provisionalRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
 import { FirstSteps, firstSteps } from '../src/components/FirstSteps';
 import { ContractsBoard, contractPremium } from '../src/components/ContractsBoard';
@@ -3865,6 +3865,15 @@ describe('UI shell', () => {
       expect(rankGap(board, 3)).toEqual({ gap: 100, rank: 2, ahead: 'bob' }); // carol trails bob by 100
       expect(rankGap(board, 1)).toBeNull(); // already #1
       expect(rankGap(board, null)).toBeNull(); // unranked
+    });
+    it('provisionalRank slots your current worth into the board (>= so ties sit below the incumbent)', () => {
+      const board = [{ worth: 5000 }, { worth: 3000 }, { worth: 2900 }];
+      expect(provisionalRank(board, 6000)).toBe(1); // beats everyone → #1
+      expect(provisionalRank(board, 3500)).toBe(2); // only 5000 is above → #2
+      expect(provisionalRank(board, 3000)).toBe(3); // tie with the #2 incumbent → you haven't beaten them → #3
+      expect(provisionalRank(board, 5000)).toBe(2); // matching the leader still sits you below them
+      expect(provisionalRank(board, 100)).toBe(4); // below all three → #4
+      expect(provisionalRank([], 100)).toBe(1); // empty board → you'd be #1
     });
   });
 

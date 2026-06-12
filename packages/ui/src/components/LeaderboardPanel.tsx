@@ -1,7 +1,7 @@
 import { REGIONS, SPRINT_TICKS } from '@exchange-wars/engine';
 import { useEffect, useState } from 'react';
 import { fetchLeaderboard, sanitizeHandle, submitSprint, type BoardRow, type Session } from '../cloud';
-import { dailySeed, type Game } from '../game';
+import { dailySeed, playerWorth, type Game } from '../game';
 
 const HANDLE_KEY = 'ew-handle';
 
@@ -33,6 +33,15 @@ export function rankGap(
   const mine = rows[meRank - 1];
   if (!above || !mine) return null;
   return { gap: Math.max(0, above.worth - mine.worth), rank: meRank - 1, ahead: above.handle };
+}
+
+/**
+ * Where your CURRENT worth would slot into the (desc-sorted) board — a live provisional standing while the
+ * sprint is still running. Counts entries `>=` your worth, so a TIE sits below the incumbent: you haven't
+ * BEATEN an equal score, and a fresh submission lands after existing equal ones anyway. Pure.
+ */
+export function provisionalRank(rows: { worth: number }[], myWorth: number): number {
+  return 1 + rows.filter((r) => r.worth >= myWorth).length;
 }
 
 /**
@@ -104,6 +113,20 @@ export function LeaderboardPanel({
           </p>
         );
       })()}
+      {game.world.tick < SPRINT_TICKS &&
+        (() => {
+          // Live race position: before the sprint mark, your current worth IS what your
+          // sprint score would be if it ended now — so this provisional rank is honest.
+          // After the mark it's hidden (current worth includes post-sprint play).
+          const worth = playerWorth(game);
+          const rank = provisionalRank(rows, worth);
+          return (
+            <p className="dim small provrank" title="where your fortune would place you if the sprint ended this instant — a live race position (the board scores are worth at the sprint mark)">
+              ⏱ if the sprint ended now (tick {game.world.tick.toLocaleString('en-US')}/{SPRINT_TICKS.toLocaleString('en-US')}), your{' '}
+              <b>{worth.toLocaleString('en-US')}</b> gp would sit <b>#{rank}</b>
+            </p>
+          );
+        })()}
       <ul className="rows small">
         {rows.map((r, i) => (
           <li key={`${i}-${r.handle}`} className={meRank === i + 1 ? 'you' : undefined}>
