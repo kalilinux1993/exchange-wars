@@ -286,6 +286,11 @@ body {
   color: var(--rise);
 }
 
+.chip.richalert.on {
+  border-color: var(--gold);
+  color: var(--gold-bright);
+}
+
 .chip.danger:hover:not(:disabled) {
   border-color: var(--fall);
   color: var(--fall);

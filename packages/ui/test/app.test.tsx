@@ -62,6 +62,7 @@ import {
   ghostForRestart,
   alertHit,
   bandAlertHit,
+  richAlertHit,
   applyFillToBook,
   blendBuy,
   breakEvenSell,
@@ -857,7 +858,7 @@ describe('UI shell', () => {
         markets: [{ itemId: 'gold_bar', bestBid: 100, bestAsk: 110, lastPrice: 110, ema: 110, volume: 1, bestBidIsMine: false, bestAskIsMine: false }],
       } as unknown as PlayerView;
       const { container } = render(
-        <WatchlistPanel view={v} items={items} watch={['gold_bar']} alerts={{}} sellAlerts={{}} bandAlerts={{}} onSelect={() => {}} onRemove={() => {}} onSetAlert={() => {}} onSetSellAlert={() => {}} onToggleBandAlert={() => {}} />,
+        <WatchlistPanel view={v} items={items} watch={['gold_bar']} alerts={{}} sellAlerts={{}} bandAlerts={{}} richAlerts={{}} onSelect={() => {}} onRemove={() => {}} onSetAlert={() => {}} onSetSellAlert={() => {}} onToggleBandAlert={() => {}} onToggleRichAlert={() => {}} />,
       );
       const sig = container.querySelector('.watchsignal');
       expect(sig).toBeTruthy();
@@ -872,13 +873,29 @@ describe('UI shell', () => {
       } as unknown as PlayerView;
       const onToggleBandAlert = vi.fn();
       const { container } = render(
-        <WatchlistPanel view={v} items={items} watch={['gold_bar']} alerts={{}} sellAlerts={{}} bandAlerts={{}} onSelect={() => {}} onRemove={() => {}} onSetAlert={() => {}} onSetSellAlert={() => {}} onToggleBandAlert={onToggleBandAlert} />,
+        <WatchlistPanel view={v} items={items} watch={['gold_bar']} alerts={{}} sellAlerts={{}} bandAlerts={{}} richAlerts={{}} onSelect={() => {}} onRemove={() => {}} onSetAlert={() => {}} onSetSellAlert={() => {}} onToggleBandAlert={onToggleBandAlert} onToggleRichAlert={() => {}} />,
       );
       const toggle = container.querySelector('.bandalert') as HTMLButtonElement;
       expect(toggle).toBeTruthy();
       expect(toggle.getAttribute('aria-pressed')).toBe('false');
       fireEvent.click(toggle);
       expect(onToggleBandAlert).toHaveBeenCalledWith('gold_bar', true); // arms it
+    });
+
+    it('WatchlistPanel arms a value-band take-profit (rich) alert on a banded row', () => {
+      const items = [{ id: 'gold_bar', name: 'Gold bar', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
+      const v = {
+        markets: [{ itemId: 'gold_bar', bestBid: 100, bestAsk: 110, lastPrice: 150, ema: 150, volume: 1, bestBidIsMine: false, bestAskIsMine: false }],
+      } as unknown as PlayerView;
+      const onToggleRichAlert = vi.fn();
+      const { container } = render(
+        <WatchlistPanel view={v} items={items} watch={['gold_bar']} alerts={{}} sellAlerts={{}} bandAlerts={{}} richAlerts={{}} onSelect={() => {}} onRemove={() => {}} onSetAlert={() => {}} onSetSellAlert={() => {}} onToggleBandAlert={() => {}} onToggleRichAlert={onToggleRichAlert} />,
+      );
+      const toggle = container.querySelector('.richalert') as HTMLButtonElement;
+      expect(toggle).toBeTruthy();
+      expect(toggle.getAttribute('aria-pressed')).toBe('false');
+      fireEvent.click(toggle);
+      expect(onToggleRichAlert).toHaveBeenCalledWith('gold_bar', true); // arms the sell-side alert
     });
 
     it('the "cheap" track shows only items trading in the cheap third of their value band', () => {
@@ -1755,6 +1772,14 @@ describe('UI shell', () => {
       expect(bandAlertHit(def, 150)).toBe(false); // pos 0.50 → fair
       expect(bandAlertHit(def, 190)).toBe(false); // pos 0.90 → rich
       expect(bandAlertHit(undefined, 110)).toBe(false); // no def → never
+    });
+    it('richAlertHit is the sell-side mirror — fires exactly in the rich third', () => {
+      const def = { baseCost: 100, consumeValue: 200 }; // band 100..200; rich = pos >= 0.67
+      expect(richAlertHit(def, 190)).toBe(true); // pos 0.90 → rich
+      expect(richAlertHit(def, 999)).toBe(true); // above ceiling clamps rich
+      expect(richAlertHit(def, 150)).toBe(false); // pos 0.50 → fair
+      expect(richAlertHit(def, 110)).toBe(false); // pos 0.10 → cheap
+      expect(richAlertHit(undefined, 190)).toBe(false); // no def → never
     });
     it('marketMood counts breadth (traded only) and the cheap/rich value spread', () => {
       const items = [

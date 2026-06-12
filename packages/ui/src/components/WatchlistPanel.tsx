@@ -14,11 +14,13 @@ export function WatchlistPanel({
   alerts,
   sellAlerts,
   bandAlerts,
+  richAlerts,
   onSelect,
   onRemove,
   onSetAlert,
   onSetSellAlert,
   onToggleBandAlert,
+  onToggleRichAlert,
 }: {
   view: PlayerView;
   items: ItemDef[];
@@ -27,11 +29,14 @@ export function WatchlistPanel({
   sellAlerts: Record<string, number>;
   /** Items armed for a value-band "buy the dip" alert (fires when they go cheap). */
   bandAlerts: Record<string, boolean>;
+  /** Items armed for a value-band "take profit" alert (fires when they go rich). */
+  richAlerts: Record<string, boolean>;
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   onSetAlert: (id: string, price: number | null) => void;
   onSetSellAlert: (id: string, price: number | null) => void;
   onToggleBandAlert: (id: string, on: boolean) => void;
+  onToggleRichAlert: (id: string, on: boolean) => void;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
   const defOf = new Map(items.map((i) => [i.id, i]));
@@ -113,6 +118,24 @@ export function WatchlistPanel({
                         onClick={() => onToggleBandAlert(m.itemId, !armed)}
                       >
                         🟢{armed ? '✓' : ''}
+                      </button>
+                    );
+                  })()}
+                {bandPosition(defOf.get(m.itemId), m.lastPrice) !== null &&
+                  (() => {
+                    const armed = richAlerts[m.itemId] === true;
+                    return (
+                      <button
+                        className={armed ? 'chip richalert on' : 'chip richalert'}
+                        aria-pressed={armed}
+                        title={
+                          armed
+                            ? 'rich-band alert ON — tap to disarm; fires when this enters its rich band'
+                            : 'alert me when this climbs into its rich band (a self-adjusting "take profit" — no price to set)'
+                        }
+                        onClick={() => onToggleRichAlert(m.itemId, !armed)}
+                      >
+                        🟡{armed ? '✓' : ''}
                       </button>
                     );
                   })()}

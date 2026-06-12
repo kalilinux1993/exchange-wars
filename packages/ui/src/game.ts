@@ -1652,6 +1652,15 @@ export function bandAlertHit(
   return valueBand(def, lastPrice) === 'cheap';
 }
 
+/** The sell-side sibling of `bandAlertHit`: true when the price has entered the RICH third of the item's
+ * cost→value band — a threshold-free "take profit" trigger (self-adjusting, no number to maintain). Pure. */
+export function richAlertHit(
+  def: { baseCost: number; consumeValue: number } | undefined,
+  lastPrice: number,
+): boolean {
+  return valueBand(def, lastPrice) === 'rich';
+}
+
 /** A captured market event with the item price at the moment it became active. */
 export interface CapturedEvent {
   itemId: string;

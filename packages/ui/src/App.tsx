@@ -35,6 +35,7 @@ import { WorthChart } from './components/WorthChart';
 import {
   alertHit,
   bandAlertHit,
+  richAlertHit,
   reconcileEvents,
   type CapturedEvent,
   bumpStreak,
@@ -133,11 +134,13 @@ export function App({ initial }: { initial?: Game }) {
   const [alerts, setAlerts] = usePref<Record<string, number>>('ew-alerts', {});
   const [sellAlerts, setSellAlerts] = usePref<Record<string, number>>('ew-sell-alerts', {});
   const [bandAlerts, setBandAlerts] = usePref<Record<string, boolean>>('ew-band-alerts', {});
+  const [richAlerts, setRichAlerts] = usePref<Record<string, boolean>>('ew-rich-alerts', {});
   const [streak, setStreak] = usePref<DailyStreak | null>('ew-daily-streak', null);
   const [dailyBest, setDailyBest] = usePref<DailyBest | null>('ew-daily-best', null);
   const alertFired = useRef<Set<string>>(new Set());
   const sellFired = useRef<Set<string>>(new Set());
   const bandFired = useRef<Set<string>>(new Set());
+  const richFired = useRef<Set<string>>(new Set());
   // Market-event capture for end recaps (15z): the price each active event began at, keyed by event id.
   // `captureGame` guards a game swap so a cloud-adopt/restart never recaps the old game's events.
   const eventCapture = useRef<Record<string, CapturedEvent>>({});
@@ -162,6 +165,13 @@ export function App({ initial }: { initial?: Game }) {
     else delete next[id];
     setBandAlerts(next);
     bandFired.current.delete(id); // re-arm on toggle
+  };
+  const setRichAlert = (id: string, on: boolean): void => {
+    const next = { ...richAlerts };
+    if (on) next[id] = true;
+    else delete next[id];
+    setRichAlerts(next);
+    richFired.current.delete(id); // re-arm on toggle
   };
   const closeHelp = (): void => {
     localStorage.setItem(HELP_SEEN_KEY, '1');
@@ -470,6 +480,22 @@ export function App({ initial }: { initial?: Game }) {
         }
       } else {
         bandFired.current.delete(id);
+      }
+    }
+    // Value-band "take profit" alerts (16d): the sell-side sibling — fire once when an
+    // armed item enters the rich third of its band; re-arm when it leaves. Threshold-free.
+    for (const id of Object.keys(richAlerts)) {
+      if (!richAlerts[id]) continue;
+      const market = v.markets.find((m) => m.itemId === id);
+      const def = game.world.items.find((i) => i.id === id);
+      if (!market || !def) continue;
+      if (richAlertHit(def, market.lastPrice)) {
+        if (!richFired.current.has(id)) {
+          richFired.current.add(id);
+          setToast({ id: `rich-alert-${id}`, name: `🟡 ${def.name} is rich`, flavor: `now ${market.lastPrice.toLocaleString('en-US')} gp — near its ceiling, take profit?`, achieved: () => false });
+        }
+      } else {
+        richFired.current.delete(id);
       }
     }
     // Event-end recaps (15z): close the lifecycle the chips open. Swap-guard first
@@ -1071,11 +1097,13 @@ export function App({ initial }: { initial?: Game }) {
             alerts={alerts}
             sellAlerts={sellAlerts}
             bandAlerts={bandAlerts}
+            richAlerts={richAlerts}
             onSelect={setSelected}
             onRemove={toggleWatch}
             onSetAlert={setAlert}
             onSetSellAlert={setSellAlert}
             onToggleBandAlert={setBandAlert}
+            onToggleRichAlert={setRichAlert}
           />
           <NewsLog log={game.newsLog} />
         </section>
