@@ -713,6 +713,8 @@ describe('UI shell', () => {
     render(<CharacterPanel agent={agent} names={new Map()} />);
     expect(screen.getByText(/🔒 Atk 20/)).toBeTruthy();
     expect(screen.getByText(/🔒 Def 12/)).toBeTruthy();
+    // each worn slot (weapon/body/helm here) shows a gear icon
+    expect(document.querySelectorAll('.equipicon').length).toBeGreaterThan(0);
   });
 
   it('a #seed link starts fresh visitors on that seed directly', () => {

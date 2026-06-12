@@ -2,7 +2,7 @@ import { combatLevel, GEAR, levelsOf, maxHpFor, xpForLevel } from '@exchange-war
 import type { GearSlot } from '@exchange-wars/engine';
 import type { AgentState } from '@exchange-wars/engine';
 import { useState } from 'react';
-import { Icon } from './Icon';
+import { Icon, itemIcon } from './Icon';
 
 const TITLE_KEY = 'ew-title';
 
@@ -159,7 +159,16 @@ export function CharacterPanel({
             return (
               <div key={s.slot} className={kit[s.slot] ? 'equip on' : 'equip'}>
                 <span className="dim">{s.label}</span>
-                <span className="equipval">{kit[s.slot] ? (names.get(kit[s.slot]!) ?? kit[s.slot]) : '—'}</span>
+                <span className="equipval">
+                  {kit[s.slot] ? (
+                    <>
+                      <Icon {...itemIcon(kit[s.slot]!)} size={14} className="equipicon" />{' '}
+                      {names.get(kit[s.slot]!) ?? kit[s.slot]}
+                    </>
+                  ) : (
+                    '—'
+                  )}
+                </span>
                 {lock && (
                   <span
                     className="lockhint"

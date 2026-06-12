@@ -1102,6 +1102,10 @@ kbd {
   white-space: nowrap;
   cursor: help;
 }
+/* per-slot gear icon in the equiplist — sits inline before the item name. */
+.equipicon {
+  vertical-align: -2px;
+}
 .skills {
   display: flex;
   gap: 5px;
