@@ -2,6 +2,7 @@ import { GE_TAX_RATE, MONSTERS, REGIONS } from '@exchange-wars/engine';
 import type { CommandResult, ItemDef, ItemId, PlayerCommand, PlayerView, Side } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { Sparkline } from './Sparkline';
+import { BandMeter } from './BandMeter';
 import { blendBuy, breakEvenSell, buyConcentration, gearDelta, itemSources, priceSwing, valueBand } from '../game';
 
 /**
@@ -214,6 +215,7 @@ export function TradeTicket({
           )}
         </p>
       )}
+      {market && <BandMeter def={def} lastPrice={market.lastPrice} />}
       {market &&
         (() => {
           const d = depthSplit(market.bidDepth, market.askDepth);

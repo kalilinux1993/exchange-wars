@@ -23,6 +23,7 @@ import { CombatScene, arenaTheme } from '../src/components/CombatScene';
 import { EmbarkPanel } from '../src/components/EmbarkPanel';
 import { MarketTable } from '../src/components/MarketTable';
 import { WatchlistPanel } from '../src/components/WatchlistPanel';
+import { BandMeter } from '../src/components/BandMeter';
 import { ItemIcon } from '../src/components/Icon';
 import { DelvePanel } from '../src/components/DelvePanel';
 import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
@@ -2146,6 +2147,26 @@ describe('UI shell', () => {
       expect(depthSplit(30, 0)).toEqual({ bidPct: 100, askPct: 0 });
       expect(depthSplit(0, 50)).toEqual({ bidPct: 0, askPct: 100 });
       expect(depthSplit(0, 0)).toBeNull();
+    });
+  });
+
+  describe('BandMeter', () => {
+    it('places the marker at the band position and labels the floor/ceiling', () => {
+      const { container } = render(<BandMeter def={{ baseCost: 100, consumeValue: 200 }} lastPrice={180} />);
+      const marker = container.querySelector('.bm-marker') as HTMLElement;
+      expect(marker).toBeTruthy();
+      expect(marker.style.left).toBe('80%'); // (180-100)/(200-100) = 0.8
+      expect(marker.classList.contains('rich')).toBe(true); // pos 0.8 → rich third
+      expect(container.textContent).toContain('100'); // floor (baseCost)
+      expect(container.textContent).toContain('200'); // ceiling (consumeValue)
+    });
+    it('clamps a price outside the band to the edge', () => {
+      const { container } = render(<BandMeter def={{ baseCost: 100, consumeValue: 200 }} lastPrice={50} />);
+      expect((container.querySelector('.bm-marker') as HTMLElement).style.left).toBe('0%'); // below floor → clamps to 0
+    });
+    it('renders nothing for a bandless item', () => {
+      const { container } = render(<BandMeter def={{ baseCost: 100, consumeValue: 100 }} lastPrice={100} />);
+      expect(container.querySelector('.bandmeter')).toBeNull();
     });
   });
 

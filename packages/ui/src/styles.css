@@ -1074,6 +1074,41 @@ kbd {
 .dropchip {
   white-space: nowrap;
 }
+/* band meter: where the price sits between an item's floor and ceiling (cost→value range) */
+.bandmeter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bm-end {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+.bm-track {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  opacity: 0.6;
+  background: linear-gradient(
+    to right,
+    var(--rise) 0%,
+    var(--rise) 34%,
+    var(--parchment-dim) 34%,
+    var(--parchment-dim) 67%,
+    var(--gold) 67%,
+    var(--gold) 100%
+  );
+}
+.bm-marker {
+  position: absolute;
+  top: -3px;
+  width: 3px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--parchment);
+  transform: translateX(-50%);
+}
 /* region-tinted "what you're getting into" readout on the embark screen — a faint
    per-region gradient (same palette as the combat backdrop + map halos). */
 .region-readout {
