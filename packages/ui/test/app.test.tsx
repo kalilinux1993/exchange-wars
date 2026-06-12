@@ -75,6 +75,7 @@ import {
   tradeRecord,
   recordFills,
   recentFlips,
+  leveledUp,
   fillSummary,
   fillToastFlavor,
   realizedPnL,
@@ -183,6 +184,26 @@ describe('UI shell', () => {
     expect(game.world.tick).toBe(11_000);
     expect(game.worthHistory.length).toBeGreaterThan(1);
     expect(screen.queryByText(/let the world run/i)).toBeNull();
+  });
+
+  describe('leveledUp', () => {
+    it('lists the skills that rose, with their new level', () => {
+      const ups = leveledUp({ atk: 4, def: 9, hp: 3 }, { atk: 5, def: 9, hp: 4 });
+      expect(ups.map((u) => u.skill)).toEqual(['atk', 'hp']); // def unchanged
+      expect(ups.find((u) => u.skill === 'atk')).toMatchObject({ name: 'Attack', glyph: '⚔', level: 5 });
+    });
+    it('is empty when nothing rose (or a skill somehow dropped)', () => {
+      expect(leveledUp({ atk: 5, def: 5, hp: 5 }, { atk: 5, def: 5, hp: 5 })).toEqual([]);
+      expect(leveledUp({ atk: 5, def: 5, hp: 5 }, { atk: 4, def: 5, hp: 5 })).toEqual([]);
+    });
+  });
+
+  it('a combat level-up pops a celebration toast', () => {
+    const game = freshApp();
+    fireEvent.click(screen.getByText('+1k')); // trigger #1: prevLevels latches at 1/1/1
+    game.world.agents[game.playerId]!.combatXp = { atk: xpForLevel(2), def: 0, hp: 0 }; // Attack 1 → 2 (combat level still 1, no deed crosses)
+    fireEvent.click(screen.getByText('+1k')); // trigger #2: detects the jump (human is inert → no stray milestone)
+    expect(screen.getByText(/Attack up/)).toBeTruthy();
   });
 
   it('milestones latch once and persist on the save', () => {

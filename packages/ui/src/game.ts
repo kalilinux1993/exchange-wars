@@ -300,6 +300,29 @@ export function combatForecast(
   return { roundsToKill, roundsToFall, favored: roundsToKill <= roundsToFall };
 }
 
+/** A combat skill that just leveled up — for the celebration toast. */
+export interface LevelUp {
+  skill: 'atk' | 'def' | 'hp';
+  name: string;
+  glyph: string;
+  level: number;
+}
+
+const COMBAT_SKILLS: { skill: 'atk' | 'def' | 'hp'; name: string; glyph: string }[] = [
+  { skill: 'atk', name: 'Attack', glyph: '⚔' },
+  { skill: 'def', name: 'Defence', glyph: '🛡' },
+  { skill: 'hp', name: 'Hitpoints', glyph: '♥' },
+];
+
+/** Which combat skills rose between two level snapshots — drives the level-up
+ *  celebration (empty when nothing changed or a skill somehow dropped). Pure. */
+export function leveledUp(
+  prev: { atk: number; def: number; hp: number },
+  now: { atk: number; def: number; hp: number },
+): LevelUp[] {
+  return COMBAT_SKILLS.filter((s) => now[s.skill] > prev[s.skill]).map((s) => ({ ...s, level: now[s.skill] }));
+}
+
 /** A pre-embark readiness warning, tagged by what would fix it. */
 export interface EmbarkWarning {
   kind: 'antifire' | 'food';

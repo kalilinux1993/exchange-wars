@@ -56,6 +56,7 @@ import {
   offlineRatePerMin,
   openFromBook,
   recordFills,
+  leveledUp,
   fillToastFlavor,
   playerWorth,
   recordWorth,
@@ -341,6 +342,9 @@ export function App({ initial }: { initial?: Game }) {
     });
   }, [session]);
 
+  // Previous combat levels, for the level-up celebration. Lazy init (null) so
+  // loading a save with existing levels doesn't fire a phantom toast.
+  const prevLevels = useRef<{ atk: number; def: number; hp: number } | null>(null);
   const refreshProgress = (notifyFills = false): void => {
     const v = playerView(game.world, game.playerId);
     if (!v) return;
@@ -354,6 +358,16 @@ export function App({ initial }: { initial?: Game }) {
     if (notifyFills) {
       const fs = fillToastFlavor(newFills, (id) => game.world.items.find((i) => i.id === id)?.name ?? id);
       if (fs) setToast({ id: 'fills', name: '🪙 your offers filled', flavor: fs, achieved: () => false });
+    }
+    // Combat level-up: celebrate the moment a skill ticks up. Fires before the
+    // milestone toast below, so a deed earned the same tick still wins the slot.
+    const lv = levelsOf(game.world.agents[game.playerId]?.combatXp);
+    if (prevLevels.current === null) {
+      prevLevels.current = lv;
+    } else {
+      for (const u of leveledUp(prevLevels.current, lv))
+        setToast({ id: 'levelup', name: `${u.glyph} ${u.name} up!`, flavor: `you reached ${u.name} ${u.level}`, achieved: () => false });
+      prevLevels.current = lv;
     }
     const newly = checkMilestones(game, v, w);
     if (newly.length > 0) setToast(newly[newly.length - 1]!);
