@@ -1,6 +1,9 @@
 import type { ItemDef, PlayerView } from '@exchange-wars/engine';
 import type { Game } from '../game';
-import { fmtCompact, heldPositions } from '../game';
+import { fmtCompact, heldPositions, positionConcentration } from '../game';
+
+/** Distinguishable, theme-fitting segment colours for the allocation bar. */
+const ALLOC_COLORS = ['#d4a937', '#2dd4bf', '#e07a5f', '#81b29a', '#9a8cff', '#f2cc8f'];
 
 /**
  * Open Positions (12c): every item you currently HOLD, marked at last price —
@@ -28,6 +31,10 @@ export function PositionsPanel({
   const shown = positions.slice(0, limit);
   const totalValue = positions.reduce((s, p) => s + p.value, 0);
   const totalPaper = positions.reduce((s, p) => s + p.unrealized, 0);
+  const conc = positionConcentration(positions);
+  const topName = conc.weights[0] ? (names.get(conc.weights[0].itemId) ?? conc.weights[0].itemId) : '';
+  // >50% of your value in one item = concentrated (red); <34% = well spread (green).
+  const riskClass = conc.topPct > 0.5 ? 'pct down' : conc.topPct >= 0.34 ? 'dim' : 'pct up';
   const pct = (n: number) => `${n >= 0 ? '+' : ''}${(n * 100).toFixed(1)}%`;
   return (
     <section className="panel positions">
@@ -47,7 +54,21 @@ export function PositionsPanel({
       {positions.length === 0 ? (
         <p className="dim small">no open positions — buy an item to open one (its cost basis shows up here)</p>
       ) : (
-        <ul className="rows small">
+        <>
+          <div className="allocbar" aria-hidden="true" title="how your held value splits across positions — one fat segment means you're concentrated in a single item">
+            {conc.weights.map((w, i) => (
+              <span
+                key={w.itemId}
+                className="alloc-seg"
+                style={{ width: `${(w.pct * 100).toFixed(2)}%`, background: ALLOC_COLORS[i % ALLOC_COLORS.length] }}
+                title={`${names.get(w.itemId) ?? w.itemId} ${(w.pct * 100).toFixed(0)}%`}
+              />
+            ))}
+          </div>
+          <p className="dim small" title="your single biggest exposure — a high share is concentration risk; spread across more items to reduce it">
+            {conc.count} position{conc.count === 1 ? '' : 's'} · top <b className={riskClass}>{topName} {pct(conc.topPct).replace('+', '')}</b>
+          </p>
+          <ul className="rows small">
           {shown.map((p) => (
             <li
               key={p.itemId}
@@ -72,7 +93,8 @@ export function PositionsPanel({
           {positions.length > shown.length && (
             <li className="dim small">+{positions.length - shown.length} more held…</li>
           )}
-        </ul>
+          </ul>
+        </>
       )}
     </section>
   );

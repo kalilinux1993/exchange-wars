@@ -466,6 +466,27 @@ export function heldPositions(book: TradeBook, markOf: (itemId: string) => numbe
   return out.sort((a, b) => b.unrealized - a.unrealized || (a.itemId < b.itemId ? -1 : 1));
 }
 
+/** Portfolio concentration across held positions — the diversification/risk lens. */
+export interface Concentration {
+  weights: { itemId: string; pct: number }[]; // each position's share of total value (0..1), largest first
+  topPct: number; // the single largest weight — how exposed you are to one item
+  count: number; // number of open positions
+}
+
+/**
+ * What fraction of your held value sits in each position — the risk counterpart
+ * to the P&L view. Marked-to-market `value` (not cost), so it reflects what you'd
+ * actually have at risk now. Sorted largest-first (id tie-break); `topPct` is the
+ * single biggest exposure. Pure; empty book → zeros.
+ */
+export function positionConcentration(positions: HeldPosition[]): Concentration {
+  const total = positions.reduce((s, p) => s + p.value, 0);
+  const weights = positions
+    .map((p) => ({ itemId: p.itemId, pct: total > 0 ? p.value / total : 0 }))
+    .sort((a, b) => b.pct - a.pct || (a.itemId < b.itemId ? -1 : 1));
+  return { weights, topPct: weights[0]?.pct ?? 0, count: positions.length };
+}
+
 /** How a buy reshapes a position you already hold — the average-down preview. */
 export interface BlendedBuy {
   units: number; // resulting total units

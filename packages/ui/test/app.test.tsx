@@ -59,6 +59,7 @@ import {
   openFromBook,
   openPosition,
   heldPositions,
+  positionConcentration,
   parseChallengeSeed,
   realizedFromBook,
   realizedPnL,
@@ -594,6 +595,44 @@ describe('UI shell', () => {
     freshApp(); // adventure room mounted (tabhidden but in the DOM); fresh player, no active dive
     expect(screen.getByText(/forecast:/)).toBeTruthy();
     expect(screen.getByText(/favored|risky/)).toBeTruthy();
+  });
+
+  describe('positionConcentration', () => {
+    const pos = (itemId: string, value: number) => ({
+      itemId, value, units: 0, avgCost: 0, mark: 0, marked: true, cost: 0, unrealized: 0, unrealizedPct: 0,
+    });
+    it('weights each holding by marked value, largest first; topPct is the max', () => {
+      const c = positionConcentration([pos('a', 1000), pos('b', 3000)]);
+      expect(c.count).toBe(2);
+      expect(c.topPct).toBeCloseTo(0.75);
+      expect(c.weights.map((w) => w.itemId)).toEqual(['b', 'a']); // 75% before 25%
+      expect(c.weights[0]!.pct + c.weights[1]!.pct).toBeCloseTo(1);
+    });
+    it('empty book → zeros', () => {
+      expect(positionConcentration([])).toEqual({ weights: [], topPct: 0, count: 0 });
+    });
+  });
+
+  it('PositionsPanel shows the allocation concentration of your holdings', () => {
+    const game = newGame(42);
+    const A = DEFAULT_ITEMS[0]!;
+    const B = DEFAULT_ITEMS[1]!;
+    game.tradeBook = bookFromFills(
+      [
+        { tick: 0, itemId: A.id, side: 'buy', qty: 10, price: 100 },
+        { tick: 0, itemId: B.id, side: 'buy', qty: 10, price: 100 },
+      ],
+      0.02,
+    );
+    const view = {
+      markets: [
+        { itemId: A.id, lastPrice: 300 }, // value 3000
+        { itemId: B.id, lastPrice: 100 }, // value 1000 → A is 75% of the book
+      ],
+    } as unknown as PlayerView;
+    render(<PositionsPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} />);
+    expect(screen.getByText(/2 positions/)).toBeTruthy();
+    expect(screen.getByText(/75\.0%/)).toBeTruthy(); // top concentration
   });
 
   it('loadCorruptSave / discardCorruptSave round-trip the quarantine', () => {

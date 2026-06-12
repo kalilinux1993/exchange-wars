@@ -1497,6 +1497,23 @@ kbd {
 .conquest-row.done .conquestbar > span {
   background: #2dd4bf;
 }
+
+/* portfolio allocation bar — held value split across positions, one segment each. */
+.allocbar {
+  display: flex;
+  height: 8px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--ink);
+  margin: 2px 0 5px;
+}
+.alloc-seg {
+  height: 100%;
+  min-width: 1px;
+}
+.alloc-seg + .alloc-seg {
+  border-left: 1px solid rgba(20, 16, 9, 0.6);
+}
 .bounties li.bounty.done .bountybar > span {
   background: var(--rise);
 }
