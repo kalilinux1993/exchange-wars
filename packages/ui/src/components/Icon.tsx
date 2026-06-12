@@ -34,6 +34,39 @@ export function iconUrl(name: string): string | undefined {
   return ICON_URLS[`../assets/icons/${name}.svg`];
 }
 
+/**
+ * The ACTUAL item image — the wikiId PNG from public/icons — when the catalog has a `wikiId`,
+ * else the generic category glyph (`itemIcon`). Use this for inventory / equipped / pack items so
+ * a player sees their rune 2h sword, not a ⚔. The MarketTable already does this inline; ItemIcon
+ * makes it reusable. Tests pass minimal defs (no wikiId) so they keep the glyph fallback.
+ */
+export function ItemIcon({
+  id,
+  wikiId,
+  size = 14,
+  className,
+}: {
+  id: string;
+  wikiId?: number | undefined;
+  size?: number;
+  className?: string;
+}) {
+  if (wikiId !== undefined) {
+    return (
+      <img
+        className={`icon itemimg ${className ?? ''}`}
+        src={`${import.meta.env.BASE_URL}icons/${wikiId}.png`}
+        width={size}
+        height={size}
+        alt=""
+        aria-hidden="true"
+      />
+    );
+  }
+  const g = itemIcon(id);
+  return <Icon name={g.name} glyph={g.glyph} size={size} className={className} />;
+}
+
 export function Icon({
   name,
   glyph,
@@ -45,7 +78,7 @@ export function Icon({
   /** emoji/text shown until (or unless) the asset exists */
   glyph: string;
   size?: number;
-  className?: string;
+  className?: string | undefined;
 }) {
   const url = iconUrl(name);
   if (url) {

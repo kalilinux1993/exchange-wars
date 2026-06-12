@@ -3,7 +3,7 @@ import type { GearSlot } from '@exchange-wars/engine';
 import type { AgentState } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { healEta, leveledUp } from '../game';
-import { Icon, itemIcon } from './Icon';
+import { Icon, ItemIcon } from './Icon';
 
 const TITLE_KEY = 'ew-title';
 
@@ -97,11 +97,14 @@ export function lockedUpgrades(
 export function CharacterPanel({
   agent,
   names,
+  wikiOf,
   titles = [],
   onRest,
 }: {
   agent: AgentState | undefined;
   names: Map<string, string>;
+  /** id → wikiId, so equipped gear shows its ACTUAL item icon (absent → the category glyph). */
+  wikiOf?: Map<string, number | undefined> | undefined;
   /** Display names of earned deeds, offered as selectable titles. */
   titles?: string[];
   /** Fast-forward N ticks to mend — wired to the "rest to full" button. */
@@ -209,7 +212,7 @@ export function CharacterPanel({
                 <span className="equipval">
                   {kit[s.slot] ? (
                     <>
-                      <Icon {...itemIcon(kit[s.slot]!)} size={14} className="equipicon" />{' '}
+                      <ItemIcon id={kit[s.slot]!} wikiId={wikiOf?.get(kit[s.slot]!)} size={14} className="equipicon" />{' '}
                       {names.get(kit[s.slot]!) ?? kit[s.slot]}
                     </>
                   ) : (

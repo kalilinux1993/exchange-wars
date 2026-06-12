@@ -3,7 +3,7 @@ import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { combatForecast, embarkPrep, type Game } from '../game';
 import { usePref } from '../usePref';
-import { Icon, itemIcon } from './Icon';
+import { ItemIcon } from './Icon';
 import { RegionMap } from './RegionMap';
 import { regionDanger } from './ExpeditionPanel';
 
@@ -38,6 +38,7 @@ export function EmbarkPanel({
   const [draft, setDraft] = useState<Record<string, number>>({});
   const [loadouts, setLoadouts] = usePref<Record<string, number>[]>('ew-loadouts', []);
   const names = new Map(items.map((i) => [i.id, i.name]));
+  const wikiOf = new Map(items.map((i) => [i.id, i.wikiId]));
 
   // Apply a "raid here again" pulse from a Delve Log row — nonce-guarded so the
   // same region can be re-picked, and so it only fires on a fresh request.
@@ -266,7 +267,7 @@ export function EmbarkPanel({
           return (
             <li key={id} className={inert ? 'dim' : ''} title={inert ? `requires ${g!.slot === 'weapon' ? 'Attack' : 'Defence'} ${g!.req} — carried gear below your level is inert` : undefined}>
               <span>
-                <Icon name={itemIcon(id).name} glyph={itemIcon(id).glyph} size={14} className="itemicon" /> {names.get(id) ?? id}
+                <ItemIcon id={id} wikiId={wikiOf.get(id)} size={14} className="itemicon" /> {names.get(id) ?? id}
               </span>
               <span className="dim small">
                 {g

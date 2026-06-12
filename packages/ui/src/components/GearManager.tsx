@@ -1,7 +1,7 @@
 import { GEAR, levelsOf } from '@exchange-wars/engine';
 import type { AgentState, ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { bestAffordableUpgrade, gearDelta } from '../game';
-import { Icon, itemIcon } from './Icon';
+import { ItemIcon } from './Icon';
 
 /** Compact "+A atk +D def" for a gear piece (only the non-zero stats). */
 function statLabel(g: { atk: number; def: number }): string {
@@ -31,6 +31,7 @@ export function GearManager({
   onBuy?: ((itemId: string) => void) | undefined;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
+  const wikiOf = new Map(items.map((i) => [i.id, i.wikiId]));
   const inv = agent?.inventory ?? {};
   const worn = agent?.worn ?? {};
   const lvls = levelsOf(agent?.combatXp);
@@ -83,7 +84,7 @@ export function GearManager({
             return (
               <li key={slot}>
                 <span>
-                  <Icon name={itemIcon(itemId).name} glyph={itemIcon(itemId).glyph} size={14} className="itemicon" />{' '}
+                  <ItemIcon id={itemId} wikiId={wikiOf.get(itemId)} size={14} className="itemicon" />{' '}
                   {names.get(itemId) ?? itemId}
                 </span>
                 <span className="dim small">
@@ -113,7 +114,7 @@ export function GearManager({
             return (
               <li key={i.id}>
                 <span>
-                  <Icon name={itemIcon(i.id).name} glyph={itemIcon(i.id).glyph} size={14} className="itemicon" /> {i.name}
+                  <ItemIcon id={i.id} wikiId={i.wikiId} size={14} className="itemicon" /> {i.name}
                 </span>
                 <span
                   className="dim small"

@@ -145,6 +145,7 @@ export function ExpeditionPanel({
   }, [exp !== undefined, exp?.combat != null, exp?.packGp, JSON.stringify(exp?.pack ?? null)]);
 
   const names = new Map(game.world.items.map((i) => [i.id, i.name]));
+  const wikiOf = new Map(game.world.items.map((i) => [i.id, i.wikiId]));
 
   if (!exp) {
     const st = game.world.stats;
@@ -157,6 +158,7 @@ export function ExpeditionPanel({
         <CharacterPanel
           agent={agent}
           names={names}
+          wikiOf={wikiOf}
           titles={MILESTONES.filter((m) => game.milestones.includes(m.id)).map((m) => m.name)}
           onRest={onRest}
         />

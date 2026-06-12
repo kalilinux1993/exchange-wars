@@ -23,6 +23,7 @@ import { CombatScene, arenaTheme } from '../src/components/CombatScene';
 import { EmbarkPanel } from '../src/components/EmbarkPanel';
 import { MarketTable } from '../src/components/MarketTable';
 import { WatchlistPanel } from '../src/components/WatchlistPanel';
+import { ItemIcon } from '../src/components/Icon';
 import { DelvePanel } from '../src/components/DelvePanel';
 import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
 import { GearManager } from '../src/components/GearManager';
@@ -709,6 +710,18 @@ describe('UI shell', () => {
     it('no rows → -1 (nothing to select)', () => {
       expect(nextRowIndex(0, 1, 0)).toBe(-1);
     });
+  });
+
+  it('ItemIcon renders the actual wikiId PNG when present, the category glyph otherwise', () => {
+    const withWiki = render(<ItemIcon id="rune_2h_sword" wikiId={1319} />);
+    const img = withWiki.container.querySelector('img.itemimg');
+    expect(img).toBeTruthy();
+    expect(img!.getAttribute('src')).toMatch(/icons\/1319\.png$/); // the real item image
+    withWiki.unmount();
+    // No wikiId → falls back to the generic category icon (glyph or its SVG), NOT the item PNG.
+    const noWiki = render(<ItemIcon id="rune_2h_sword" />);
+    expect(noWiki.container.querySelector('img.itemimg')).toBeNull(); // not the wikiId PNG
+    expect(noWiki.container.querySelector('.equipicon, .icon, span')).toBeTruthy(); // rendered the fallback Icon
   });
 
   describe('MarketTable keyboard nav', () => {

@@ -1,7 +1,7 @@
 import { GEAR, levelsOf } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { bidWalk, gearDelta, lootSpoils, type Game } from '../game';
-import { Icon, itemIcon } from './Icon';
+import { ItemIcon } from './Icon';
 
 export function PlayerPanel({
   game,
@@ -15,6 +15,7 @@ export function PlayerPanel({
   onCommand: (cmd: PlayerCommand) => void;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
+  const wikiOf = new Map(items.map((i) => [i.id, i.wikiId]));
   // Combat levels (display-only read) decide whether a satchel piece is wearable
   // yet — drives the upgrade-delta badge that makes "is this gear better?" legible.
   const lvls = levelsOf(game.world.agents[game.playerId]?.combatXp);
@@ -57,7 +58,7 @@ export function PlayerPanel({
           return (
             <li key={i.id}>
               <span>
-                <Icon name={itemIcon(i.id).name} glyph={itemIcon(i.id).glyph} size={14} className="itemicon" /> {i.name}
+                <ItemIcon id={i.id} wikiId={i.wikiId} size={14} className="itemicon" /> {i.name}
               </span>
               <span className="num">
                 {qty.toLocaleString('en-US')} · bids pay ≈{(walk?.gp ?? 0).toLocaleString('en-US')} gp
@@ -138,7 +139,7 @@ export function PlayerPanel({
             {Object.entries(view.worn).map(([slot, itemId]) => (
               <li key={slot}>
                 <span>
-                  <Icon name={itemIcon(itemId).name} glyph={itemIcon(itemId).glyph} size={14} className="itemicon" />{' '}
+                  <ItemIcon id={itemId} wikiId={wikiOf.get(itemId)} size={14} className="itemicon" />{' '}
                   {names.get(itemId) ?? itemId}
                 </span>
                 <span className="dim small">{slot}</span>
