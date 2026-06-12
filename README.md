@@ -15,7 +15,7 @@ The defining constraint: **the entire game core is testable and debuggable with 
 - **Trader's cockpit**: filterable/sortable market, clickable depth ladder, offer ticket with max/limit awareness, personal fill log, fortune chart
 - **Progression**: GE offer slots (3→8), a hireable **auto-flipping clerk** with three tiers and configurable orders (risk / capital / focus), real **GE buy limits**, quartermaster **delivery contracts**, and a book of Deeds spanning trading and adventuring
 - **True idle game**: the world advances ~1 tick per real second while the tab is closed (≈28h cap); installable PWA; save export/import; optional email sign-in for cross-device cloud saves
-- **Challenge seeds & ghosts**: the same seed always produces the identical world — send a friend a `#seed=` challenge link, or restart your own seed and race your best previous run as a chart ghost
+- **Challenge seeds, ghosts & sharing**: the same seed always produces the identical world — send a friend a `#seed=` challenge link, share a one-tap **run brag** (your stats + that link, via the native share sheet on mobile), or restart your own seed and race your best previous run as a chart ghost
 - **Expeditions (RPG layer)**: outfit an adventurer with gear and food bought on the exchange and delve a **seven-region node graph**, Lumbridge Plains to the Inferno Gate. Every step and combat round costs a market tick — time raiding is time not trading. Drops mint through the same audited conservation ledger as everything else; death keeps your 3 most valuable carried items and **wounds persist** (mend slowly at home, or eat in the field)
 - **Combat training**: Attack grows from damage dealt and gates weapons; Defence from damage taken and gates armor; Hitpoints raise your max hp. A 20-item gear ladder (darts → staff → mystic → rune → dragon) where carried gear above your level is inert — and past the Wilderness everything **breathes fire**: armor won't stop it, a super antifire potion will, one per dive
 - **The dark between fights**: shrines, goblin dice, imp chases, depth-skipping portals and overpriced merchants; two named elites (Vorkanth, Zukrath) guarding the deep ends; a **Bestiary** that reveals kill counts and drop tables monster by monster as you meet them
@@ -51,12 +51,15 @@ packages/
 │   │   ├── report.ts      economy report / net-worth helpers
 │   │   ├── harness.ts     balance measurement helpers (shared by CLI + gate)
 │   │   └── catalog.ts     default item set
-│   └── test/              the gates (14 suites) — see DEV_GUIDE.md
+│   └── test/              the gates (19 suites) — see DEV_GUIDE.md
+├── ui/                    @exchange-wars/ui — THE GAME: React + Vite + TS over the engine (mutates only via applyCommand)
+│   ├── src/               App.tsx · game.ts (pure UI helpers — flips, value bands, P&L, forecasts) · components/ (trading cockpit + OSRS HUD) · cloud.ts (Supabase saves/leaderboard) · usePref.ts
+│   └── test/              app.test.tsx (370+ cases) + e2e/ (Playwright)
 └── cli/                   @exchange-wars/cli
     └── src/               run.ts (sim runner) · balance.ts (tier-curve matrix)
 ```
 
-Future packages slot in as siblings: `packages/ui` (Phase 4), `packages/server` (Phase 5).
+`packages/ui` (Phase 4+, shipped) is the deployed game at the link above. Cloud saves and verified leaderboards currently ride a Supabase backend (`packages/ui/src/cloud.ts` + a `verify-score` edge function that replays your command log) rather than a bespoke `packages/server`.
 
 ## Economy design
 
