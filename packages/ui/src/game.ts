@@ -1,6 +1,6 @@
 // Game bootstrap + persistence. The human is an idle-policy player agent:
 // engine-inert unless automation is purchased, acting only via UI commands.
-import { addAgent, createWorld, EVENT_LABELS, GE_TAX_RATE, GEAR, levelsOf, MONSTERS, netWorth, playerView, runTicks } from '@exchange-wars/engine';
+import { addAgent, CONSUMABLES, createWorld, EVENT_LABELS, GE_TAX_RATE, GEAR, levelsOf, MONSTERS, netWorth, playerView, runTicks } from '@exchange-wars/engine';
 import type { GearSlot, PlayerView, RunLogEntry, WorldEvent, WorldState } from '@exchange-wars/engine';
 
 export interface Game {
@@ -298,6 +298,21 @@ export function combatForecast(
   const roundsToKill = Math.ceil(foe.hp / expectedHit(you.atk, foe.def));
   const roundsToFall = Math.ceil(you.hp / (expectedHit(foe.atk, you.def) + foeHitBonus));
   return { roundsToKill, roundsToFall, favored: roundsToKill <= roundsToFall };
+}
+
+/**
+ * Total hp the consumables in a dive pack could restore — the raw sum of every
+ * `heal` × qty. Used to show how much survival your PACKED food buys in the
+ * push-read (14o). Deliberately OPTIMISTIC: it ignores overheal (eating a 20-heal
+ * shark at near-full wastes the overflow), matching the forecast's own
+ * expected-value, estimate-not-a-promise framing. Pure.
+ */
+export function healFromPack(pack: Record<string, number>): number {
+  let total = 0;
+  for (const [id, qty] of Object.entries(pack)) {
+    if (qty > 0) total += (CONSUMABLES[id]?.heal ?? 0) * qty;
+  }
+  return total;
 }
 
 /** A combat skill that just leveled up — for the celebration toast. */

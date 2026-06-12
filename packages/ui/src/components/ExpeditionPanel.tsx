@@ -12,7 +12,7 @@ import {
 } from '@exchange-wars/engine';
 import type { PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef } from 'react';
-import { combatForecast, deathRecap, MILESTONES, summarizeDelve, type DelveRecord, type Game } from '../game';
+import { combatForecast, deathRecap, healFromPack, MILESTONES, summarizeDelve, type DelveRecord, type Game } from '../game';
 import { CharacterPanel } from './CharacterPanel';
 import { GearManager } from './GearManager';
 import { CombatScene } from './CombatScene';
@@ -371,6 +371,16 @@ export function ExpeditionPanel({
             const fiery = roster.some((id) => monsterById(id).dragonfire);
             const dragonBonus = fiery && !exp.antifire ? Math.ceil(d.atk / 2) : 0;
             const f = combatForecast({ atk: stats.atk, def: stats.def, hp: exp.hp }, { atk: d.atk, def: d.def, hp: d.hp }, dragonBonus);
+            // The packed food is a survival cushion: re-read at hp + remaining heal to
+            // see how many extra rounds it buys. The displayed verdict stays at RAW hp
+            // (food shouldn't silently flip "risky"→"favored"), but a well-stocked diver
+            // sees the margin — and we drop the "bank?" nag when food would win the race.
+            const packHeal = healFromPack(exp.pack);
+            const ff =
+              packHeal > 0
+                ? combatForecast({ atk: stats.atk, def: stats.def, hp: exp.hp + packHeal }, { atk: d.atk, def: d.def, hp: d.hp }, dragonBonus)
+                : f;
+            const foodRounds = ff.roundsToFall - f.roundsToFall;
             return (
               <p
                 className="dim small forecast"
@@ -378,7 +388,12 @@ export function ExpeditionPanel({
               >
                 push read: you down it in ≈<b>{f.roundsToKill}</b> · it downs you in ≈<b>{f.roundsToFall}</b> ·{' '}
                 <b className={f.favored ? 'up' : 'down'}>{f.favored ? 'favored' : 'risky'}</b>
-                {!f.favored && exp.packGp > 0 ? ' — bank your haul?' : ''}
+                {foodRounds > 0 ? (
+                  <span className="up" title="extra rounds your PACKED food buys if you eat to stay up — optimistic (ignores overheal), like the forecast itself">
+                    {' '}· 🍖 food +≈{foodRounds}
+                  </span>
+                ) : null}
+                {!f.favored && !ff.favored && exp.packGp > 0 ? ' — bank your haul?' : ''}
               </p>
             );
           })()}

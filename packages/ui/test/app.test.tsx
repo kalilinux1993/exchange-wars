@@ -89,6 +89,7 @@ import {
   regionMastery,
   expectedHit,
   combatForecast,
+  healFromPack,
   embarkPrep,
   nextRowIndex,
   summarizeDelve,
@@ -824,6 +825,15 @@ describe('UI shell', () => {
       const drag = combatForecast(you, foe, 5); // +5/round incoming
       expect(drag.roundsToFall).toBeLessThan(base.roundsToFall);
       expect(drag.roundsToKill).toBe(base.roundsToKill); // your damage is unaffected
+    });
+  });
+
+  describe('healFromPack', () => {
+    it('sums consumable heal × qty, ignores gear and zero-qty entries', () => {
+      expect(healFromPack({ shark: 2, cooked_karambwan: 1 })).toBe(58); // 20*2 + 18
+      expect(healFromPack({ shark: 1, rune_2h_sword: 3 })).toBe(20); // gear restores no hp
+      expect(healFromPack({ shark: 0 })).toBe(0); // zero-qty contributes nothing
+      expect(healFromPack({})).toBe(0);
     });
   });
 
@@ -2751,6 +2761,25 @@ describe('UI shell', () => {
     expect(read?.textContent).toMatch(/push read:/);
     expect(read?.textContent).toMatch(/risky/); // wounded vs the Maw's hardest
     expect(read?.textContent).toMatch(/bank your haul/); // nudges extract while loot's at stake
+  });
+
+  it('the push read shows the survival cushion packed food buys', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.expedition = {
+      regionId: 'dragons_maw',
+      rngState: 1,
+      hp: 8, // same wounded setup as above, but now with food packed
+      pack: { shark: 4 }, // 80 hp of cushion
+      packGp: 5000,
+      cleared: 5,
+      combat: null,
+    };
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const read = document.querySelector('p.forecast');
+    expect(read?.textContent).toMatch(/push read:/);
+    expect(read?.textContent).toMatch(/🍖 food \+≈/); // the cushion clause shows when food is packed
   });
 
   it('the combat view shows the foe stats with danger colour (know your enemy)', () => {
