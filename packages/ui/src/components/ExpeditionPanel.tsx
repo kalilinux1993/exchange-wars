@@ -30,14 +30,18 @@ export function regionDanger(region: { monsters: string[]; elite?: string }): {
   def: number;
   hp: number;
   elite: boolean;
+  /** Worst per-round loot-gp drain among the region's foes (0 = none) — the Abyss bites. */
+  leech: number;
 } {
   const ids = region.elite ? [...region.monsters, region.elite] : region.monsters;
   let worst = { atk: 0, def: 0, hp: 0 };
+  let leech = 0;
   for (const id of ids) {
     const m = monsterById(id);
     if (m.atk + m.def > worst.atk + worst.def) worst = { atk: m.atk, def: m.def, hp: m.hp };
+    if (m.leech && m.leech > leech) leech = m.leech;
   }
-  return { ...worst, elite: region.elite !== undefined };
+  return { ...worst, elite: region.elite !== undefined, leech };
 }
 
 /**
@@ -240,6 +244,11 @@ export function ExpeditionPanel({
               danger: foes up to <b className={atkBad ? 'down' : 'up'}>⚔{d.atk}</b>{' '}
               <b className={defBad ? 'down' : 'up'}>🛡{d.def}</b> · {d.hp} hp
               {d.elite ? ' · ☠ a named terror lurks here' : ''}
+              {d.leech > 0 ? (
+                <span className="pct down" title="foes here bleed loot gp from your pack every round a fight drags — a gp-race; bring damage and plan to extract">
+                  {' '}· 💧 drains loot
+                </span>
+              ) : null}
             </p>
           );
         })()}

@@ -1805,10 +1805,16 @@ describe('UI shell', () => {
     it('reports the hardest-hitting foe in a region (pool + elite)', () => {
       const wild = REGIONS.find((r) => r.id === 'wilderness_ruins')!;
       // Skarn elite (atk24/def13/hp130) out-threats the fire_giant pool (atk19/def11)
-      expect(regionDanger(wild)).toEqual({ atk: 24, def: 13, hp: 130, elite: true });
+      expect(regionDanger(wild)).toEqual({ atk: 24, def: 13, hp: 130, elite: true, leech: 0 });
       const maw = REGIONS.find((r) => r.id === 'dragons_maw')!;
       expect(regionDanger(maw).elite).toBe(true); // Vorkanth stalks the Maw
       expect(regionDanger(maw).atk).toBeGreaterThanOrEqual(30); // the Elder out-hits the dragons
+    });
+    it('reports the worst loot-drain (leech) — the Abyss bites, others do not', () => {
+      const abyss = REGIONS.find((r) => r.id === 'the_abyss')!;
+      expect(regionDanger(abyss).leech).toBeGreaterThan(0); // vessith/demon/leech drain loot
+      const plains = REGIONS.find((r) => r.id === 'lumbridge_plains')!;
+      expect(regionDanger(plains).leech).toBe(0);
     });
   });
 
