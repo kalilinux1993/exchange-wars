@@ -325,14 +325,20 @@ export function deriveStats(
   lvls: CombatLevels = { atk: 1, def: 1 },
   worn?: Record<string, string>,
 ): FighterStats {
-  const best: Partial<Record<GearSlot, GearDef>> = {};
+  const best: Partial<Record<GearSlot, { id: string; g: GearDef }>> = {};
   for (const [itemId, qty] of Object.entries(pack)) {
     if (qty < 1) continue;
     const g = GEAR[itemId];
     if (!g) continue;
     if ((g.slot === 'weapon' ? lvls.atk : lvls.def) < g.req) continue; // inert
     const cur = best[g.slot];
-    if (!cur || g.atk + g.def > cur.atk + cur.def) best[g.slot] = g;
+    const score = g.atk + g.def;
+    // Resolve an equal-score tie by smaller itemId — the SAME rule equipBest/worn use
+    // (commands.ts), so the pick is insertion-order-INDEPENDENT. deriveStats feeds combat (a
+    // hashed path), so an order-dependent pick is a latent determinism trap; today ties are
+    // stat-identical so the summed output is byte-identical, but this future-proofs it.
+    if (!cur || score > cur.g.atk + cur.g.def || (score === cur.g.atk + cur.g.def && itemId < cur.id))
+      best[g.slot] = { id: itemId, g };
   }
   // Equipped (worn) gear OVERRIDES the pack per slot — the player chose it.
   if (worn) {
@@ -340,12 +346,12 @@ export function deriveStats(
       const g = GEAR[itemId];
       if (!g) continue;
       if ((g.slot === 'weapon' ? lvls.atk : lvls.def) < g.req) continue; // inert
-      best[g.slot] = g;
+      best[g.slot] = { id: itemId, g };
     }
   }
   let atk = PLAYER_BASE.atk + (lvls.atk - 1);
   let def = PLAYER_BASE.def + (lvls.def - 1);
-  for (const g of Object.values(best)) {
+  for (const { g } of Object.values(best)) {
     atk += g.atk;
     def += g.def;
   }

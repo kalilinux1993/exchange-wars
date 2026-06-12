@@ -52,6 +52,17 @@ describe('equipment manager', () => {
     expect(wornWins.atk).toBeGreaterThan(packOnly.atk);
   });
 
+  it('deriveStats: equal-score pack gear resolves order-INDEPENDENTLY (determinism, 16m)', () => {
+    const lv = { atk: 99, def: 99 };
+    // rune_plateskirt and rune_platelegs are both legs, def 20 — a tied slot. The pick must be
+    // insertion-order-independent (deriveStats feeds a hashed combat path), so the two key orders
+    // below MUST give identical stats — the itemId tie-break (same rule as equipBest) guarantees it.
+    const a = deriveStats({ rune_plateskirt: 1, rune_platelegs: 1 }, lv);
+    const b = deriveStats({ rune_platelegs: 1, rune_plateskirt: 1 }, lv);
+    expect(a).toEqual(b);
+    expect(a.def).toBe(deriveStats({ rune_platelegs: 1 }, lv).def); // one legs piece, not double-counted
+  });
+
   it('equipBest equips the best usable piece in every slot at once', () => {
     const state = createWorld({ seed: 1 });
     const p = addAgent(state, 'player', 50_000, {
