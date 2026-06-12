@@ -876,6 +876,7 @@ export function App({ initial }: { initial?: Game }) {
             selected={selected}
             items={game.world.items}
             prefill={prefill}
+            active={room === 'exchange'}
             onCommand={command}
             lastResult={lastResult}
             recentPrices={game.world.trades.filter((t) => t.itemId === selected).map((t) => t.price).slice(-48)}

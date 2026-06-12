@@ -1267,6 +1267,14 @@ describe('UI shell', () => {
     expect(screen.getByText('❚❚').className).toContain('active'); // paused again
   });
 
+  it('keyboard b / s pick the ticket side', () => {
+    freshApp(); // exchange room active; ticket defaults to buy
+    fireEvent.keyDown(document.body, { key: 's' });
+    expect(screen.getByText('sell').className).toContain('active');
+    fireEvent.keyDown(document.body, { key: 'b' });
+    expect(screen.getByText('buy').className).toContain('active');
+  });
+
   describe('regionDanger', () => {
     it('reports the hardest-hitting foe in a region (pool + elite)', () => {
       const wild = REGIONS.find((r) => r.id === 'wilderness_ruins')!;

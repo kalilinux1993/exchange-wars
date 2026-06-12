@@ -34,6 +34,7 @@ export function TradeTicket({
   position,
   watched,
   onToggleWatch,
+  active = true,
 }: {
   view: PlayerView;
   selected: ItemId;
@@ -49,6 +50,8 @@ export function TradeTicket({
   position: { units: number; avgCost: number } | null;
   watched: boolean;
   onToggleWatch: () => void;
+  /** Whether the Exchange tab is the visible room — gates the b/s side hotkeys. */
+  active?: boolean;
 }) {
   const [side, setSide] = useState<Side>('buy');
   const [price, setPrice] = useState('');
@@ -61,6 +64,22 @@ export function TradeTicket({
       setPrice(String(prefill.price));
     }
   }, [prefill]);
+  // Keyboard: b / s pick the side (pairs with the market's j/k row nav, 12g).
+  // Gated to the Exchange tab and ignored while typing, so the keys never fire
+  // on a hidden ticket or hijack a field.
+  const activeRef = useRef(active);
+  activeRef.current = active;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (!activeRef.current || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(t.tagName) || t.isContentEditable)) return;
+      if (e.key === 'b') setSide('buy');
+      else if (e.key === 's') setSide('sell');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   const market = view.markets.find((m) => m.itemId === selected);
   const def = items.find((i) => i.id === selected);
   const p = Number(price);
@@ -210,7 +229,7 @@ export function TradeTicket({
             </p>
           );
         })()}
-      <div className="sides">
+      <div className="sides" title="pick a side — or press b / s on the keyboard">
         <button className={side === 'buy' ? 'side buy active' : 'side buy'} onClick={() => setSide('buy')}>
           buy
         </button>
