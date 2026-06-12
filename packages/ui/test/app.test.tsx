@@ -765,6 +765,34 @@ describe('UI shell', () => {
     expect(sold).not.toContain('rune_2h_sword'); // your raiding kit survives the bulk sell
   });
 
+  // Edge cases probed by the brick-125 adversarial review — pinned so the
+  // verified-sound behaviour can't silently regress. (FINDINGS #159.)
+  describe('helper edge cases (adversarial-review regression pins)', () => {
+    it('expectedHit never returns 0, so combatForecast never divides by zero/Infinity', () => {
+      expect(expectedHit(0, 999)).toBeGreaterThanOrEqual(1);
+      expect(expectedHit(1, 1_000_000)).toBeGreaterThanOrEqual(1);
+      const f = combatForecast({ atk: 0, def: 0, hp: 10 }, { atk: 999, def: 0, hp: 999 }, 999);
+      expect(Number.isFinite(f.roundsToKill)).toBe(true);
+      expect(Number.isFinite(f.roundsToFall)).toBe(true);
+    });
+    it('breakEvenSell terminates and stays exact at the boundaries', () => {
+      expect(breakEvenSell(0, 0.02)).toBe(0); // zero basis
+      expect(breakEvenSell(1, 0.02)).toBe(1); // 1 − floor(0.02)=0 → recovers exactly
+      const be = breakEvenSell(1_000_000, 0.02); // huge basis: terminates, finite, exact
+      expect(Number.isFinite(be)).toBe(true);
+      expect(be - Math.floor(be * 0.02)).toBeGreaterThanOrEqual(1_000_000);
+      expect(be - 1 - Math.floor((be - 1) * 0.02)).toBeLessThan(1_000_000);
+    });
+    it('portfolio + raid aggregates handle empty inputs without NaN', () => {
+      expect(positionConcentration([])).toEqual({ weights: [], topPct: 0, count: 0 });
+      expect(raidTotals(undefined)).toEqual({ runs: 0, deaths: 0, banked: 0, lost: 0 });
+    });
+    it('worthBreakdown clamps an over-escrowed residual to 0 (torn-snapshot display guard)', () => {
+      const view = { gp: 1000, openOrders: [{ side: 'buy', price: 100, remaining: 10 }] } as unknown as PlayerView;
+      expect(worthBreakdown(view, 1500).holdings).toBe(0); // residual 1500−1000−1000 = −500 → clamped
+    });
+  });
+
   describe('tradeRecord', () => {
     it('counts winners/losers and pins best + worst by net profit', () => {
       const book = emptyTradeBook();

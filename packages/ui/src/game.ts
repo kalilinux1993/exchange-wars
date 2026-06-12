@@ -598,6 +598,10 @@ export function worthBreakdown(view: PlayerView, total: number): WorthBreakdown 
   const buyOrders = view.openOrders
     .filter((o) => o.side === 'buy')
     .reduce((s, o) => s + o.remaining * o.price, 0);
+  // With `view` and `total` from the SAME engine snapshot, the residual IS the
+  // bid-walk holdings value (≥ 0): netWorth = gp + buyEscrow + holdings, and a
+  // buy order's escrowGp == remaining*price exactly, so the clamp never fires —
+  // it's a display guard against a torn snapshot, not a real subtraction floor.
   return { cash, buyOrders, holdings: Math.max(0, total - cash - buyOrders), total };
 }
 
