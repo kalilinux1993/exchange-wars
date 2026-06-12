@@ -2,7 +2,7 @@ import { GE_TAX_RATE } from '@exchange-wars/engine';
 import type { CommandResult, ItemDef, ItemId, PlayerCommand, PlayerView, Side } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { Sparkline } from './Sparkline';
-import { blendBuy, breakEvenSell } from '../game';
+import { blendBuy, breakEvenSell, gearDelta } from '../game';
 
 /**
  * Split the resting book into bid/ask proportions for the liquidity bar —
@@ -26,6 +26,7 @@ export function TradeTicket({
   view,
   selected,
   items,
+  lvls,
   prefill,
   onCommand,
   lastResult,
@@ -39,6 +40,9 @@ export function TradeTicket({
   view: PlayerView;
   selected: ItemId;
   items: ItemDef[];
+  /** Player combat levels — gates the "needs Atk N" note on a gear buy. Omitted
+   * in isolated render tests; the upgrade delta still shows without it. */
+  lvls?: { atk: number; def: number };
   prefill: TicketPrefill | null;
   onCommand: (cmd: PlayerCommand) => void;
   lastResult: CommandResult | null;
@@ -306,6 +310,35 @@ export function TradeTicket({
                 {blend.avgCost.toLocaleString('en-US')}{' '}
                 <span className="dim">(was {blend.prevAvg.toLocaleString('en-US')})</span>{' '}
                 <span className={blend.delta < 0 ? 'pct up' : 'dim'}>{word}</span>
+              </p>
+            );
+          })()}
+        {side === 'buy' &&
+          (() => {
+            // Is this purchase a gear UPGRADE? Show it before you commit — the
+            // governing-stat change vs what you currently wear (same math as the
+            // satchel badge). lvls absent (isolated tests) → skip the req note.
+            const gd = gearDelta(selected, view.worn, lvls ?? { atk: 99, def: 99 });
+            if (!gd) return null;
+            const sk = gd.skill === 'atk' ? 'Attack' : 'Defence';
+            const glyph = gd.skill === 'atk' ? '⚔' : '🛡';
+            const vsName = gd.vs ? items.find((i) => i.id === gd.vs)?.name ?? gd.vs : null;
+            const cls = gd.delta > 0 ? 'pct up' : gd.delta < 0 ? 'pct down' : 'dim';
+            return (
+              <p
+                className="dim small geardelta"
+                title={`equipping this ${vsName ? `over your ${vsName}` : '(an empty slot)'} ${
+                  gd.delta >= 0 ? 'gains' : 'loses'
+                } ${Math.abs(gd.delta)} ${sk}; it needs ${sk} ${gd.req} to wear`}
+              >
+                equips as{' '}
+                <span className={cls}>
+                  {glyph}
+                  {gd.delta > 0 ? '+' : ''}
+                  {gd.delta} {sk}
+                </span>{' '}
+                <span className="dim">{vsName ? `vs your ${vsName}` : '(slot empty)'}</span>
+                {lvls && !gd.usable && <span className="warn"> · needs {sk} {gd.req}</span>}
               </p>
             );
           })()}

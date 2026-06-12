@@ -24,7 +24,7 @@ import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
 import { HelpOverlay } from '../src/components/HelpOverlay';
 import { WealthPanel } from '../src/components/WealthPanel';
 import { PlayerPanel } from '../src/components/PlayerPanel';
-import { depthSplit } from '../src/components/TradeTicket';
+import { depthSplit, TradeTicket } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
 import { FirstSteps, firstSteps } from '../src/components/FirstSteps';
@@ -1223,6 +1223,53 @@ describe('UI shell', () => {
       expect(depthSplit(0, 50)).toEqual({ bidPct: 0, askPct: 100 });
       expect(depthSplit(0, 0)).toBeNull();
     });
+  });
+
+  it('TradeTicket previews the gear upgrade before you buy', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.worn = { weapon: 'adamant_dart' }; // currently wielding atk 10
+    const view = playerView(game.world, game.playerId)!;
+    render(
+      <TradeTicket
+        view={view}
+        selected="rune_2h_sword" // weapon atk 45 → +35 over the worn dart
+        items={game.world.items}
+        lvls={{ atk: 99, def: 99 }}
+        prefill={null}
+        onCommand={() => {}}
+        lastResult={null}
+        eventNote={null}
+        recentPrices={[]}
+        position={null}
+        watched={false}
+        onToggleWatch={() => {}}
+      />,
+    );
+    expect(screen.getByText(/equips as/)).toBeTruthy();
+    expect(screen.getByText('⚔+35 Attack')).toBeTruthy();
+  });
+
+  it('TradeTicket shows no gear preview for a non-gear commodity', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    render(
+      <TradeTicket
+        view={view}
+        selected="shark" // not gear
+        items={game.world.items}
+        lvls={{ atk: 99, def: 99 }}
+        prefill={null}
+        onCommand={() => {}}
+        lastResult={null}
+        eventNote={null}
+        recentPrices={[]}
+        position={null}
+        watched={false}
+        onToggleWatch={() => {}}
+      />,
+    );
+    expect(screen.queryByText(/equips as/)).toBeNull();
   });
 
   it('the ticket shows an order-book liquidity bar once the book has depth', () => {

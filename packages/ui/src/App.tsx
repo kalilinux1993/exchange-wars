@@ -1,4 +1,4 @@
-import { applyCommand, EVENT_LABELS, playerView, runTicks, tickWorld } from '@exchange-wars/engine';
+import { applyCommand, EVENT_LABELS, levelsOf, playerView, runTicks, tickWorld } from '@exchange-wars/engine';
 import type { CommandResult, ItemId, PlayerCommand } from '@exchange-wars/engine';
 import { chooseSave, getSupabase, loadCloudSave, pushCloudSave, type Session } from './cloud';
 import { AccountBar } from './components/AccountBar';
@@ -913,6 +913,7 @@ export function App({ initial }: { initial?: Game }) {
             view={view}
             selected={selected}
             items={game.world.items}
+            lvls={levelsOf(game.world.agents[game.playerId]?.combatXp)}
             prefill={prefill}
             active={room === 'exchange'}
             onCommand={command}
