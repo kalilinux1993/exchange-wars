@@ -1,6 +1,7 @@
 import type { ItemDef, PlayerView } from '@exchange-wars/engine';
 import type { Game } from '../game';
 import { fmtCompact, realizedFromBook, totalRealized, totalUnrealized, tradeRecord } from '../game';
+import { ItemIcon } from './Icon';
 
 /**
  * Profit by item (11b; lifetime in 11o): which items your flips actually made
@@ -23,6 +24,7 @@ export function ProfitPanel({
   limit?: number;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
+  const wikiOf = new Map(items.map((i) => [i.id, i.wikiId]));
   const pnl = realizedFromBook(game.tradeBook).slice(0, limit);
   const realized = totalRealized(game.tradeBook);
   const priceOf = new Map(view.markets.map((m) => [m.itemId, m.lastPrice]));
@@ -76,7 +78,9 @@ export function ProfitPanel({
               onClick={() => onSelect(p.itemId)}
               title={`${p.soldUnits.toLocaleString('en-US')} unit${p.soldUnits === 1 ? '' : 's'} sold, net ${p.profit.toLocaleString('en-US')} gp after tax — load in the ticket`}
             >
-              <span>{names.get(p.itemId) ?? p.itemId}</span>
+              <span>
+                <ItemIcon id={p.itemId} wikiId={wikiOf.get(p.itemId)} size={14} className="itemicon" /> {names.get(p.itemId) ?? p.itemId}
+              </span>
               <span className="dim small">×{p.soldUnits.toLocaleString('en-US')}</span>
               <span className={p.profit >= 0 ? 'pct up' : 'pct down'}>
                 {p.profit >= 0 ? '+' : ''}

@@ -1,4 +1,5 @@
 import type { ItemDef, PlayerView } from '@exchange-wars/engine';
+import { ItemIcon } from './Icon';
 
 /**
  * Market movers (9t): the items furthest above and below their own trend
@@ -16,6 +17,7 @@ export function MoversPanel({
   onSelect: (id: string) => void;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
+  const wikiOf = new Map(items.map((i) => [i.id, i.wikiId]));
   const scored = view.markets
     .filter((m) => m.volume > 0 && m.ema > 0)
     .map((m) => ({ id: m.itemId, last: m.lastPrice, pct: (m.lastPrice - m.ema) / m.ema }))
@@ -27,7 +29,9 @@ export function MoversPanel({
     .reverse();
   const row = (s: { id: string; last: number; pct: number }, kind: 'hot' | 'cold') => (
     <li key={s.id} className="mover" onClick={() => onSelect(s.id)} title="load in the ticket">
-      <span>{names.get(s.id) ?? s.id}</span>
+      <span>
+        <ItemIcon id={s.id} wikiId={wikiOf.get(s.id)} size={14} className="itemicon" /> {names.get(s.id) ?? s.id}
+      </span>
       <span className="num">{s.last.toLocaleString('en-US')}</span>
       <span className={kind === 'hot' ? 'pct up' : 'pct down'}>
         {s.pct >= 0 ? '▲' : '▼'} {Math.abs(Math.round(s.pct * 100))}%

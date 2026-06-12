@@ -2083,7 +2083,8 @@ describe('UI shell', () => {
     game.tradeBook = bookFromFills([{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }], 0.02);
     const onSelect = vi.fn();
     const view = { markets: [{ itemId: FIRST.id, lastPrice: 130 }] } as unknown as PlayerView; // +300 paper
-    render(<PositionsPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={onSelect} />);
+    const { container } = render(<PositionsPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={onSelect} />);
+    expect(container.querySelector('img.itemimg')).toBeTruthy(); // the held item shows its real icon (15k)
     expect(screen.getByText('100→130')).toBeTruthy(); // avg → mark on the row
     expect(screen.getAllByText(/\+300/).length).toBeGreaterThan(0); // row + header paper total
     fireEvent.click(screen.getByText(FIRST.name));

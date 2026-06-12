@@ -1,6 +1,7 @@
 import type { ItemDef, PlayerView } from '@exchange-wars/engine';
 import { GE_TAX_RATE } from '@exchange-wars/engine';
 import { useState } from 'react';
+import { ItemIcon } from './Icon';
 
 export interface FlipPick {
   id: string;
@@ -83,6 +84,7 @@ export function TopFlips({
   limit?: number;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
+  const wikiOf = new Map(items.map((i) => [i.id, i.wikiId]));
   const taxPct = Math.round(GE_TAX_RATE * 100);
   const [fitOnly, setFitOnly] = useState(false);
   // When filtering to the affordable, rank deeper than `limit` first so a flip
@@ -127,7 +129,9 @@ export function TopFlips({
                   : ` · costs more than your gp — can't open one yet`
               }`}
             >
-              <span>{names.get(f.id) ?? f.id}</span>
+              <span>
+                <ItemIcon id={f.id} wikiId={wikiOf.get(f.id)} size={14} className="itemicon" /> {names.get(f.id) ?? f.id}
+              </span>
               <span className="num dim">
                 {f.buy.toLocaleString('en-US')}→{f.sell.toLocaleString('en-US')}
                 {f.limit !== null && <span className="flimit"> ≤{f.limit.toLocaleString('en-US')}</span>}

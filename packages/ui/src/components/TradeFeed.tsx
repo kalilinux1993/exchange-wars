@@ -2,6 +2,7 @@ import { GE_TAX_RATE } from '@exchange-wars/engine';
 import type { ItemDef, Trade } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { recentFlips, type Fill } from '../game';
+import { ItemIcon } from './Icon';
 
 /** Content key — unique in practice: recordFills dedupes identical fills. */
 function fillKey(f: Fill): string {
@@ -21,6 +22,7 @@ export function TradeFeed({
 }) {
   const [mode, setMode] = useState<'tape' | 'mine' | 'flips'>('tape');
   const names = new Map(items.map((i) => [i.id, i.name]));
+  const wikiOf = new Map(items.map((i) => [i.id, i.wikiId]));
 
   // Glow the panel once whenever a NEW personal fill lands (works on either
   // tab). Lazy ref init: loading a save with old fills must not glow.
@@ -62,7 +64,9 @@ export function TradeFeed({
               return (
                 <li key={`${t.tick}-${i}`} className={mine ? 'mine-row' : ''}>
                   <span className="dim num">t{t.tick.toLocaleString('en-US')}</span>
-                  <span>{names.get(t.itemId) ?? t.itemId}</span>
+                  <span>
+                    <ItemIcon id={t.itemId} wikiId={wikiOf.get(t.itemId)} size={14} className="itemicon" /> {names.get(t.itemId) ?? t.itemId}
+                  </span>
                   <span className="num">
                     {t.qty} @ {t.price.toLocaleString('en-US')}
                   </span>
@@ -80,7 +84,9 @@ export function TradeFeed({
             <li key={fillKey(f)}>
               <span className="dim num">t{f.tick.toLocaleString('en-US')}</span>
               <span className={`badge ${f.side}`}>{f.side}</span>
-              <span>{names.get(f.itemId) ?? f.itemId}</span>
+              <span>
+                <ItemIcon id={f.itemId} wikiId={wikiOf.get(f.itemId)} size={14} className="itemicon" /> {names.get(f.itemId) ?? f.itemId}
+              </span>
               <span className="num">
                 {f.qty} @ {f.price.toLocaleString('en-US')}
               </span>
@@ -113,7 +119,9 @@ export function TradeFeed({
           {recentFlips(fills, GE_TAX_RATE).map((fl) => (
             <li key={`${fl.tick}-${fl.itemId}-${fl.sellPrice}`}>
               <span className="dim num">t{fl.tick.toLocaleString('en-US')}</span>
-              <span>{names.get(fl.itemId) ?? fl.itemId}</span>
+              <span>
+                <ItemIcon id={fl.itemId} wikiId={wikiOf.get(fl.itemId)} size={14} className="itemicon" /> {names.get(fl.itemId) ?? fl.itemId}
+              </span>
               <span className="num dim">
                 ×{fl.qty} {fl.buyAvg.toLocaleString('en-US')}→{fl.sellPrice.toLocaleString('en-US')}
               </span>

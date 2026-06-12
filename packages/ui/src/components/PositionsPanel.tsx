@@ -2,6 +2,7 @@ import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useState } from 'react';
 import type { Game } from '../game';
 import { fmtCompact, heldPositions, positionConcentration, underwaterSummary } from '../game';
+import { ItemIcon } from './Icon';
 
 /** Distinguishable, theme-fitting segment colours for the allocation bar. */
 const ALLOC_COLORS = ['#d4a937', '#2dd4bf', '#e07a5f', '#81b29a', '#9a8cff', '#f2cc8f'];
@@ -30,6 +31,7 @@ export function PositionsPanel({
   limit?: number;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
+  const wikiOf = new Map(items.map((i) => [i.id, i.wikiId]));
   const priceOf = new Map(view.markets.map((m) => [m.itemId, m.lastPrice]));
   const bidOf = new Map(view.markets.map((m) => [m.itemId, m.bestBid]));
   // Which loser is armed for a cut — a tap arms, a second confirms (no accidental loss-lock).
@@ -98,7 +100,9 @@ export function PositionsPanel({
                 p.marked ? p.mark.toLocaleString('en-US') : 'no live price'
               } — load in the ticket`}
             >
-              <span>{names.get(p.itemId) ?? p.itemId}</span>
+              <span>
+                <ItemIcon id={p.itemId} wikiId={wikiOf.get(p.itemId)} size={14} className="itemicon" /> {names.get(p.itemId) ?? p.itemId}
+              </span>
               <span className="dim small">×{p.units.toLocaleString('en-US')}</span>
               <span className="dim small">
                 {fmtCompact(p.avgCost)}→{p.marked ? fmtCompact(p.mark) : '·'}
