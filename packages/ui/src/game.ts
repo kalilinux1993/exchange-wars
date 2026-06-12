@@ -239,6 +239,28 @@ export function realizedFromBook(book: TradeBook): ItemPnL[] {
     .sort((a, b) => b.profit - a.profit || (a.itemId < b.itemId ? -1 : 1));
 }
 
+/** Lifetime realized P&L across all items (the "locked in" bottom line). */
+export function totalRealized(book: TradeBook): number {
+  let sum = 0;
+  for (const v of Object.values(book.realized)) sum += v.profit;
+  return sum;
+}
+
+/**
+ * Unrealized P&L across all open positions: for each held lot, (current price −
+ * cost) × qty, marked at `priceOf`. Price lookup is injected so it's pure and
+ * testable; items with no price (≤0) are skipped (no mark, no paper P&L).
+ */
+export function totalUnrealized(book: TradeBook, priceOf: (itemId: string) => number): number {
+  let sum = 0;
+  for (const [itemId, lots] of Object.entries(book.lots)) {
+    const price = priceOf(itemId);
+    if (price <= 0) continue;
+    for (const lot of lots) sum += (price - lot.price) * lot.qty;
+  }
+  return sum;
+}
+
 /** Open bought position in one item from a book: leftover lots, weighted avg. */
 export function openFromBook(book: TradeBook, itemId: string): { units: number; avgCost: number } | null {
   const lots = book.lots[itemId] ?? [];

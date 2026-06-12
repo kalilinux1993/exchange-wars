@@ -772,7 +772,7 @@ export function App({ initial }: { initial?: Game }) {
             }}
           />
           <MoversPanel view={view} items={game.world.items} onSelect={setSelected} />
-          <ProfitPanel game={game} items={game.world.items} onSelect={setSelected} />
+          <ProfitPanel game={game} view={view} items={game.world.items} onSelect={setSelected} />
           <WatchlistPanel
             view={view}
             items={game.world.items}

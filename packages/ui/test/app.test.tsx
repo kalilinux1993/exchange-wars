@@ -49,6 +49,8 @@ import {
   realizedFromBook,
   realizedPnL,
   streakAtRisk,
+  totalRealized,
+  totalUnrealized,
   updateNews,
   worthRate,
   type Fill,
@@ -639,14 +641,17 @@ describe('UI shell', () => {
       0.02,
     );
     const onSelect = vi.fn();
-    render(<ProfitPanel game={game} items={DEFAULT_ITEMS} onSelect={onSelect} />);
-    expect(screen.getByText('+180')).toBeTruthy();
+    const view = { markets: [] } as unknown as PlayerView;
+    render(<ProfitPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={onSelect} />);
+    expect(screen.getAllByText('+180').length).toBeGreaterThan(0); // row + header realized total
+    expect(screen.getByText(/realized/)).toBeTruthy(); // scorecard header
     fireEvent.click(screen.getByText(FIRST.name));
     expect(onSelect).toHaveBeenCalledWith(FIRST.id);
   });
 
   it('ProfitPanel shows the empty state before any completed flip', () => {
-    render(<ProfitPanel game={newGame(42)} items={DEFAULT_ITEMS} onSelect={() => {}} />);
+    const view = { markets: [] } as unknown as PlayerView;
+    render(<ProfitPanel game={newGame(42)} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} />);
     expect(screen.getByText(/no completed flips yet/i)).toBeTruthy();
   });
 
@@ -696,6 +701,17 @@ describe('UI shell', () => {
       game.fills = Array.from({ length: 60 }, (_, i) => buy('filler', 1, 1, i)); // window full of noise
       // the lifetime book still remembers the gold flip even though it's gone from fills
       expect(realizedFromBook(game.tradeBook).find((p) => p.itemId === 'gold')!.profit).toBe(96);
+    });
+    it('totalRealized + totalUnrealized are the trading scorecard', () => {
+      const book = emptyTradeBook();
+      // a: +72 realized, 6 left @ 100. b: 5 left @ 50, never sold.
+      [buy('a', 10, 100), sell('a', 4, 120), buy('b', 5, 50)].forEach((f) => applyFillToBook(book, f, 0.02));
+      expect(totalRealized(book)).toBe(72);
+      // mark a @ 130 (+30/unit × 6 = +180), b @ 40 (−10/unit × 5 = −50) → +130 paper
+      const price: Record<string, number> = { a: 130, b: 40 };
+      expect(totalUnrealized(book, (id) => price[id] ?? 0)).toBe(130);
+      // an item with no price (0) contributes nothing
+      expect(totalUnrealized(book, () => 0)).toBe(0);
     });
     it('normalizeGame rebuilds the book from fills for pre-book saves', () => {
       const stale = { ...newGame(42), fills: [buy('x', 3, 100), sell('x', 3, 130)] } as unknown as Game;
