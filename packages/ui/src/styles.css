@@ -1059,6 +1059,15 @@ kbd {
   stroke: var(--parchment-dim);
   stroke-width: 1.5;
 }
+/* region-identity halo (reuses the combat-backdrop palette) — a soft colour rim
+   behind the state circle; locked regions stay muted. No stroke so it reads as a glow. */
+.maphalo {
+  stroke: none;
+  opacity: 0.6;
+}
+.mapnode.locked .maphalo {
+  opacity: 0.3;
+}
 .mapnode.cleared circle {
   fill: #1f3d20;
   stroke: #4f7a45;

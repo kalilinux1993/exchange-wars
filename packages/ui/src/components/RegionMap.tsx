@@ -1,5 +1,6 @@
 import { monsterById, REGIONS } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
+import { arenaTheme } from './CombatScene';
 
 /**
  * The realm as a node-graph map (9k): eight regions on a winding trail,
@@ -60,6 +61,10 @@ export function RegionMap({
             onClick={() => i <= progress && onSelect(r.id)}
             style={{ cursor: i <= progress ? 'pointer' : 'not-allowed' }}
           >
+            {/* region-identity halo (14u palette): behind the state circle, so the
+                trail reads green plains → ember Maw → void Abyss without touching
+                the cleared/frontier/locked colour coding. */}
+            <circle cx={p.x} cy={p.y} r={12} className="maphalo" fill={arenaTheme(r.id).from} />
             {isSel && <circle cx={p.x} cy={p.y} r={13} className="mapsel" fill="none" />}
             <circle cx={p.x} cy={p.y} r={9} />
             <text x={p.x} y={p.y + 3} className="mapmark" textAnchor="middle">

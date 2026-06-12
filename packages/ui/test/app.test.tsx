@@ -706,6 +706,16 @@ describe('UI shell', () => {
     expect(flashed!.classList.contains('selected')).toBe(true); // and it's the selected one
   });
 
+  it('RegionMap tints each node with its region-identity halo (descent gradient)', () => {
+    const { container } = render(<RegionMap progress={5} selected={REGIONS[0]!.id} onSelect={() => {}} />);
+    const halos = container.querySelectorAll('.maphalo');
+    expect(halos.length).toBe(REGIONS.length); // one halo per region
+    const first = halos[0]!.getAttribute('fill');
+    const last = halos[halos.length - 1]!.getAttribute('fill');
+    expect(first).toBeTruthy();
+    expect(first).not.toBe(last); // plains green ≠ abyss void-purple — the tint varies per region
+  });
+
   it('EmbarkPanel: ←/→ move the region and Enter embarks, gated to the active tab', () => {
     const game = newGame(42);
     game.world.agents[game.playerId]!.questProgress = 5; // several regions unlocked
