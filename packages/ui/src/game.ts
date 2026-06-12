@@ -339,7 +339,7 @@ export function regionMastery(
 }
 
 /**
- * Expected per-hit damage — mirrors the engine's `damage()` MEAN (quest.ts:394):
+ * Expected per-hit damage — mirrors the engine's `damage()` MEAN (quest.ts:407):
  * a uniform roll in [max(1,ceil(atk/3)) .. max(2,atk)], less `floor(def/4)`,
  * floored at 1. Used for the embark forecast; it's the central estimate of a
  * roll, not the roll itself. Keep in sync with quest.ts if that formula moves.
