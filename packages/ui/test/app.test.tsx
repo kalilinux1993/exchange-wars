@@ -751,6 +751,29 @@ describe('UI shell', () => {
     expect(loot.textContent).toMatch(/drops/); // and the region's notable drops
   });
 
+  it('EmbarkPanel warns when you would dive wounded and offers a rest-to-full', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.questProgress = 3;
+    const onRest = vi.fn();
+
+    delete agent.hp; // full hp (the engine leaves hp undefined at full) → no nudge
+    const full = render(
+      <EmbarkPanel game={game} view={playerView(game.world, game.playerId)!} items={game.world.items} onCommand={() => {}} onRest={onRest} active />,
+    );
+    expect(full.container.textContent).not.toMatch(/dive hurt/);
+    full.unmount();
+
+    agent.hp = 1; // wounded — fresh base maxHp > 1, so this is below full
+    const hurt = render(
+      <EmbarkPanel game={game} view={playerView(game.world, game.playerId)!} items={game.world.items} onCommand={() => {}} onRest={onRest} active />,
+    );
+    expect(hurt.container.textContent).toMatch(/dive hurt/); // the wounded warning
+    fireEvent.click(within(hurt.container).getByText(/rest to full/));
+    expect(onRest).toHaveBeenCalledTimes(1);
+    expect(onRest.mock.calls[0]![0]).toBeGreaterThan(0); // fast-forwards a positive heal ETA
+  });
+
   describe('nextRowIndex (market keyboard nav)', () => {
     it('clamps at both ends, no wrap', () => {
       expect(nextRowIndex(0, 1, 3)).toBe(1);

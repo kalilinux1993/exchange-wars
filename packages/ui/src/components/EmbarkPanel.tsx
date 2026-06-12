@@ -1,7 +1,7 @@
-import { CONSUMABLES, deriveStats, GEAR, levelsOf, maxHpFor, monsterById, REGIONS, regionIndex } from '@exchange-wars/engine';
+import { CONSUMABLES, deriveStats, GEAR, levelsOf, maxHpFor, monsterById, REGIONS, REST_REGEN_TICKS, regionIndex } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { combatForecast, embarkPrep, regionLoot, type Game } from '../game';
+import { combatForecast, embarkPrep, healEta, regionLoot, type Game } from '../game';
 import { usePref } from '../usePref';
 import { ItemIcon } from './Icon';
 import { RegionMap } from './RegionMap';
@@ -18,6 +18,7 @@ export function EmbarkPanel({
   view,
   items,
   onCommand,
+  onRest,
   regionPick,
   active,
 }: {
@@ -25,6 +26,8 @@ export function EmbarkPanel({
   view: PlayerView;
   items: ItemDef[];
   onCommand: (cmd: PlayerCommand) => void;
+  /** Fast-forward N ticks (the rest-to-full action) — heal before diving wounded. */
+  onRest?: ((ticks: number) => void) | undefined;
   /** A nonce-pulsed request (from a Delve Log row) to pre-select a region. */
   regionPick?: { regionId: string; n: number } | null;
   /** True when the Adventure tab is the active room — gates the keyboard nav. */
@@ -210,6 +213,29 @@ export function EmbarkPanel({
               </p>
             )}
           </>
+        );
+      })()}
+      {(() => {
+        // Wounded nudge: the forecast above is computed at FULL hp, but you can embark
+        // straight out of a prior dive before regen finishes (the engine deletes `hp`
+        // only at full, so a defined hp here = wounded). Warn + offer the rest-to-full.
+        const hp = agent?.hp;
+        if (hp === undefined || hp >= trainedMax) return null;
+        const eta = healEta(hp, trainedMax, REST_REGEN_TICKS);
+        return (
+          <p className="warn small">
+            ⚠ you're at {hp}/{trainedMax} hp — you'll dive hurt (the forecast assumes full hp).
+            {onRest && eta !== null && (
+              <button
+                className="chip"
+                title={`fast-forward ≈${eta.toLocaleString('en-US')} ticks to heal to full before you embark`}
+                onClick={() => onRest(eta)}
+              >
+                {' '}
+                rest to full (≈{eta.toLocaleString('en-US')} ticks)
+              </button>
+            )}
+          </p>
         );
       })()}
       <h3>Pack &amp; Equip</h3>
