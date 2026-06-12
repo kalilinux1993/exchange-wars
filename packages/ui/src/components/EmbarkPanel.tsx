@@ -1,0 +1,265 @@
+import { CONSUMABLES, deriveStats, GEAR, levelsOf, maxHpFor, monsterById, REGIONS, regionIndex } from '@exchange-wars/engine';
+import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
+import { useEffect, useRef, useState } from 'react';
+import { combatForecast, embarkPrep, type Game } from '../game';
+import { usePref } from '../usePref';
+import { Icon, itemIcon } from './Icon';
+import { RegionMap } from './RegionMap';
+import { regionDanger } from './ExpeditionPanel';
+
+/**
+ * The "plan a dive" flow (Jesse asked to move it off the tall left column to the
+ * empty right side): pick a region, read its danger/forecast vs your kit, pack a
+ * loadout, embark. Owns the region/draft/loadout state. Renders nothing while
+ * you're already on a dive — you can't embark from the field.
+ */
+export function EmbarkPanel({
+  game,
+  view,
+  items,
+  onCommand,
+  regionPick,
+}: {
+  game: Game;
+  view: PlayerView;
+  items: ItemDef[];
+  onCommand: (cmd: PlayerCommand) => void;
+  /** A nonce-pulsed request (from a Delve Log row) to pre-select a region. */
+  regionPick?: { regionId: string; n: number } | null;
+}) {
+  const agent = game.world.agents[game.playerId];
+  const progress = agent?.questProgress ?? 0;
+  const lvls = levelsOf(agent?.combatXp);
+  const trainedMax = maxHpFor(lvls.hp);
+  const [regionId, setRegionId] = useState(REGIONS[0]!.id);
+  const [draft, setDraft] = useState<Record<string, number>>({});
+  const [loadouts, setLoadouts] = usePref<Record<string, number>[]>('ew-loadouts', []);
+  const names = new Map(items.map((i) => [i.id, i.name]));
+
+  // Apply a "raid here again" pulse from a Delve Log row — nonce-guarded so the
+  // same region can be re-picked, and so it only fires on a fresh request.
+  const appliedPick = useRef(0);
+  useEffect(() => {
+    if (regionPick && regionPick.n !== appliedPick.current) {
+      appliedPick.current = regionPick.n;
+      setRegionId(regionPick.regionId);
+    }
+  }, [regionPick]);
+
+  // No embarking while you're out — the field shows in the Expeditions panel.
+  if (agent?.expedition) return null;
+
+  const idx = regionIndex(regionId);
+  const locked = idx > progress;
+  const bump = (id: string, delta: number, max: number): void =>
+    setDraft((d) => {
+      const next = Math.max(0, Math.min(max, (d[id] ?? 0) + delta));
+      return { ...d, [id]: next };
+    });
+  const relevant = Object.entries(view.inventory)
+    .filter(([id, qty]) => qty > 0 && (GEAR[id] !== undefined || CONSUMABLES[id] !== undefined))
+    .sort(([a], [b]) => (a < b ? -1 : 1));
+
+  return (
+    <section className="panel embark">
+      <h2>Plan a Dive</h2>
+      <RegionMap progress={progress} selected={regionId} onSelect={setRegionId} />
+      <p className="dim small">{REGIONS[regionIndex(regionId)]?.flavor}</p>
+      {(() => {
+        const d = regionDanger(REGIONS[regionIndex(regionId)]!);
+        const eff = deriveStats(view.inventory, lvls, agent?.worn);
+        const atkBad = d.atk > eff.def;
+        const defBad = d.def >= eff.atk;
+        return (
+          <p
+            className="dim small"
+            title={`the hardest foe here vs your in-battle ⚔${eff.atk} 🛡${eff.def} — red means this foe stat beats yours (⚔ red: they hit through your defence; 🛡 red: your attack barely lands)`}
+          >
+            danger: foes up to <b className={atkBad ? 'down' : 'up'}>⚔{d.atk}</b>{' '}
+            <b className={defBad ? 'down' : 'up'}>🛡{d.def}</b> · {d.hp} hp
+            {d.elite ? ' · ☠ a named terror lurks here' : ''}
+            {d.leech > 0 ? (
+              <span className="pct down" title="foes here bleed loot gp from your pack every round a fight drags — a gp-race; bring damage and plan to extract">
+                {' '}· 💧 drains loot
+              </span>
+            ) : null}
+          </p>
+        );
+      })()}
+      {(() => {
+        const region = REGIONS[regionIndex(regionId)]!;
+        const d = regionDanger(region);
+        const eff = deriveStats(view.inventory, lvls, agent?.worn);
+        const f = combatForecast({ atk: eff.atk, def: eff.def, hp: trainedMax }, { atk: d.atk, def: d.def, hp: d.hp });
+        const roster = region.elite ? [...region.monsters, region.elite] : region.monsters;
+        const fiery = roster.some((id) => monsterById(id).dragonfire);
+        const packed = Object.entries(draft).filter(([id, q]) => q > 0 && CONSUMABLES[id] !== undefined);
+        const warnings = embarkPrep({
+          fiery,
+          hasAntifire: packed.some(([id]) => CONSUMABLES[id]?.antifire),
+          hasFood: packed.some(([id]) => (CONSUMABLES[id]?.heal ?? 0) > 0),
+          riskyFight: !f.favored,
+        });
+        const ownedFix = (pred: (id: string) => boolean): string | undefined =>
+          Object.keys(view.inventory)
+            .sort()
+            .find((id) => (view.inventory[id] ?? 0) > 0 && CONSUMABLES[id] !== undefined && pred(id));
+        const fixFor = (kind: 'antifire' | 'food'): string | undefined =>
+          kind === 'antifire' ? ownedFix((id) => !!CONSUMABLES[id]?.antifire) : ownedFix((id) => (CONSUMABLES[id]?.heal ?? 0) > 0);
+        const fixes = [...new Set(warnings.map((w) => fixFor(w.kind)).filter((x): x is string => !!x))];
+        return (
+          <>
+            <p
+              className="dim small"
+              title="a rough exchange vs the hardest foe here, from expected damage both ways at full hp — you strike first, so a tie is a win. An estimate (rounds roll with variance), not a promise."
+            >
+              forecast: ≈<b>{f.roundsToKill}</b> round{f.roundsToKill === 1 ? '' : 's'} to down it · it downs you in ≈
+              <b>{f.roundsToFall}</b> · <b className={f.favored ? 'up' : 'down'}>{f.favored ? 'favored' : 'risky'}</b>
+            </p>
+            {warnings.map((w) => {
+              const fix = fixFor(w.kind);
+              return (
+                <p key={w.kind} className="warn small">
+                  {w.text}
+                  {fix && (
+                    <button className="chip" title={`pack one ${(names.get(fix) ?? fix).toLowerCase()} from your bank`} onClick={() => bump(fix, 1, view.inventory[fix] ?? 1)}>
+                      {' '}+ pack {(names.get(fix) ?? fix).toLowerCase()}
+                    </button>
+                  )}
+                </p>
+              );
+            })}
+            {fixes.length >= 2 && (
+              <p className="warn small">
+                <button
+                  className="chip"
+                  title="pack one of each item that clears the warnings above — fixes the whole loadout in one tap"
+                  onClick={() =>
+                    setDraft((d) => {
+                      const next = { ...d };
+                      for (const fix of fixes) next[fix] = Math.min((next[fix] ?? 0) + 1, view.inventory[fix] ?? 1);
+                      return next;
+                    })
+                  }
+                >
+                  ⚑ prep me
+                </button>
+              </p>
+            )}
+          </>
+        );
+      })()}
+      <h3>Pack &amp; Equip</h3>
+      <p className="dim small">
+        There's no separate equip slot — <b>gear you pack is worn automatically</b> (the best usable item per slot
+        fights for you). Tap <b>equip best</b> to auto-pack your strongest kit, or add items by hand below. Gear above
+        your level (🔒) is inert until you train.{' '}
+        <button
+          className="chip"
+          title="auto-pack the best usable weapon + armor you own (best per slot)"
+          onClick={() => {
+            const best: Record<string, { id: string; score: number }> = {};
+            for (const [id, qty] of Object.entries(view.inventory)) {
+              if (qty < 1) continue;
+              const g = GEAR[id];
+              if (!g) continue;
+              if ((g.slot === 'weapon' ? lvls.atk : lvls.def) < g.req) continue;
+              const score = g.atk + g.def;
+              if (!best[g.slot] || score > best[g.slot]!.score) best[g.slot] = { id, score };
+            }
+            setDraft((d) => {
+              const next: Record<string, number> = {};
+              for (const [id, q] of Object.entries(d)) if (!GEAR[id]) next[id] = q;
+              for (const v of Object.values(best)) next[v.id] = 1;
+              return next;
+            });
+          }}
+        >
+          ⚔ equip best
+        </button>
+      </p>
+      {(() => {
+        const draftUnits = Object.values(draft).reduce((a, b) => a + b, 0);
+        const label = (lo: Record<string, number>): string => {
+          const entries = Object.entries(lo).filter(([, q]) => q > 0);
+          if (entries.length === 0) return 'empty';
+          const first = names.get(entries[0]![0]) ?? entries[0]![0];
+          return entries.length === 1 ? `${first} ×${entries[0]![1]}` : `${first} +${entries.length - 1}`;
+        };
+        const applyLoadout = (lo: Record<string, number>): void => {
+          const next: Record<string, number> = {};
+          for (const [id, q] of Object.entries(lo)) {
+            const held = view.inventory[id] ?? 0;
+            if (held > 0) next[id] = Math.min(q, held);
+          }
+          setDraft(next);
+        };
+        const saveCurrent = (): void => {
+          const pack: Record<string, number> = {};
+          for (const [id, q] of Object.entries(draft)) if (q > 0) pack[id] = q;
+          if (Object.keys(pack).length === 0) return;
+          setLoadouts([pack, ...loadouts].slice(0, 4));
+        };
+        const removeLoadout = (i: number): void => setLoadouts(loadouts.filter((_, j) => j !== i));
+        if (loadouts.length === 0 && draftUnits === 0) return null;
+        return (
+          <p className="dim small loadouts">
+            loadouts:{' '}
+            {loadouts.map((lo, i) => (
+              <span key={i}>
+                <button className="chip" title="fill the pack from this saved kit (clamped to what you hold)" onClick={() => applyLoadout(lo)}>
+                  {label(lo)}
+                </button>
+                <button className="chip" title="forget this loadout" onClick={() => removeLoadout(i)}>
+                  ×
+                </button>{' '}
+              </span>
+            ))}
+            {draftUnits > 0 && loadouts.length < 4 && (
+              <button className="chip" title="save the current pack as a loadout" onClick={saveCurrent}>
+                + save kit
+              </button>
+            )}
+          </p>
+        );
+      })()}
+      {relevant.length === 0 && <p className="dim small">buy gear and food on the exchange first — or go in swinging fists</p>}
+      <ul className="rows small">
+        {relevant.map(([id, held]) => {
+          const g = GEAR[id];
+          const inert = g !== undefined && (g.slot === 'weapon' ? lvls.atk : lvls.def) < g.req;
+          return (
+            <li key={id} className={inert ? 'dim' : ''} title={inert ? `requires ${g!.slot === 'weapon' ? 'Attack' : 'Defence'} ${g!.req} — carried gear below your level is inert` : undefined}>
+              <span>
+                <Icon name={itemIcon(id).name} glyph={itemIcon(id).glyph} size={14} className="itemicon" /> {names.get(id) ?? id}
+              </span>
+              <span className="dim small">
+                {g
+                  ? `atk ${g.atk} def ${g.def} · req ${g.slot === 'weapon' ? '⚔' : '🛡'}${g.req}${inert ? ' 🔒' : ''}`
+                  : CONSUMABLES[id]!.boostAtk || CONSUMABLES[id]!.boostDef
+                    ? `⚗ brew ${CONSUMABLES[id]!.boostAtk ? `+${CONSUMABLES[id]!.boostAtk} atk ` : ''}${CONSUMABLES[id]!.boostDef ? `+${CONSUMABLES[id]!.boostDef} def` : ''} (whole dive)`
+                    : `heals ${CONSUMABLES[id]!.heal}`}
+              </span>
+              <span className="num">
+                <button className="chip" onClick={() => bump(id, -1, held)}>−</button> {draft[id] ?? 0}/{held}{' '}
+                <button className="chip" onClick={() => bump(id, 1, held)}>+</button>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <button
+        className="submit buy"
+        disabled={locked}
+        onClick={() => {
+          const pack: Record<string, number> = {};
+          for (const [id, qty] of Object.entries(draft)) if (qty > 0) pack[id] = qty;
+          onCommand({ type: 'startExpedition', regionId, pack });
+          setDraft({});
+        }}
+      >
+        embark{locked ? ' (locked)' : ''}
+      </button>
+    </section>
+  );
+}

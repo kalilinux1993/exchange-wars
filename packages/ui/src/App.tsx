@@ -8,6 +8,7 @@ import { MoversPanel } from './components/MoversPanel';
 import { WatchlistPanel } from './components/WatchlistPanel';
 import { HELP_SEEN_KEY, HelpOverlay } from './components/HelpOverlay';
 import { ExpeditionPanel } from './components/ExpeditionPanel';
+import { EmbarkPanel } from './components/EmbarkPanel';
 import { LeaderboardPanel } from './components/LeaderboardPanel';
 import { BookLadder } from './components/BookLadder';
 import { ContractsBoard } from './components/ContractsBoard';
@@ -977,7 +978,6 @@ export function App({ initial }: { initial?: Game }) {
             view={view}
             onCommand={command}
             onRest={fastForward}
-            regionPick={regionPick}
             onToast={(name, flavor) => setToast({ id: 'expedition', name, flavor, achieved: () => false })}
             onDelveEnd={(record) => {
               const log = (game.delves ??= []);
@@ -989,6 +989,7 @@ export function App({ initial }: { initial?: Game }) {
           />
         </section>
         <section className="middle">
+          <EmbarkPanel game={game} view={view} items={game.world.items} onCommand={command} regionPick={regionPick} />
           <BountyBoard game={game} onCommand={command} />
           <MilestonesPanel unlocked={game.milestones} game={game} view={view} worth={playerWorth(game)} />
         </section>

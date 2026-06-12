@@ -2469,7 +2469,7 @@ describe('UI shell', () => {
   it('fight it out: auto-resolve settles the fight or hands back control when low', () => {
     const game = freshApp();
     const agent = game.world.agents[game.playerId]!;
-    const panel = document.querySelector('.expedition') as HTMLElement;
+    const panel = document.querySelector('.embark') as HTMLElement;
     fireEvent.click(within(panel).getByText('embark'));
     for (let i = 0; i < 30 && agent.expedition && !agent.expedition.combat; i++) {
       if (agent.expedition.event) fireEvent.click(screen.getByText('walk on'));
@@ -2845,7 +2845,7 @@ describe('UI shell', () => {
     agent.inventory['shark'] = 3;
     render(<App initial={game} />);
     fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
-    const panel = document.querySelector('.expedition') as HTMLElement;
+    const panel = document.querySelector('.embark') as HTMLElement;
     fireEvent.click(within(panel).getByText('⚔ equip best'));
     fireEvent.click(within(panel).getByText('embark'));
     // The best usable weapon + body were auto-equipped (escrowed into the pack).
@@ -2860,7 +2860,7 @@ describe('UI shell', () => {
     agent.inventory['shark'] = 5;
     render(<App initial={game} />);
     fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
-    const panel = document.querySelector('.expedition') as HTMLElement;
+    const panel = document.querySelector('.embark') as HTMLElement;
     // Build a pack of 2 sharks, save it as a loadout.
     const sharkRow = within(panel).getByText('Shark').closest('li')!;
     fireEvent.click(within(sharkRow as HTMLElement).getByText('+'));
@@ -2931,7 +2931,7 @@ describe('UI shell', () => {
 
   it('expeditions: regions render with locks; an empty-pack embark works fists-first', () => {
     const game = freshApp();
-    const panel = document.querySelector('.expedition') as HTMLElement;
+    const panel = document.querySelector('.embark') as HTMLElement;
     expect(panel).toBeTruthy();
     expect(within(panel).getByText('Lumbridge Plains')).toBeTruthy();
     expect(within(panel).getByText("The Dragon's Maw")).toBeTruthy(); // visible but locked
@@ -2962,7 +2962,7 @@ describe('UI shell', () => {
     const agent = game.world.agents[game.playerId]!;
     agent.inventory['shark'] = 3; // stock the satchel directly (fixture)
     render(<App initial={game} />);
-    const panel = document.querySelector('.expedition') as HTMLElement;
+    const panel = document.querySelector('.embark') as HTMLElement;
     const sharkRow = within(panel).getByText('Shark').closest('li')!;
     fireEvent.click(within(sharkRow as HTMLElement).getByText('+'));
     fireEvent.click(within(sharkRow as HTMLElement).getByText('+'));
