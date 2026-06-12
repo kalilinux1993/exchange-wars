@@ -230,6 +230,40 @@ export function regionMastery(
 }
 
 /**
+ * Expected per-hit damage — mirrors the engine's `damage()` MEAN (quest.ts:394):
+ * a uniform roll in [max(1,ceil(atk/3)) .. max(2,atk)], less `floor(def/4)`,
+ * floored at 1. Used for the embark forecast; it's the central estimate of a
+ * roll, not the roll itself. Keep in sync with quest.ts if that formula moves.
+ */
+export function expectedHit(atk: number, def: number): number {
+  const lo = Math.max(1, Math.ceil(atk / 3));
+  const hi = Math.max(2, atk);
+  return Math.max(1, (lo + hi) / 2 - Math.floor(def / 4));
+}
+
+/** A rough exchange forecast vs one foe — the embark decision aid. */
+export interface CombatForecast {
+  roundsToKill: number; // rounds for you to down the foe
+  roundsToFall: number; // rounds for the foe to down you
+  favored: boolean; // you win the exchange
+}
+
+/**
+ * Forecast a one-on-one exchange from EXPECTED damage both ways. The player
+ * strikes first each round, so a tie (you'd kill on the very round you'd fall) is
+ * a win → `favored` is `roundsToKill <= roundsToFall`. An estimate (real rounds
+ * roll with variance), meant for the embark decision, not a promise. Pure.
+ */
+export function combatForecast(
+  you: { atk: number; def: number; hp: number },
+  foe: { atk: number; def: number; hp: number },
+): CombatForecast {
+  const roundsToKill = Math.ceil(foe.hp / expectedHit(you.atk, foe.def));
+  const roundsToFall = Math.ceil(you.hp / expectedHit(foe.atk, you.def));
+  return { roundsToKill, roundsToFall, favored: roundsToKill <= roundsToFall };
+}
+
+/**
  * Restarting the SAME seed keeps your best previous run as a chart ghost
  * (best = highest final worth, comparing the run being abandoned against any
  * ghost it was itself racing). Different seed → no ghost.

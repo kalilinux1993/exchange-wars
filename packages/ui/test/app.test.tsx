@@ -67,6 +67,8 @@ import {
   dailyBestView,
   regionRoster,
   regionMastery,
+  expectedHit,
+  combatForecast,
   nextRowIndex,
   summarizeDelve,
   recentDelves,
@@ -571,6 +573,27 @@ describe('UI shell', () => {
       expect(screen.getByText('🏆', { exact: false })).toBeTruthy(); // survived row
       expect(screen.getByText('☠', { exact: false })).toBeTruthy(); // died row
     });
+  });
+
+  describe('combat forecast', () => {
+    it('expectedHit mirrors the engine damage() mean (quest.ts:394)', () => {
+      expect(expectedHit(3, 0)).toBe(2); // roll [1..3] mean 2, no armour
+      expect(expectedHit(24, 11)).toBe(14); // roll [8..24] mean 16, −floor(11/4)=2
+      expect(expectedHit(4, 40)).toBe(1); // heavy armour floors the hit at 1
+    });
+    it('forecasts the exchange; a tie favours the player (strikes first)', () => {
+      const strong = combatForecast({ atk: 50, def: 40, hp: 80 }, { atk: 4, def: 1, hp: 12 });
+      expect(strong).toMatchObject({ roundsToKill: 1, favored: true });
+      const outmatched = combatForecast({ atk: 30, def: 20, hp: 50 }, { atk: 24, def: 13, hp: 130 });
+      expect(outmatched.favored).toBe(false);
+      expect(outmatched.roundsToKill).toBeGreaterThan(outmatched.roundsToFall);
+    });
+  });
+
+  it('the embark screen forecasts the exchange vs the hardest foe', () => {
+    freshApp(); // adventure room mounted (tabhidden but in the DOM); fresh player, no active dive
+    expect(screen.getByText(/forecast:/)).toBeTruthy();
+    expect(screen.getByText(/favored|risky/)).toBeTruthy();
   });
 
   it('loadCorruptSave / discardCorruptSave round-trip the quarantine', () => {

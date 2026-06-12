@@ -12,7 +12,7 @@ import {
 } from '@exchange-wars/engine';
 import type { PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { deathRecap, MILESTONES, summarizeDelve, type DelveRecord, type Game } from '../game';
+import { combatForecast, deathRecap, MILESTONES, summarizeDelve, type DelveRecord, type Game } from '../game';
 import { usePref } from '../usePref';
 import { CharacterPanel } from './CharacterPanel';
 import { CombatScene } from './CombatScene';
@@ -208,6 +208,20 @@ export function ExpeditionPanel({
               danger: foes up to <b className={atkBad ? 'down' : 'up'}>⚔{d.atk}</b>{' '}
               <b className={defBad ? 'down' : 'up'}>🛡{d.def}</b> · {d.hp} hp
               {d.elite ? ' · ☠ a named terror lurks here' : ''}
+            </p>
+          );
+        })()}
+        {(() => {
+          const d = regionDanger(REGIONS[regionIndex(regionId)]!);
+          const eff = deriveStats(agent?.inventory ?? {}, lvls);
+          const f = combatForecast({ atk: eff.atk, def: eff.def, hp: trainedMax }, { atk: d.atk, def: d.def, hp: d.hp });
+          return (
+            <p
+              className="dim small"
+              title="a rough exchange vs the hardest foe here, from expected damage both ways at full hp — you strike first, so a tie is a win. An estimate (rounds roll with variance), not a promise."
+            >
+              forecast: ≈<b>{f.roundsToKill}</b> round{f.roundsToKill === 1 ? '' : 's'} to down it · it downs you in ≈
+              <b>{f.roundsToFall}</b> · <b className={f.favored ? 'up' : 'down'}>{f.favored ? 'favored' : 'risky'}</b>
             </p>
           );
         })()}
