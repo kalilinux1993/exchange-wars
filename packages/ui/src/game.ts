@@ -543,6 +543,15 @@ export function positionConcentration(positions: HeldPosition[]): Concentration 
   return { weights, topPct: weights[0]?.pct ?? 0, count: positions.length };
 }
 
+/**
+ * From the items you hold, the ones a bulk "sell the spoils" should dump — your
+ * GEAR is kept out (it lives in the satchel between raids; one click shouldn't
+ * liquidate your kit). Sell gear deliberately, one stack at a time. Pure.
+ */
+export function lootSpoils(heldIds: string[], isGear: (id: string) => boolean): string[] {
+  return heldIds.filter((id) => !isGear(id));
+}
+
 /** Net worth split by liquidity — the cash-vs-committed-vs-goods lens. */
 export interface WorthBreakdown {
   cash: number; // liquid gp on hand

@@ -21,6 +21,7 @@ import { ConquestPanel } from '../src/components/ConquestPanel';
 import { MarketTable } from '../src/components/MarketTable';
 import { DelvePanel } from '../src/components/DelvePanel';
 import { WealthPanel } from '../src/components/WealthPanel';
+import { PlayerPanel } from '../src/components/PlayerPanel';
 import { depthSplit } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
@@ -61,6 +62,7 @@ import {
   openPosition,
   heldPositions,
   positionConcentration,
+  lootSpoils,
   worthBreakdown,
   parseChallengeSeed,
   realizedFromBook,
@@ -723,6 +725,32 @@ describe('UI shell', () => {
     expect(screen.getByText(/net/)).toBeTruthy();
     expect(screen.getByText('cash', { exact: false })).toBeTruthy();
     expect(screen.getByText('40%')).toBeTruthy(); // goods share
+  });
+
+  describe('lootSpoils', () => {
+    it('keeps gear out of the bulk dump', () => {
+      const isGear = (id: string) => id === 'rune_2h_sword' || id === 'rune_platebody';
+      expect(lootSpoils(['snapdragon_seed', 'rune_2h_sword', 'magic_seed', 'rune_platebody'], isGear)).toEqual([
+        'snapdragon_seed',
+        'magic_seed',
+      ]);
+    });
+  });
+
+  it('"sell the spoils" dumps loot but keeps your gear', () => {
+    const game = newGame(42);
+    for (let i = 0; i < 200; i++) tickWorld(game.world); // populate NPC bids so items are sellable
+    const agent = game.world.agents[game.playerId]!;
+    agent.inventory.snapdragon_seed = 50; // non-gear loot → dumped
+    agent.inventory.magic_seed = 5; // non-gear loot → dumped (a second, so the bulk button shows)
+    agent.inventory.rune_2h_sword = 1; // gear → KEPT
+    const onCommand = vi.fn();
+    const view = playerView(game.world, game.playerId)!;
+    render(<PlayerPanel game={game} view={view} items={game.world.items} onCommand={onCommand} />);
+    fireEvent.click(screen.getByText('sell the spoils'));
+    const sold = onCommand.mock.calls.map((c) => (c[0] as { itemId: string }).itemId);
+    expect(sold).toContain('snapdragon_seed');
+    expect(sold).not.toContain('rune_2h_sword'); // your raiding kit survives the bulk sell
   });
 
   describe('tradeRecord', () => {

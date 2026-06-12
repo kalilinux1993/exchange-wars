@@ -1,6 +1,6 @@
 import { GEAR } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
-import { bidWalk, type Game } from '../game';
+import { bidWalk, lootSpoils, type Game } from '../game';
 import { Icon, itemIcon } from './Icon';
 
 export function PlayerPanel({
@@ -20,6 +20,11 @@ export function PlayerPanel({
   const sellable = held
     .map((i) => ({ item: i, walk: bidWalk(game, i.id, view.inventory[i.id] ?? 0) }))
     .filter((s) => s.walk !== null);
+  // Bulk "sell the spoils" dumps loot only — your gear stays in the satchel.
+  const spoilIds = lootSpoils(
+    sellable.map((s) => s.item.id),
+    (id) => GEAR[id] !== undefined,
+  );
   const dump = (itemId: string): void => {
     const walk = bidWalk(game, itemId, view.inventory[itemId] ?? 0);
     if (walk) onCommand({ type: 'place', itemId, side: 'sell', price: walk.floor, qty: walk.qty });
@@ -62,12 +67,12 @@ export function PlayerPanel({
                 .toLocaleString('en-US')}{' '}
               gp
             </span>
-            {sellable.length > 1 && (
+            {spoilIds.length > 1 && (
               <button
                 className="chip"
-                title="sell every stack into the resting bids — one fill-only order per item"
+                title="sell every non-gear stack into the resting bids — your raiding kit is kept (sell gear one stack at a time)"
                 onClick={() => {
-                  for (const s of sellable) dump(s.item.id);
+                  for (const id of spoilIds) dump(id);
                 }}
               >
                 sell the spoils

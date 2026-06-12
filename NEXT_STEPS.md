@@ -27,6 +27,9 @@ Through brick 59 (10g): RPG layer (8 regions, stats/xp, brews, bounties, sellswo
 - **Gear durability — DROPPED** (FINDINGS, 9g): raiders already pay spread + death burns + tick cost + consumable tickets; a durability tax re-punishes the validated capital loop for no asked-for benefit.
 - **Tier-3 clerk "trades events too" — DROPPED**: clerks farm neither events nor exotics (FINDINGS #27/#35).
 
+## Trading safety
+- ~~"sell the spoils" bulk button dumped GEAR too (could liquidate the raiding kit)~~ FIXED 12r (`lootSpoils` — bulk keeps gear; per-item sell still sells anything). Optional follow-up: a "sell gear too" override.
+
 ## Old minor leftovers (non-blocking)
 - Trades window: `shift()` → ring buffer if it ever grows beyond 512.
 - Momentum traders bleed slowly (FINDINGS #12) — acceptable.
