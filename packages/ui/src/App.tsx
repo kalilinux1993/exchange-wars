@@ -35,6 +35,7 @@ import { WorthChart } from './components/WorthChart';
 import {
   alertHit,
   bumpStreak,
+  streakCelebration,
   recordDailyBest,
   dailyBestView,
   beatRecord,
@@ -258,7 +259,17 @@ export function App({ initial }: { initial?: Game }) {
   useEffect(() => {
     if (game.world.seed !== dailySeed()) return;
     const next = bumpStreak(streak, dailySeed());
-    if (next !== streak) setStreak(next);
+    if (next !== streak) {
+      const cel = streakCelebration(streak, next);
+      if (cel)
+        setToast({
+          id: 'streak',
+          name: `🔥 ${cel.count}-day daily streak!`,
+          flavor: cel.best ? 'a new personal best — keep it going' : 'keep it going',
+          achieved: () => false,
+        });
+      setStreak(next);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.world.seed]);
 

@@ -46,6 +46,7 @@ import {
   finishOfflineProgress,
   biggestMover,
   bumpStreak,
+  streakCelebration,
   checkMilestones,
   MILESTONES,
   CORRUPT_SAVE_KEY,
@@ -485,6 +486,19 @@ describe('UI shell', () => {
     });
     it('resets if the day somehow goes backwards', () => {
       expect(bumpStreak({ count: 4, lastDay: 20260611, best: 4 }, 20260610).count).toBe(1);
+    });
+  });
+
+  describe('streakCelebration', () => {
+    it('celebrates a continuation ≥2 (new-best flagged); first day and a break stay quiet', () => {
+      // grew 2→3, best still 5 → celebrate, not a new best
+      expect(streakCelebration({ count: 2, lastDay: 1, best: 5 }, { count: 3, lastDay: 2, best: 5 })).toEqual({ count: 3, best: false });
+      // grew 5→6, best now 6 → new personal best
+      expect(streakCelebration({ count: 5, lastDay: 1, best: 5 }, { count: 6, lastDay: 2, best: 6 })).toEqual({ count: 6, best: true });
+      // first day ever (count 1) → no toast
+      expect(streakCelebration(null, { count: 1, lastDay: 1, best: 1 })).toBeNull();
+      // broke a 7-streak → reset to 1 → no toast
+      expect(streakCelebration({ count: 7, lastDay: 1, best: 7 }, { count: 1, lastDay: 9, best: 7 })).toBeNull();
     });
   });
 

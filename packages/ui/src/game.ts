@@ -112,6 +112,20 @@ export function bumpStreak(prev: DailyStreak | null, today: number): DailyStreak
 }
 
 /**
+ * A daily-streak milestone worth a toast, or null. Fires only when the streak GREW to ≥2 — a
+ * genuine continuation, not the first day (count 1) nor a reset-to-1 break (count fell). `best`
+ * flags a new personal record. Pure — the positive-reinforcement half of the streak loop.
+ */
+export function streakCelebration(
+  prev: DailyStreak | null,
+  next: DailyStreak,
+): { count: number; best: boolean } | null {
+  const prevCount = prev?.count ?? 0;
+  if (next.count > prevCount && next.count >= 2) return { count: next.count, best: next.count >= next.best };
+  return null;
+}
+
+/**
  * True when a live streak is one day from breaking: last played *exactly*
  * yesterday (span 1) and not yet continued `today`. Already-played-today
  * (span 0) is safe; a 2+ day gap is already dead. Drives the "keep your
