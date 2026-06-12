@@ -73,6 +73,7 @@ import {
   regionMastery,
   expectedHit,
   combatForecast,
+  embarkPrep,
   nextRowIndex,
   summarizeDelve,
   recentDelves,
@@ -621,6 +622,30 @@ describe('UI shell', () => {
     freshApp(); // adventure room mounted (tabhidden but in the DOM); fresh player, no active dive
     expect(screen.getByText(/forecast:/)).toBeTruthy();
     expect(screen.getByText(/favored|risky/)).toBeTruthy();
+  });
+
+  describe('embarkPrep', () => {
+    it('warns to pack antifire for a fiery region with none packed; clears once packed / non-fiery', () => {
+      expect(embarkPrep({ fiery: true, hasAntifire: false, hasFood: true, riskyFight: false })).toEqual([
+        '🔥 foes here breathe fire — pack antifire or you will burn',
+      ]);
+      expect(embarkPrep({ fiery: true, hasAntifire: true, hasFood: true, riskyFight: false })).toEqual([]);
+      expect(embarkPrep({ fiery: false, hasAntifire: false, hasFood: true, riskyFight: false })).toEqual([]);
+    });
+    it('warns about no food only when the fight is risky', () => {
+      expect(embarkPrep({ fiery: false, hasAntifire: true, hasFood: false, riskyFight: true })).toEqual([
+        '🍖 no food packed — a hard fight here and you cannot heal',
+      ]);
+      expect(embarkPrep({ fiery: false, hasAntifire: true, hasFood: false, riskyFight: false })).toEqual([]);
+    });
+    it('stacks both warnings when both apply', () => {
+      expect(embarkPrep({ fiery: true, hasAntifire: false, hasFood: false, riskyFight: true })).toHaveLength(2);
+    });
+  });
+
+  it('the embark screen does not nag for antifire on a non-fiery region', () => {
+    freshApp(); // lumbridge_plains (region 0) has no dragonfire foes
+    expect(screen.queryByText(/breathe fire/)).toBeNull();
   });
 
   describe('positionConcentration', () => {

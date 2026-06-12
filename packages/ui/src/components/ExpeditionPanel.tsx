@@ -12,7 +12,7 @@ import {
 } from '@exchange-wars/engine';
 import type { PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { combatForecast, deathRecap, MILESTONES, summarizeDelve, type DelveRecord, type Game } from '../game';
+import { combatForecast, deathRecap, embarkPrep, MILESTONES, summarizeDelve, type DelveRecord, type Game } from '../game';
 import { usePref } from '../usePref';
 import { CharacterPanel } from './CharacterPanel';
 import { CombatScene } from './CombatScene';
@@ -225,17 +225,34 @@ export function ExpeditionPanel({
           );
         })()}
         {(() => {
-          const d = regionDanger(REGIONS[regionIndex(regionId)]!);
+          const region = REGIONS[regionIndex(regionId)]!;
+          const d = regionDanger(region);
           const eff = deriveStats(agent?.inventory ?? {}, lvls);
           const f = combatForecast({ atk: eff.atk, def: eff.def, hp: trainedMax }, { atk: d.atk, def: d.def, hp: d.hp });
+          const roster = region.elite ? [...region.monsters, region.elite] : region.monsters;
+          const fiery = roster.some((id) => monsterById(id).dragonfire);
+          const packed = Object.entries(draft).filter(([id, q]) => q > 0 && CONSUMABLES[id] !== undefined);
+          const warnings = embarkPrep({
+            fiery,
+            hasAntifire: packed.some(([id]) => CONSUMABLES[id]?.antifire),
+            hasFood: packed.some(([id]) => (CONSUMABLES[id]?.heal ?? 0) > 0),
+            riskyFight: !f.favored,
+          });
           return (
-            <p
-              className="dim small"
-              title="a rough exchange vs the hardest foe here, from expected damage both ways at full hp — you strike first, so a tie is a win. An estimate (rounds roll with variance), not a promise."
-            >
-              forecast: ≈<b>{f.roundsToKill}</b> round{f.roundsToKill === 1 ? '' : 's'} to down it · it downs you in ≈
-              <b>{f.roundsToFall}</b> · <b className={f.favored ? 'up' : 'down'}>{f.favored ? 'favored' : 'risky'}</b>
-            </p>
+            <>
+              <p
+                className="dim small"
+                title="a rough exchange vs the hardest foe here, from expected damage both ways at full hp — you strike first, so a tie is a win. An estimate (rounds roll with variance), not a promise."
+              >
+                forecast: ≈<b>{f.roundsToKill}</b> round{f.roundsToKill === 1 ? '' : 's'} to down it · it downs you in ≈
+                <b>{f.roundsToFall}</b> · <b className={f.favored ? 'up' : 'down'}>{f.favored ? 'favored' : 'risky'}</b>
+              </p>
+              {warnings.map((w) => (
+                <p key={w} className="warn small">
+                  {w}
+                </p>
+              ))}
+            </>
           );
         })()}
         <h3>Pack &amp; Equip</h3>

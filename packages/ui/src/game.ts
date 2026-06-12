@@ -267,6 +267,25 @@ export function combatForecast(
 }
 
 /**
+ * Pre-embark readiness warnings about the loadout you're PACKING (not what you
+ * own) for the selected region. The critical one is antifire for a region whose
+ * foes breathe fire — un-enforced and the #1 way to burn. The food warning is
+ * gated on a non-favored forecast so it only nags when a hard fight is plausible.
+ * Pure (the detection booleans are computed by the caller from CONSUMABLES/region).
+ */
+export function embarkPrep(opts: {
+  fiery: boolean;
+  hasAntifire: boolean;
+  hasFood: boolean;
+  riskyFight: boolean;
+}): string[] {
+  const w: string[] = [];
+  if (opts.fiery && !opts.hasAntifire) w.push('🔥 foes here breathe fire — pack antifire or you will burn');
+  if (opts.riskyFight && !opts.hasFood) w.push('🍖 no food packed — a hard fight here and you cannot heal');
+  return w;
+}
+
+/**
  * Restarting the SAME seed keeps your best previous run as a chart ghost
  * (best = highest final worth, comparing the run being abandoned against any
  * ghost it was itself racing). Different seed → no ghost.
