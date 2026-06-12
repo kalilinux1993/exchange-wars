@@ -1858,6 +1858,15 @@ describe('UI shell', () => {
     expect(document.querySelector('.effstats')!.textContent).toMatch(/⚔113/);
   });
 
+  it('CharacterPanel flashes a skill cell the moment it levels up', () => {
+    const at = (atkXp: number) =>
+      ({ inventory: {}, combatXp: { atk: atkXp, def: 0, hp: 0 } }) as unknown as AgentState;
+    const { container, rerender } = render(<CharacterPanel agent={at(0)} names={new Map()} />);
+    expect(container.querySelector('.skillcell.flash')).toBeNull(); // first render = baseline, no flash
+    rerender(<CharacterPanel agent={at(xpForLevel(5))} names={new Map()} />); // Attack 1 → 5
+    expect(container.querySelector('.skillcell.flash')).toBeTruthy();
+  });
+
   it('a #seed link starts fresh visitors on that seed directly', () => {
     window.location.hash = '#seed=777';
     render(<App />); // no initial, no save

@@ -1524,6 +1524,20 @@ input.belowbe {
   color: var(--parchment-dim);
   font-size: 0.64rem;
 }
+/* a skill cell that just leveled up — a brief gold pop, OSRS-style. */
+.skillcell.flash {
+  animation: skillpop 1.2s ease-out;
+}
+@keyframes skillpop {
+  0% {
+    background: var(--gold-bright);
+    box-shadow: 0 0 8px var(--gold-bright);
+  }
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
+}
 
 /* a contract you can deliver right now — a faint green nudge. */
 .contracts li.contract.ready {

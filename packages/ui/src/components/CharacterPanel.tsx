@@ -1,7 +1,8 @@
 import { combatLevel, deriveStats, GEAR, levelsOf, maxHpFor, xpForLevel } from '@exchange-wars/engine';
 import type { GearSlot } from '@exchange-wars/engine';
 import type { AgentState } from '@exchange-wars/engine';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { leveledUp } from '../game';
 import { Icon, itemIcon } from './Icon';
 
 const TITLE_KEY = 'ew-title';
@@ -105,6 +106,24 @@ export function CharacterPanel({
 }) {
   const lvls = levelsOf(agent?.combatXp);
   const trainedMax = maxHpFor(lvls.hp);
+  // Flash the skill cell the instant it levels (OSRS-style) — the visual
+  // confirmation that pairs with App's level-up toast. Lazy-init so opening the
+  // sheet on an already-leveled character doesn't flash. Combat (xp gain) runs
+  // on this tab, so the flash fires right where the player is watching.
+  const prevLvls = useRef<{ atk: number; def: number; hp: number } | null>(null);
+  const [flash, setFlash] = useState<Record<'atk' | 'def' | 'hp', boolean>>({ atk: false, def: false, hp: false });
+  useEffect(() => {
+    if (prevLvls.current === null) {
+      prevLvls.current = lvls;
+      return;
+    }
+    const rose = leveledUp(prevLvls.current, lvls);
+    prevLvls.current = lvls;
+    if (rose.length === 0) return;
+    setFlash((f) => ({ ...f, ...Object.fromEntries(rose.map((u) => [u.skill, true])) }));
+    const t = setTimeout(() => setFlash({ atk: false, def: false, hp: false }), 1200);
+    return () => clearTimeout(t);
+  }, [lvls.atk, lvls.def, lvls.hp]);
   const kit = equipped(agent?.inventory ?? {}, lvls, agent?.worn);
   const eff = deriveStats(agent?.inventory ?? {}, lvls, agent?.worn);
   const locked = lockedUpgrades(agent?.inventory ?? {}, lvls, kit);
@@ -133,7 +152,7 @@ export function CharacterPanel({
     const cur = agent?.combatXp?.[key] ?? 0;
     const into = lvl >= 99 ? 1 : (cur - xpForLevel(lvl)) / (xpForLevel(lvl + 1) - xpForLevel(lvl));
     return (
-      <div className="skillcell" title={`${name} ${lvl}`}>
+      <div className={flash[key] ? 'skillcell flash' : 'skillcell'} title={`${name} ${lvl}`}>
         <Icon name={`skill-${name.toLowerCase()}`} glyph={glyph} size={14} className="skillglyph" />
         <span className="skilllvl">{lvl}</span>
         <span className="skillbar">
