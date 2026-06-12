@@ -2907,6 +2907,26 @@ describe('UI shell', () => {
     expect(screen.getByText(/seed 42/)).toBeTruthy();
   });
 
+  it('the brag chip copies a run summary when native share is unavailable', () => {
+    freshApp(); // jsdom has no navigator.share → falls back to clipboard copy
+    fireEvent.click(screen.getByRole('button', { name: /brag/ }));
+    expect(screen.getByText('Run summary copied')).toBeTruthy();
+  });
+
+  it('the brag chip prefers the native share sheet when available', () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    (navigator as unknown as { share: unknown }).share = share;
+    try {
+      freshApp();
+      fireEvent.click(screen.getByRole('button', { name: /brag/ }));
+      expect(share).toHaveBeenCalledTimes(1);
+      expect((share.mock.calls[0]![0] as { text: string }).text).toContain('Exchange Wars'); // the brag payload
+      expect(screen.queryByText('Run summary copied')).toBeNull(); // the sheet is the feedback, no toast
+    } finally {
+      delete (navigator as unknown as { share?: unknown }).share;
+    }
+  });
+
   it('ghostForRestart keeps the best previous run on the SAME seed only', () => {
     const prev = newGame(42);
     prev.worthHistory = [

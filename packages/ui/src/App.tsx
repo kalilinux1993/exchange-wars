@@ -687,8 +687,14 @@ export function App({ initial }: { initial?: Game }) {
     });
   };
 
-  const copyBrag = (): void => {
+  const shareBrag = (): void => {
     const text = bragText(game, playerWorth(game), window.location.origin, window.location.pathname);
+    // Prefer the native share sheet (mobile → one tap to any app, the real viral path); the sheet IS
+    // the feedback, and a user cancel rejects the promise — swallow it. Fall back to clipboard copy.
+    if (navigator.share) {
+      void navigator.share({ text }).catch(() => {});
+      return;
+    }
     const done = (): void =>
       setToast({ id: 'brag', name: 'Run summary copied', flavor: 'paste it anywhere — your stats + a challenge link', achieved: () => false });
     if (navigator.clipboard?.writeText) {
@@ -873,8 +879,8 @@ export function App({ initial }: { initial?: Game }) {
               </button>
               <button
                 className="chip"
-                title="copy a shareable summary of your run (stats + a challenge link) to paste anywhere"
-                onClick={copyBrag}
+                title="share a summary of your run (stats + a challenge link) — native share on mobile, copy on desktop"
+                onClick={shareBrag}
               >
                 📋 brag
               </button>
