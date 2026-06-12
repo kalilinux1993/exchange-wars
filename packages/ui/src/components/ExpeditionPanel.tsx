@@ -44,6 +44,27 @@ export function regionDanger(region: { monsters: string[]; elite?: string }): {
 }
 
 /**
+ * The TYPICAL foe in a region — the AVERAGE atk/def/hp of its regular encounter pool
+ * (`region.monsters`), with the elite EXCLUDED (the elite is the rare worst `regionDanger`
+ * already covers). It's what you usually meet, so the push read can distinguish "the worst
+ * case here is dicey" from "you're outmatched." An empty pool reads as zeros.
+ */
+export function regionTypical(region: { monsters: string[] }): { atk: number; def: number; hp: number } {
+  const pool = region.monsters;
+  if (pool.length === 0) return { atk: 0, def: 0, hp: 0 };
+  let atk = 0;
+  let def = 0;
+  let hp = 0;
+  for (const id of pool) {
+    const m = monsterById(id);
+    atk += m.atk;
+    def += m.def;
+    hp += m.hp;
+  }
+  return { atk: Math.round(atk / pool.length), def: Math.round(def / pool.length), hp: Math.round(hp / pool.length) };
+}
+
+/**
  * The Expeditions panel: outfit an adventurer from your REAL inventory,
  * delve the node graph, fight one round per click. Reads world state for
  * display; every mutation goes through onCommand (the player surface).
@@ -385,6 +406,13 @@ export function ExpeditionPanel({
                 ? combatForecast({ atk: stats.atk, def: stats.def, hp: exp.hp + packHeal }, { atk: d.atk, def: d.def, hp: d.hp }, dragonBonus)
                 : f;
             const foodRounds = ff.roundsToFall - f.roundsToFall;
+            // The TYPICAL foe (the regular pool's average, not the rare worst): if your verdict
+            // against it DIFFERS from the hardest, say so — the hardest read can over-scare in an
+            // elite region where the common encounter is fine.
+            const typ = regionTypical(region);
+            const typFiery = region.monsters.some((id) => monsterById(id).dragonfire);
+            const typBonus = typFiery && !exp.antifire ? Math.ceil(typ.atk / 2) : 0;
+            const ft = combatForecast({ atk: stats.atk, def: stats.def, hp: exp.hp }, typ, typBonus);
             return (
               <p
                 className="dim small forecast"
@@ -392,6 +420,12 @@ export function ExpeditionPanel({
               >
                 push read: you down it in ≈<b>{f.roundsToKill}</b> · it downs you in ≈<b>{f.roundsToFall}</b> ·{' '}
                 <b className={f.favored ? 'up' : 'down'}>{f.favored ? 'favored' : 'risky'}</b>
+                {ft.favored !== f.favored && (
+                  <span className={ft.favored ? 'up' : 'down'} title="vs the TYPICAL foe here — most encounters aren't the rare worst this region can send">
+                    {' '}
+                    · usually {ft.favored ? 'favored' : 'risky'}
+                  </span>
+                )}
                 {foodRounds > 0 ? (
                   <span className="up" title="extra rounds your PACKED food buys if you eat to stay up — optimistic (ignores overheal), like the forecast itself">
                     {' '}· 🍖 food +≈{foodRounds}

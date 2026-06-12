@@ -13,7 +13,7 @@ import { MoversPanel } from '../src/components/MoversPanel';
 import { CharacterPanel, equipped, lockedUpgrades } from '../src/components/CharacterPanel';
 import { TopFlips, rankFlips, flipAffordability } from '../src/components/TopFlips';
 import { RecordsPanel, recordRows } from '../src/components/RecordsPanel';
-import { regionDanger } from '../src/components/ExpeditionPanel';
+import { regionDanger, regionTypical } from '../src/components/ExpeditionPanel';
 import { resolveShortcut } from '../src/keyboard';
 import { ProfitPanel } from '../src/components/ProfitPanel';
 import { PositionsPanel } from '../src/components/PositionsPanel';
@@ -2224,6 +2224,29 @@ describe('UI shell', () => {
       const plains = REGIONS.find((r) => r.id === 'lumbridge_plains')!;
       expect(regionDanger(plains).leech).toBe(0);
     });
+  });
+
+  describe('regionTypical', () => {
+    it('averages the regular pool — never above the hardest, strictly below where an elite lurks', () => {
+      const sum = (x: { atk: number; def: number }) => x.atk + x.def;
+      const plains = REGIONS.find((r) => r.id === 'lumbridge_plains')!;
+      expect(sum(regionTypical(plains))).toBeLessThanOrEqual(sum(regionDanger(plains))); // average ≤ max, no elite
+      const wild = REGIONS.find((r) => r.id === 'wilderness_ruins')!;
+      expect(sum(regionTypical(wild))).toBeLessThan(sum(regionDanger(wild))); // Skarn out-classes the pool
+      expect(regionTypical(wild).hp).toBeGreaterThan(0);
+      expect(regionTypical({ monsters: [] })).toEqual({ atk: 0, def: 0, hp: 0 }); // empty pool → zeros
+    });
+  });
+
+  it('the push read omits the "usually" tag when typical and hardest verdicts agree', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.expedition = { regionId: 'dragons_maw', rngState: 1, hp: 8, pack: {}, packGp: 5000, cleared: 5, combat: null };
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const read = document.querySelector('p.forecast');
+    expect(read?.textContent).toMatch(/risky/); // wounded → risky vs the hardest
+    expect(read?.textContent).not.toMatch(/usually/); // at hp 8 the typical is also risky → verdicts agree → no tag
   });
 
   it('the expedition panel warns how hard a region hits before you embark', () => {
