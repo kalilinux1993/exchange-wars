@@ -3,6 +3,7 @@ import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { combatForecast, embarkPrep, healEta, regionLoot, type Game } from '../game';
 import { usePref } from '../usePref';
+import { arenaTheme } from './CombatScene';
 import { ItemIcon } from './Icon';
 import { RegionMap } from './RegionMap';
 import { regionDanger } from './ExpeditionPanel';
@@ -103,6 +104,13 @@ export function EmbarkPanel({
     <section className="panel embark">
       <h2>Plan a Dive</h2>
       <RegionMap progress={progress} selected={regionId} onSelect={setRegionId} />
+      {/* region-tinted readout (14u palette, completing combat→map→embark): a faint
+          gradient backdrop so the whole "what you're getting into" block FEELS like
+          the region you're about to enter. Kept low-alpha so the reads stay legible. */}
+      <div
+        className="region-readout"
+        style={{ background: `linear-gradient(155deg, ${arenaTheme(regionId).from}33, ${arenaTheme(regionId).to}11)` }}
+      >
       <p className="dim small">{REGIONS[regionIndex(regionId)]?.flavor}</p>
       {(() => {
         const d = regionDanger(REGIONS[regionIndex(regionId)]!);
@@ -238,6 +246,7 @@ export function EmbarkPanel({
           </p>
         );
       })()}
+      </div>
       <h3>Pack &amp; Equip</h3>
       <p className="dim small">
         There's no separate equip slot — <b>gear you pack is worn automatically</b> (the best usable item per slot

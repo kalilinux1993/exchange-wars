@@ -1069,6 +1069,19 @@ kbd {
 .dropchip {
   white-space: nowrap;
 }
+/* region-tinted "what you're getting into" readout on the embark screen — a faint
+   per-region gradient (same palette as the combat backdrop + map halos). */
+.region-readout {
+  border-radius: 6px;
+  padding: 5px 8px;
+  margin: 2px 0 4px;
+}
+.region-readout > :first-child {
+  margin-top: 0;
+}
+.region-readout > :last-child {
+  margin-bottom: 0;
+}
 .mapnode.locked .maphalo {
   opacity: 0.3;
 }

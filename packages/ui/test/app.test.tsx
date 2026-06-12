@@ -783,6 +783,20 @@ describe('UI shell', () => {
     expect(onRest.mock.calls[0]![0]).toBeGreaterThan(0); // fast-forwards a positive heal ETA
   });
 
+  it('EmbarkPanel tints the region readout with its palette (legible, transparent wrap)', () => {
+    const game = newGame(42);
+    game.world.agents[game.playerId]!.questProgress = 5;
+    const view = playerView(game.world, game.playerId)!;
+    const { container } = render(
+      <EmbarkPanel game={game} view={view} items={game.world.items} onCommand={() => {}} active />,
+    );
+    const readout = container.querySelector('.region-readout') as HTMLElement;
+    expect(readout).toBeTruthy();
+    expect(readout.style.background).toMatch(/linear-gradient/); // a per-region gradient backdrop
+    expect(readout.textContent).toMatch(/danger:/); // the wrapped reads still render inside it
+    expect(readout.textContent).toMatch(/loot:/);
+  });
+
   describe('nextRowIndex (market keyboard nav)', () => {
     it('clamps at both ends, no wrap', () => {
       expect(nextRowIndex(0, 1, 3)).toBe(1);
