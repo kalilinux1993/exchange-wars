@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Catalog-agnostic: everything derives from DEFAULT_ITEMS so `npm run
 // gen:catalog` regens never break these tests.
-import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, playerView, REGIONS, SPRINT_TICKS, tickWorld, xpForLevel } from '@exchange-wars/engine';
+import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, placeOrder, playerView, REGIONS, SPRINT_TICKS, tickWorld, xpForLevel } from '@exchange-wars/engine';
 import type { AgentState, SimStats } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -951,6 +951,19 @@ describe('UI shell', () => {
     it('guards a zero stake (no divide-by-zero)', () => {
       expect(returnOnStake(0, 500)).toEqual({ delta: 500, pct: 0, up: true });
     });
+  });
+
+  it('WealthPanel shows the value of equipped kit', () => {
+    const game = newGame(42);
+    const npc = game.world.agents.find((a) => a.kind !== 'player')!;
+    npc.gp = 100_000;
+    // A low resting bid (won't match any seeded sell) gives the worn gear a
+    // liquidation value, so the kit note has something to show.
+    placeOrder(game.world, npc, 'rune_2h_sword', 'buy', 5, 1);
+    game.world.agents[game.playerId]!.worn = { weapon: 'rune_2h_sword' };
+    const view = playerView(game.world, game.playerId)!;
+    const { container } = render(<WealthPanel game={game} view={view} worth={50_000} />);
+    expect(container.textContent).toContain('equipped kit'); // the worn weapon's value is surfaced
   });
 
   it('WealthPanel shows return on the starting stake', () => {

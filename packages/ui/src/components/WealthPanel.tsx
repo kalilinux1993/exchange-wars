@@ -1,6 +1,6 @@
 import type { PlayerView } from '@exchange-wars/engine';
 import type { Game } from '../game';
-import { fmtCompact, returnOnStake, worthBreakdown } from '../game';
+import { bidWalk, fmtCompact, returnOnStake, worthBreakdown } from '../game';
 
 /** Net-worth segments: liquid cash, gp tied up in buy offers, goods held. */
 const SEGS = [
@@ -19,6 +19,9 @@ const SEGS = [
 export function WealthPanel({ game, view, worth }: { game: Game; view: PlayerView; worth: number }) {
   const b = worthBreakdown(view, worth);
   const atRisk = game.world.agents[game.playerId]?.expedition?.packGp ?? 0;
+  // Liquidation value of equipped gear — counted in your net worth since 14j, so
+  // show how much of it is kit you're wearing (vs liquid goods in the satchel).
+  const kit = Object.values(view.worn ?? {}).reduce((s, itemId) => s + (bidWalk(game, itemId, 1)?.gp ?? 0), 0);
   const pct = (n: number) => (b.total > 0 ? Math.round((n / b.total) * 100) : 0);
   const ret = returnOnStake(game.startGp, worth);
   return (
@@ -57,6 +60,12 @@ export function WealthPanel({ game, view, worth }: { game: Game; view: PlayerVie
                 <b style={{ color: s.color }}>{pct(b[s.key])}%</b> {s.label}
               </span>
             ))}
+            {kit > 0 && (
+              <span title="liquidation value of the gear you have equipped — part of your net worth (unequip & sell to free it)">
+                {' · '}
+                <b className="pct up">🛡 {fmtCompact(kit)}</b> equipped kit
+              </span>
+            )}
             {atRisk > 0 && (
               <span>
                 {' · '}
