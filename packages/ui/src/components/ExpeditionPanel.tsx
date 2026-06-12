@@ -238,6 +238,16 @@ export function ExpeditionPanel({
             hasFood: packed.some(([id]) => (CONSUMABLES[id]?.heal ?? 0) > 0),
             riskyFight: !f.favored,
           });
+          // The item that fixes each warning, if you OWN one (sorted id for a
+          // stable pick) — packing it clears the warning on the next render.
+          const ownedFix = (pred: (id: string) => boolean): string | undefined =>
+            Object.keys(view.inventory)
+              .sort()
+              .find((id) => (view.inventory[id] ?? 0) > 0 && CONSUMABLES[id] !== undefined && pred(id));
+          const fixFor = (kind: 'antifire' | 'food'): string | undefined =>
+            kind === 'antifire'
+              ? ownedFix((id) => !!CONSUMABLES[id]?.antifire)
+              : ownedFix((id) => (CONSUMABLES[id]?.heal ?? 0) > 0);
           return (
             <>
               <p
@@ -247,11 +257,23 @@ export function ExpeditionPanel({
                 forecast: ≈<b>{f.roundsToKill}</b> round{f.roundsToKill === 1 ? '' : 's'} to down it · it downs you in ≈
                 <b>{f.roundsToFall}</b> · <b className={f.favored ? 'up' : 'down'}>{f.favored ? 'favored' : 'risky'}</b>
               </p>
-              {warnings.map((w) => (
-                <p key={w} className="warn small">
-                  {w}
-                </p>
-              ))}
+              {warnings.map((w) => {
+                const fix = fixFor(w.kind);
+                return (
+                  <p key={w.kind} className="warn small">
+                    {w.text}
+                    {fix && (
+                      <button
+                        className="chip"
+                        title={`pack one ${(names.get(fix) ?? fix).toLowerCase()} from your bank`}
+                        onClick={() => bump(fix, 1, view.inventory[fix] ?? 1)}
+                      >
+                        {' '}+ pack {(names.get(fix) ?? fix).toLowerCase()}
+                      </button>
+                    )}
+                  </p>
+                );
+              })}
             </>
           );
         })()}

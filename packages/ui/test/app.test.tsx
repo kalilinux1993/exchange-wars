@@ -627,14 +627,14 @@ describe('UI shell', () => {
   describe('embarkPrep', () => {
     it('warns to pack antifire for a fiery region with none packed; clears once packed / non-fiery', () => {
       expect(embarkPrep({ fiery: true, hasAntifire: false, hasFood: true, riskyFight: false })).toEqual([
-        '🔥 foes here breathe fire — pack antifire or you will burn',
+        { kind: 'antifire', text: '🔥 foes here breathe fire — pack antifire or you will burn' },
       ]);
       expect(embarkPrep({ fiery: true, hasAntifire: true, hasFood: true, riskyFight: false })).toEqual([]);
       expect(embarkPrep({ fiery: false, hasAntifire: false, hasFood: true, riskyFight: false })).toEqual([]);
     });
     it('warns about no food only when the fight is risky', () => {
       expect(embarkPrep({ fiery: false, hasAntifire: true, hasFood: false, riskyFight: true })).toEqual([
-        '🍖 no food packed — a hard fight here and you cannot heal',
+        { kind: 'food', text: '🍖 no food packed — a hard fight here and you cannot heal' },
       ]);
       expect(embarkPrep({ fiery: false, hasAntifire: true, hasFood: false, riskyFight: false })).toEqual([]);
     });
@@ -646,6 +646,17 @@ describe('UI shell', () => {
   it('the embark screen does not nag for antifire on a non-fiery region', () => {
     freshApp(); // lumbridge_plains (region 0) has no dragonfire foes
     expect(screen.queryByText(/breathe fire/)).toBeNull();
+  });
+
+  it('the antifire warning offers a one-click pack that clears it', () => {
+    const game = newGame(42);
+    game.world.agents[game.playerId]!.inventory.super_antifire_potion_4 = 3; // owned, not packed
+    game.delves = [{ tick: 0, regionId: 'dragons_maw', kills: 1, lootGp: 0, died: false }]; // a fire region
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByTitle(/raid here again/)); // 12l jump → selects dragons_maw on the embark screen
+    expect(screen.getByText(/breathe fire/)).toBeTruthy();
+    fireEvent.click(screen.getAllByText(/\+ pack/)[0]!); // pack the antifire from the bank
+    expect(screen.queryByText(/breathe fire/)).toBeNull(); // now packed → warning gone
   });
 
   describe('positionConcentration', () => {

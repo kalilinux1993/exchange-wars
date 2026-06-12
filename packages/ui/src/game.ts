@@ -266,22 +266,31 @@ export function combatForecast(
   return { roundsToKill, roundsToFall, favored: roundsToKill <= roundsToFall };
 }
 
+/** A pre-embark readiness warning, tagged by what would fix it. */
+export interface EmbarkWarning {
+  kind: 'antifire' | 'food';
+  text: string;
+}
+
 /**
  * Pre-embark readiness warnings about the loadout you're PACKING (not what you
  * own) for the selected region. The critical one is antifire for a region whose
  * foes breathe fire — un-enforced and the #1 way to burn. The food warning is
  * gated on a non-favored forecast so it only nags when a hard fight is plausible.
- * Pure (the detection booleans are computed by the caller from CONSUMABLES/region).
+ * Each warning is tagged with the `kind` that fixes it, so the UI can offer a
+ * one-click "pack it". Pure (detection booleans computed by the caller).
  */
 export function embarkPrep(opts: {
   fiery: boolean;
   hasAntifire: boolean;
   hasFood: boolean;
   riskyFight: boolean;
-}): string[] {
-  const w: string[] = [];
-  if (opts.fiery && !opts.hasAntifire) w.push('🔥 foes here breathe fire — pack antifire or you will burn');
-  if (opts.riskyFight && !opts.hasFood) w.push('🍖 no food packed — a hard fight here and you cannot heal');
+}): EmbarkWarning[] {
+  const w: EmbarkWarning[] = [];
+  if (opts.fiery && !opts.hasAntifire)
+    w.push({ kind: 'antifire', text: '🔥 foes here breathe fire — pack antifire or you will burn' });
+  if (opts.riskyFight && !opts.hasFood)
+    w.push({ kind: 'food', text: '🍖 no food packed — a hard fight here and you cannot heal' });
   return w;
 }
 
