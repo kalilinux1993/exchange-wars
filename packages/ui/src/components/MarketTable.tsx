@@ -1,11 +1,22 @@
-import { GEAR } from '@exchange-wars/engine';
+import { GEAR, GE_TAX_RATE } from '@exchange-wars/engine';
 import type { ItemDef, ItemId, PlayerView, Trade } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { nextRowIndex } from '../game';
 
 const SPARK_POINTS = 20;
 
-type SortKey = 'name' | 'bid' | 'ask' | 'last' | 'vol';
+type SortKey = 'name' | 'bid' | 'ask' | 'last' | 'vol' | 'margin';
+
+/** After-tax flip margin per unit (undercut the spread one tick each way), or
+ *  null when there's no two-sided book — the same sum TopFlips ranks, per row,
+ *  so the whole market is sortable by flippability, not just the top few. */
+function flipMargin(m: { bestBid: number | null; bestAsk: number | null }): number | null {
+  if (m.bestBid === null || m.bestAsk === null) return null;
+  const buy = m.bestBid + 1;
+  const sell = m.bestAsk - 1;
+  if (buy <= 0 || sell <= 0) return null;
+  return sell - buy - Math.floor(sell * GE_TAX_RATE);
+}
 
 /** Tiny price history from the engine's recent-trades window (display-only read). */
 function Spark({ prices }: { prices: number[] }) {
@@ -76,6 +87,7 @@ export function MarketTable({
     if (sort.key === 'bid') return m.bestBid;
     if (sort.key === 'ask') return m.bestAsk;
     if (sort.key === 'last') return m.lastPrice;
+    if (sort.key === 'margin') return flipMargin(m);
     return m.volume;
   };
   const sorted =
@@ -160,6 +172,9 @@ export function MarketTable({
             <th className="num sortable" onClick={() => toggleSort('last')}>
               last{arrow('last')}
             </th>
+            <th className="num sortable" onClick={() => toggleSort('margin')} title="after-tax flip margin per unit — undercut the spread one tick each way. Sort to find the whole market's flippable items, not just the top few.">
+              margin{arrow('margin')}
+            </th>
             <th aria-label="trend" />
             <th className="num sortable" onClick={() => toggleSort('vol')}>
               volume{arrow('vol')}
@@ -211,6 +226,14 @@ export function MarketTable({
               <td className={`num ${m.lastPrice >= m.ema ? 'up' : 'down'}`}>
                 {m.lastPrice.toLocaleString('en-US')}
               </td>
+              {(() => {
+                const mg = flipMargin(m);
+                return (
+                  <td className={`num ${mg !== null && mg > 0 ? 'up' : 'dim'}`}>
+                    {mg === null ? '—' : `${mg > 0 ? '+' : ''}${mg.toLocaleString('en-US')}`}
+                  </td>
+                );
+              })()}
               <td className="sparkcell">
                 <Spark prices={(sparks.get(m.itemId) ?? []).slice(-SPARK_POINTS)} />
               </td>

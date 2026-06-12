@@ -658,6 +658,17 @@ describe('UI shell', () => {
       // every visible row is now gear (one marker each)
       expect(container.querySelectorAll('tbody tr .gearmark').length).toBe(gearRows);
     });
+
+    it('shows a sortable flip-margin column (after-tax, per row)', () => {
+      const row = (itemId: string, bid: number, ask: number) => ({
+        itemId, bestBid: bid, bestAsk: ask, lastPrice: bid, ema: bid, volume: 0, bestBidIsMine: false, bestAskIsMine: false,
+      });
+      const view = { markets: [row('a', 1000, 1100)] } as unknown as PlayerView;
+      const items = [{ id: 'a', name: 'Item A' }] as unknown as ItemDef[];
+      render(<MarketTable view={view} items={items} trades={[]} selected="a" onSelect={() => {}} eventItems={new Set()} active />);
+      expect(screen.getByRole('columnheader', { name: /margin/ })).toBeTruthy();
+      expect(screen.getByText('+77')).toBeTruthy(); // 1000/1100 → buy 1001, sell 1099, +77 after 2% tax
+    });
   });
 
   describe('Delve Log', () => {
