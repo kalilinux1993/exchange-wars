@@ -11,7 +11,7 @@ import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { Icon, itemIcon } from '../src/components/Icon';
 import { MoversPanel } from '../src/components/MoversPanel';
 import { CharacterPanel, equipped, lockedUpgrades } from '../src/components/CharacterPanel';
-import { TopFlips, rankFlips } from '../src/components/TopFlips';
+import { TopFlips, rankFlips, flipAffordability } from '../src/components/TopFlips';
 import { RecordsPanel, recordRows } from '../src/components/RecordsPanel';
 import { regionDanger } from '../src/components/ExpeditionPanel';
 import { resolveShortcut } from '../src/keyboard';
@@ -1135,6 +1135,41 @@ describe('UI shell', () => {
     render(<TopFlips view={view} items={items} onSelect={() => {}} />);
     expect(screen.getByText(/≤500/)).toBeTruthy(); // buy limit badge
     expect(screen.getByText('7.7%')).toBeTruthy(); // 77/1001 return-on-cost
+  });
+
+  describe('flipAffordability', () => {
+    it('counts units your gp can buy, capped by the GE limit', () => {
+      // buy 1001, gp 10,000 → 9 affordable; under the 500 limit, so gp is the bind
+      expect(flipAffordability(1001, 10_000, 500)).toEqual({ units: 9, affordable: true, limited: false });
+    });
+    it('caps at the GE buy limit when gp would allow more', () => {
+      expect(flipAffordability(100, 100_000, 50)).toEqual({ units: 50, affordable: true, limited: true });
+    });
+    it('is unaffordable when one unit exceeds your gp', () => {
+      expect(flipAffordability(1001, 500, null)).toEqual({ units: 0, affordable: false, limited: false });
+    });
+    it('treats a null limit as unlimited', () => {
+      expect(flipAffordability(100, 1_000, null)).toEqual({ units: 10, affordable: true, limited: false });
+    });
+  });
+
+  it('TopFlips shows the affordability badge and a "fits purse" filter', () => {
+    const view = {
+      gp: 1_500, // covers the cheap flip (×30) but not one unit of the rich one
+      markets: [
+        { itemId: 'rich', bestBid: 10_000, bestAsk: 11_000 }, // buy 10,001 — unaffordable
+        { itemId: 'cheap', bestBid: 50, bestAsk: 120 }, // buy 51 — ×29 affordable, smaller margin
+      ],
+    } as unknown as PlayerView;
+    const items = [{ id: 'rich', name: 'Rich item' }, { id: 'cheap', name: 'Cheap item' }] as unknown as ItemDef[];
+    render(<TopFlips view={view} items={items} onSelect={() => {}} />);
+    // the rich (top-margin) flip is marked unaffordable, the cheap one shows ×N
+    expect(screen.getByText('✕')).toBeTruthy();
+    expect(screen.getByText(/^×\d+$/)).toBeTruthy();
+    // flip to "fits purse": the unaffordable rich flip drops out
+    fireEvent.click(screen.getByRole('button', { name: 'fits purse' }));
+    expect(screen.queryByText('Rich item')).toBeNull();
+    expect(screen.getByText('Cheap item')).toBeTruthy();
   });
 
   describe('lockedUpgrades', () => {

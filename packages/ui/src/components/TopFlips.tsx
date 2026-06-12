@@ -1,5 +1,6 @@
 import type { ItemDef, PlayerView } from '@exchange-wars/engine';
 import { GE_TAX_RATE } from '@exchange-wars/engine';
+import { useState } from 'react';
 
 export interface FlipPick {
   id: string;
@@ -40,6 +41,28 @@ export function rankFlips(
     .slice(0, limit);
 }
 
+/** How many units of a flip you could actually open RIGHT NOW. */
+export interface FlipAfford {
+  /** Buyable now = floor(gp / buyPrice), capped by the GE buy limit. */
+  units: number;
+  /** At least one unit is within reach of your purse. */
+  affordable: boolean;
+  /** The GE limit (not your gp) is the binding cap — you have gp to spare. */
+  limited: boolean;
+}
+
+/**
+ * The capital/limit lens on a flip: how many units your gp can cover, capped by
+ * the GE buy allowance. This is an AFFORDABILITY cap (gp-bound + limit-bound),
+ * NOT a realizable-profit claim — it says nothing about how much depth rests at
+ * the price (that's order-flow the UI can't see). Pure.
+ */
+export function flipAffordability(buy: number, gp: number, limit: number | null): FlipAfford {
+  const byGp = buy > 0 ? Math.floor(gp / buy) : 0;
+  const units = limit === null ? byGp : Math.min(byGp, limit);
+  return { units, affordable: units >= 1, limited: limit !== null && limit < byGp };
+}
+
 /**
  * Best flips now (10v): rankFlips rendered. The actionable counterpart to the
  * Movers panel — Movers says "where's the action", this says "where's the
@@ -59,23 +82,47 @@ export function TopFlips({
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
   const taxPct = Math.round(GE_TAX_RATE * 100);
-  const flips = rankFlips(view.markets, GE_TAX_RATE, limit);
+  const [fitOnly, setFitOnly] = useState(false);
+  // When filtering to the affordable, rank deeper than `limit` first so a flip
+  // your purse can cover surfaces even if it's outside the top few by margin.
+  const ranked = rankFlips(view.markets, GE_TAX_RATE, fitOnly ? 100 : limit).map((f) => ({
+    ...f,
+    afford: flipAffordability(f.buy, view.gp ?? 0, f.limit),
+  }));
+  const flips = (fitOnly ? ranked.filter((f) => f.afford.affordable) : ranked).slice(0, limit);
   return (
     <section className="panel topflips">
-      <h2>Best Flips Now</h2>
+      <h2>
+        Best Flips Now{' '}
+        <button
+          className={fitOnly ? 'chip active' : 'chip'}
+          title="show only flips your gp can cover right now (capped by the GE buy limit)"
+          onClick={() => setFitOnly((v) => !v)}
+        >
+          fits purse
+        </button>
+      </h2>
       {flips.length === 0 ? (
-        <p className="dim small">no profitable flips right now — spreads are thinner than the {taxPct}% tax</p>
+        <p className="dim small">
+          {fitOnly && ranked.length > 0
+            ? 'no flips your purse can cover right now — build capital or drop the filter'
+            : `no profitable flips right now — spreads are thinner than the ${taxPct}% tax`}
+        </p>
       ) : (
         <ul className="rows small">
           {flips.map((f) => (
             <li
               key={f.id}
-              className="mover flip"
+              className={`mover flip${f.afford.affordable ? '' : ' unafford'}`}
               onClick={() => onSelect(f.id, f.buy)}
               title={`click to load a buy @ ${f.buy.toLocaleString('en-US')} → then sell @ ${f.sell.toLocaleString(
                 'en-US',
               )}, nets ${f.margin.toLocaleString('en-US')} gp/unit (${(f.roi * 100).toFixed(1)}% of cost) after the ${taxPct}% tax${
                 f.limit !== null ? ` · GE limit ${f.limit.toLocaleString('en-US')} this window` : ''
+              }${
+                f.afford.affordable
+                  ? ` · your gp covers ${f.afford.units.toLocaleString('en-US')}${f.afford.limited ? ' (GE-limit capped)' : ''}`
+                  : ` · costs more than your gp — can't open one yet`
               }`}
             >
               <span>{names.get(f.id) ?? f.id}</span>
@@ -85,6 +132,12 @@ export function TopFlips({
               </span>
               <span className="pct up">
                 +{f.margin.toLocaleString('en-US')} <span className="froi">{(f.roi * 100).toFixed(f.roi < 0.1 ? 1 : 0)}%</span>
+              </span>
+              <span
+                className={`flipafford${f.afford.affordable ? '' : ' short'}`}
+                title={f.afford.affordable ? 'units your gp can buy now' : 'beyond your purse'}
+              >
+                {f.afford.affordable ? `×${f.afford.units.toLocaleString('en-US')}` : '✕'}
               </span>
             </li>
           ))}
