@@ -679,6 +679,12 @@ export function nextRoundTarget(n: number): number {
   return 10 ** (k + 1);
 }
 
+/** Whether a price alert is hit: a 'below' (buy) alert fires at/under its
+ * threshold, an 'above' (sell/take-profit) alert at/over it. Pure. */
+export function alertHit(last: number, threshold: number, dir: 'below' | 'above'): boolean {
+  return dir === 'below' ? last <= threshold : last >= threshold;
+}
+
 /** Offline earning rate in gp/min (1 offline tick ≡ 1 second, so ticks/60 =
  * minutes away). 0 when no time passed. Pure. */
 export function offlineRatePerMin(delta: number, ticks: number): number {

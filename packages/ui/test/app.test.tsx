@@ -38,6 +38,7 @@ import {
   fmtCompact,
   fmtDuration,
   ghostForRestart,
+  alertHit,
   applyFillToBook,
   bookFromFills,
   emptyTradeBook,
@@ -1439,6 +1440,28 @@ describe('UI shell', () => {
     expect(watch.querySelector('.mover.alerted')).toBeTruthy();
     localStorage.removeItem('ew-watch');
     localStorage.removeItem('ew-alerts');
+  });
+
+  describe('alertHit', () => {
+    it('below fires at/under the threshold, above fires at/over', () => {
+      expect(alertHit(90, 100, 'below')).toBe(true);
+      expect(alertHit(100, 100, 'below')).toBe(true);
+      expect(alertHit(110, 100, 'below')).toBe(false);
+      expect(alertHit(110, 100, 'above')).toBe(true);
+      expect(alertHit(100, 100, 'above')).toBe(true);
+      expect(alertHit(90, 100, 'above')).toBe(false);
+    });
+  });
+
+  it('price alert: a sell-above (take-profit) threshold fires when the price climbs to it', () => {
+    localStorage.setItem('ew-watch', JSON.stringify([FIRST.id]));
+    localStorage.setItem('ew-sell-alerts', JSON.stringify({ [FIRST.id]: 1 })); // any price ≥ 1 → always met
+    render(<App initial={newGame(42)} />);
+    fireEvent.click(screen.getByText('+1k')); // advance → refreshProgress runs the sell-alert checks
+    const watch = document.querySelector('.watchlist') as HTMLElement;
+    expect(watch.querySelector('.mover.alerted')).toBeTruthy();
+    localStorage.removeItem('ew-watch');
+    localStorage.removeItem('ew-sell-alerts');
   });
 
   it('watchlist: star from the ticket, the item appears in the watch panel', () => {

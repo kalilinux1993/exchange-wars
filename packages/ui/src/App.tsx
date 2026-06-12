@@ -27,6 +27,7 @@ import { TradeTicket } from './components/TradeTicket';
 import { UpgradeShop } from './components/UpgradeShop';
 import { WorthChart } from './components/WorthChart';
 import {
+  alertHit,
   bumpStreak,
   checkMilestones,
   MILESTONES,
@@ -110,14 +111,23 @@ export function App({ initial }: { initial?: Game }) {
     setWatch(watch.includes(id) ? watch.filter((x) => x !== id) : [...watch, id]);
   };
   const [alerts, setAlerts] = usePref<Record<string, number>>('ew-alerts', {});
+  const [sellAlerts, setSellAlerts] = usePref<Record<string, number>>('ew-sell-alerts', {});
   const [streak, setStreak] = usePref<DailyStreak | null>('ew-daily-streak', null);
   const alertFired = useRef<Set<string>>(new Set());
+  const sellFired = useRef<Set<string>>(new Set());
   const setAlert = (id: string, price: number | null): void => {
     const next = { ...alerts };
     if (price === null || !Number.isFinite(price) || price <= 0) delete next[id];
     else next[id] = price;
     setAlerts(next);
     alertFired.current.delete(id); // re-arm on edit
+  };
+  const setSellAlert = (id: string, price: number | null): void => {
+    const next = { ...sellAlerts };
+    if (price === null || !Number.isFinite(price) || price <= 0) delete next[id];
+    else next[id] = price;
+    setSellAlerts(next);
+    sellFired.current.delete(id); // re-arm on edit
   };
   const closeHelp = (): void => {
     localStorage.setItem(HELP_SEEN_KEY, '1');
@@ -294,6 +304,19 @@ export function App({ initial }: { initial?: Game }) {
         setToast({ id: `alert-${id}`, name: `⏰ ${name} ≤ ${threshold.toLocaleString('en-US')}`, flavor: `now ${last.toLocaleString('en-US')} gp — time to buy?`, achieved: () => false });
       } else if (last > threshold) {
         alertFired.current.delete(id);
+      }
+    }
+    // Take-profit alerts: fire once when a watched item climbs to its sell
+    // threshold; re-arm when it falls back below.
+    for (const [id, threshold] of Object.entries(sellAlerts)) {
+      const last = v.markets.find((m) => m.itemId === id)?.lastPrice;
+      if (last === undefined) continue;
+      if (alertHit(last, threshold, 'above') && !sellFired.current.has(id)) {
+        sellFired.current.add(id);
+        const name = game.world.items.find((i) => i.id === id)?.name ?? id;
+        setToast({ id: `sell-alert-${id}`, name: `⏰ ${name} ≥ ${threshold.toLocaleString('en-US')}`, flavor: `now ${last.toLocaleString('en-US')} gp — time to sell?`, achieved: () => false });
+      } else if (last < threshold) {
+        sellFired.current.delete(id);
       }
     }
   };
@@ -790,9 +813,11 @@ export function App({ initial }: { initial?: Game }) {
             items={game.world.items}
             watch={watch}
             alerts={alerts}
+            sellAlerts={sellAlerts}
             onSelect={setSelected}
             onRemove={toggleWatch}
             onSetAlert={setAlert}
+            onSetSellAlert={setSellAlert}
           />
           <NewsLog log={game.newsLog} />
         </section>
