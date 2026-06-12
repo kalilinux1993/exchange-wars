@@ -235,7 +235,7 @@ export function ExpeditionPanel({
         <p className="dim small">{REGIONS[regionIndex(regionId)]?.flavor}</p>
         {(() => {
           const d = regionDanger(REGIONS[regionIndex(regionId)]!);
-          const eff = deriveStats(agent?.inventory ?? {}, lvls);
+          const eff = deriveStats(agent?.inventory ?? {}, lvls, agent?.worn);
           const atkBad = d.atk > eff.def; // their hits land hard through your armour
           const defBad = d.def >= eff.atk; // your hits barely dent them
           return (
@@ -257,7 +257,7 @@ export function ExpeditionPanel({
         {(() => {
           const region = REGIONS[regionIndex(regionId)]!;
           const d = regionDanger(region);
-          const eff = deriveStats(agent?.inventory ?? {}, lvls);
+          const eff = deriveStats(agent?.inventory ?? {}, lvls, agent?.worn);
           const f = combatForecast({ atk: eff.atk, def: eff.def, hp: trainedMax }, { atk: d.atk, def: d.def, hp: d.hp });
           const roster = region.elite ? [...region.monsters, region.elite] : region.monsters;
           const fiery = roster.some((id) => monsterById(id).dragonfire);
@@ -451,7 +451,7 @@ export function ExpeditionPanel({
   }
 
   const region = REGIONS[regionIndex(exp.regionId)]!;
-  const stats = deriveStats(exp.pack, lvls);
+  const stats = deriveStats(exp.pack, lvls, agent?.worn); // worn overrides the pack — mirror the engine's combat
   // Which equipment slots the fighter actually has usable gear in — drives the
   // combat-scene figure, mirroring the paperdoll's per-slot logic.
   const fighterKit = { weapon: false, helm: false, body: false, legs: false, shield: false };

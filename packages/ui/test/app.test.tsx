@@ -2787,6 +2787,26 @@ describe('UI shell', () => {
     expect(bestiary.textContent).toMatch(/⚔4 🛡1/); // goblin atk 4 / def 1
   });
 
+  it('the dive stats reflect equipped gear (worn overrides the pack, matching combat)', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.combatXp = { atk: xpForLevel(99), def: xpForLevel(99), hp: 0 };
+    agent.worn = { weapon: 'rune_2h_sword' }; // atk 45 — equipped, not packed
+    agent.expedition = {
+      regionId: 'lumbridge_plains',
+      rngState: 1,
+      hp: 50,
+      pack: {},
+      packGp: 0,
+      cleared: 0,
+      combat: null,
+    };
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    // base atk 5 + (99−1) levels + worn rune_2h_sword 45 = 148 (NOT 103 without the weapon)
+    expect(screen.getByText(/atk 148/)).toBeTruthy();
+  });
+
   it('the combat scene renders the foe and animates a hit splat per round', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;
