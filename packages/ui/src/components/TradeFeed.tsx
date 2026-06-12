@@ -1,6 +1,7 @@
+import { GE_TAX_RATE } from '@exchange-wars/engine';
 import type { ItemDef, Trade } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import type { Fill } from '../game';
+import { recentFlips, type Fill } from '../game';
 
 /** Content key — unique in practice: recordFills dedupes identical fills. */
 function fillKey(f: Fill): string {
@@ -18,7 +19,7 @@ export function TradeFeed({
   items: ItemDef[];
   playerId: number;
 }) {
-  const [mode, setMode] = useState<'tape' | 'mine'>('tape');
+  const [mode, setMode] = useState<'tape' | 'mine' | 'flips'>('tape');
   const names = new Map(items.map((i) => [i.id, i.name]));
 
   // Glow the panel once whenever a NEW personal fill lands (works on either
@@ -46,6 +47,9 @@ export function TradeFeed({
         </button>{' '}
         <button className={mode === 'mine' ? 'chip active' : 'chip'} onClick={() => setMode('mine')}>
           mine
+        </button>{' '}
+        <button className={mode === 'flips' ? 'chip active' : 'chip'} onClick={() => setMode('flips')} title="your recent completed round-trips, with net profit after tax">
+          flips
         </button>
       </h2>
       {mode === 'tape' ? (
@@ -68,7 +72,7 @@ export function TradeFeed({
             })}
           {trades.length === 0 && <li className="dim">no trades yet — press play</li>}
         </ul>
-      ) : (
+      ) : mode === 'mine' ? (
         // mine-list: stable keys mean a row's mount == a new fill, so the CSS
         // mount animation flashes each fill exactly once (rerenders reuse DOM).
         <ul className="rows small mine-list">
@@ -100,6 +104,27 @@ export function TradeFeed({
                 gp
               </span>
             </li>
+          )}
+        </ul>
+      ) : (
+        // flips: the same fills, FIFO-matched into completed round-trips so you
+        // can see which of your recent trades actually profited (after tax).
+        <ul className="rows small">
+          {recentFlips(fills, GE_TAX_RATE).map((fl) => (
+            <li key={`${fl.tick}-${fl.itemId}-${fl.sellPrice}`}>
+              <span className="dim num">t{fl.tick.toLocaleString('en-US')}</span>
+              <span>{names.get(fl.itemId) ?? fl.itemId}</span>
+              <span className="num dim">
+                ×{fl.qty} {fl.buyAvg.toLocaleString('en-US')}→{fl.sellPrice.toLocaleString('en-US')}
+              </span>
+              <span className={fl.profit >= 0 ? 'pct up' : 'pct down'}>
+                {fl.profit >= 0 ? '+' : ''}
+                {fl.profit.toLocaleString('en-US')}
+              </span>
+            </li>
+          ))}
+          {recentFlips(fills, GE_TAX_RATE).length === 0 && (
+            <li className="dim">no completed flips in the window — sell something you bought</li>
           )}
         </ul>
       )}

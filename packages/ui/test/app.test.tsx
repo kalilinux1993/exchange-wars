@@ -74,6 +74,7 @@ import {
   realizedFromBook,
   tradeRecord,
   recordFills,
+  recentFlips,
   fillSummary,
   fillToastFlavor,
   realizedPnL,
@@ -2887,6 +2888,39 @@ describe('UI shell', () => {
     const ticket = document.querySelector('.ticket') as HTMLElement;
     fireEvent.click(within(ticket).getByRole('button', { name: 'sell' }));
     expect(screen.getByText(/you hold only 0/)).toBeTruthy(); // empty satchel
+  });
+
+  describe('recentFlips', () => {
+    const f = (tick: number, side: 'buy' | 'sell', qty: number, price: number, itemId = 'a') => ({ tick, side, itemId, qty, price });
+    it('FIFO-matches sells against earlier buys and nets the tax', () => {
+      // buy 10 @ 100, sell 10 @ 150 → proceeds 150-floor(150*.02)=147; profit (147-100)*10 = 470
+      const flips = recentFlips([f(1, 'buy', 10, 100), f(2, 'sell', 10, 150)], 0.02);
+      expect(flips).toHaveLength(1);
+      expect(flips[0]).toMatchObject({ itemId: 'a', qty: 10, buyAvg: 100, sellPrice: 150, profit: 470, tick: 2 });
+    });
+    it('drops a sell with no matching buy (dumped loot)', () => {
+      expect(recentFlips([f(1, 'sell', 5, 100)], 0.02)).toEqual([]);
+    });
+    it('blends multiple buy lots into one flip and orders newest first', () => {
+      const flips = recentFlips(
+        [f(1, 'buy', 5, 100), f(2, 'buy', 5, 200), f(3, 'sell', 10, 300), f(4, 'sell', 1, 50, 'b'), f(4, 'buy', 1, 10, 'b')],
+        0.02,
+      );
+      expect(flips[0]!.tick).toBe(3); // newest completed flip first
+      expect(flips[0]!.buyAvg).toBe(150); // (5×100 + 5×200)/10
+    });
+  });
+
+  it('TradeFeed "flips" mode shows completed round-trips with profit', () => {
+    const fills = [
+      { tick: 1, itemId: FIRST.id, side: 'buy' as const, qty: 10, price: 100 },
+      { tick: 2, itemId: FIRST.id, side: 'sell' as const, qty: 10, price: 150 },
+    ];
+    const { container } = render(<TradeFeed trades={[]} fills={fills} items={[FIRST]} playerId={1} />);
+    fireEvent.click(screen.getByRole('button', { name: 'flips' }));
+    const text = container.querySelector('.feed')!.textContent ?? '';
+    expect(text).toContain('100→150'); // the round-trip's buy→sell
+    expect(text).toContain('+470'); // net profit after tax
   });
 
   it('the feed glows on a NEW personal fill, not on save load', () => {

@@ -393,6 +393,58 @@ export function recordFills(game: Game): Fill[] {
   return fresh;
 }
 
+/** A completed round-trip: buy lot(s) closed out by a sell, with its net profit. */
+export interface FlipRecord {
+  itemId: string;
+  qty: number; // units this sell closed against earlier buys
+  buyAvg: number; // weighted-avg cost of the matched buy lots
+  sellPrice: number; // the sell price (pre-tax, as shown)
+  profit: number; // (post-tax proceeds − buy cost) over qty
+  tick: number; // the sell's tick
+}
+
+/**
+ * Recent COMPLETED flips from the fills window — FIFO-matches each sell against
+ * earlier buys (same tax as applyFillToBook), so "did my last few trades work?"
+ * is a glance the per-item ProfitPanel and the raw fills feed don't give. A sell
+ * with no matching buy (dumped loot/spoils) yields no record. Newest first. Pure.
+ */
+export function recentFlips(fills: Fill[], taxRate: number, limit = 6): FlipRecord[] {
+  const lots: Record<string, { price: number; qty: number }[]> = {};
+  const flips: FlipRecord[] = [];
+  for (const f of fills) {
+    if (f.side === 'buy') {
+      (lots[f.itemId] ??= []).push({ price: f.price, qty: f.qty });
+      continue;
+    }
+    const proceeds = f.price - Math.floor(f.price * taxRate); // per-unit, after tax
+    const itemLots = lots[f.itemId] ?? [];
+    let remaining = f.qty;
+    let matched = 0;
+    let buyCost = 0;
+    while (remaining > 0 && itemLots.length > 0) {
+      const lot = itemLots[0]!;
+      const take = Math.min(remaining, lot.qty);
+      buyCost += lot.price * take;
+      matched += take;
+      lot.qty -= take;
+      remaining -= take;
+      if (lot.qty === 0) itemLots.shift();
+    }
+    if (matched > 0) {
+      flips.push({
+        itemId: f.itemId,
+        qty: matched,
+        buyAvg: Math.round(buyCost / matched),
+        sellPrice: f.price,
+        profit: proceeds * matched - buyCost,
+        tick: f.tick,
+      });
+    }
+  }
+  return flips.sort((a, b) => b.tick - a.tick || (a.itemId < b.itemId ? -1 : 1)).slice(0, limit);
+}
+
 /** A one-line "your offers filled" summary (units bought/sold), or null if none. */
 export function fillSummary(fills: Fill[]): string | null {
   let bought = 0;
