@@ -481,6 +481,10 @@ export function ExpeditionPanel({
         <>
           {(() => {
             const m = monsterById(exp.combat!.monsterId);
+            // Your effective combat stats this fight (gear + dive brew) — drives
+            // both the know-your-enemy readout and the live forecast below.
+            const youAtk = stats.atk + (exp.boost?.atk ?? 0);
+            const youDef = stats.def + (exp.boost?.def ?? 0);
             return (
               <>
                 <CombatScene
@@ -493,15 +497,18 @@ export function ExpeditionPanel({
                 />
                 <p className="small">
                   <b>{m.name}</b> — {Math.max(0, exp.combat!.monsterHp)}/{m.hp} hp · you{' '}
-                  {Math.max(0, exp.combat!.playerHp)}/{exp.combat!.maxHp ?? trainedMax}
+                  {Math.max(0, exp.combat!.playerHp)}/{exp.combat!.maxHp ?? trainedMax}{' '}
+                  <span className="dim" title="the foe's attack vs your defence, and its defence vs your attack — red means it out-matches you on that axis (same lens as the region danger read)">
+                    · ⚔<b className={m.atk > youDef ? 'down' : 'up'}>{m.atk}</b> 🛡
+                    <b className={m.def > youAtk ? 'down' : 'up'}>{m.def}</b>
+                    {m.dragonfire ? (exp.combat!.antifire ? ' 🛡🔥' : ' 🔥') : ''}
+                  </span>
                 </p>
                 {(() => {
                   // Live read at the CURRENT hp — should I push or flee? Counts
                   // dragonfire (+ceil(atk/2)/round when no antifire) so it doesn't
                   // lie in a dragon fight. Estimate (rolls vary); leech drains loot
                   // not hp, so it's irrelevant to the survival race.
-                  const youAtk = stats.atk + (exp.boost?.atk ?? 0);
-                  const youDef = stats.def + (exp.boost?.def ?? 0);
                   const dragonBonus = m.dragonfire && !exp.combat!.antifire ? Math.ceil(m.atk / 2) : 0;
                   const f = combatForecast(
                     { atk: youAtk, def: youDef, hp: exp.combat!.playerHp },

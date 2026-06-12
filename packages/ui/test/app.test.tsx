@@ -2620,6 +2620,26 @@ describe('UI shell', () => {
     expect(read?.textContent).toMatch(/bank your haul/); // nudges extract while loot's at stake
   });
 
+  it('the combat view shows the foe stats with danger colour (know your enemy)', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.expedition = {
+      regionId: 'lumbridge_plains',
+      rngState: 1,
+      hp: 50,
+      pack: {},
+      packGp: 0,
+      cleared: 0,
+      combat: { monsterId: 'goblin', monsterHp: 12, playerHp: 50, antifire: false, maxHp: 50, outcome: 'fighting', lootGp: 0, lootItems: [], log: ['a goblin blocks the path'] },
+    };
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const foeStats = screen.getByTitle(/out-matches/);
+    // goblin atk 4 > your def 2 → red (.down); goblin def 1 < your atk 5 → green (.up)
+    expect(foeStats.querySelector('.down')?.textContent).toBe('4');
+    expect(foeStats.querySelector('.up')?.textContent).toBe('1');
+  });
+
   it('the combat scene renders the foe and animates a hit splat per round', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;
