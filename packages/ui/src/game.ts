@@ -199,6 +199,31 @@ export function recentDelves(delves: DelveRecord[] | undefined, n: number): Delv
   return (delves ?? []).slice(-n).reverse();
 }
 
+/** Lifetime raid risk/reward from the Delve Log — the raiding counterpart to trading P&L. */
+export interface RaidTotals {
+  runs: number;
+  deaths: number;
+  banked: number; // loot gp kept from delves you survived
+  lost: number; // loot gp forfeited to the dark on deaths
+}
+
+/** Aggregate the Delve Log: loot banked on survival vs lost to deaths, and the counts. Pure. */
+export function raidTotals(delves: DelveRecord[] | undefined): RaidTotals {
+  const list = delves ?? [];
+  let banked = 0;
+  let lost = 0;
+  let deaths = 0;
+  for (const d of list) {
+    if (d.died) {
+      lost += d.lootGp;
+      deaths += 1;
+    } else {
+      banked += d.lootGp;
+    }
+  }
+  return { runs: list.length, deaths, banked, lost };
+}
+
 /** A region's full native roster: its encounter pool + named elite, deduped, order-stable. */
 export function regionRoster(region: { monsters: string[]; elite?: string }): string[] {
   const ids = region.elite ? [...region.monsters, region.elite] : [...region.monsters];

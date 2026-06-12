@@ -79,6 +79,7 @@ import {
   nextRowIndex,
   summarizeDelve,
   recentDelves,
+  raidTotals,
   totalRealized,
   totalUnrealized,
   updateNews,
@@ -576,9 +577,20 @@ describe('UI shell', () => {
         { tick: game.world.tick, regionId: REGIONS[0]!.id, kills: 1, lootGp: 300, died: true },
       ];
       render(<DelvePanel game={game} />);
-      expect(screen.getByText(/2 logged/)).toBeTruthy();
+      expect(screen.getByText(/2 runs/)).toBeTruthy();
+      expect(screen.getByText(/banked/)).toBeTruthy(); // 500 from the survived run
+      expect(screen.getByText(/lost/)).toBeTruthy(); // 300 forfeited to the death
       expect(screen.getByText('🏆', { exact: false })).toBeTruthy(); // survived row
       expect(screen.getByText('☠', { exact: false })).toBeTruthy(); // died row
+    });
+    it('raidTotals sums loot banked on survival vs lost to deaths', () => {
+      expect(raidTotals(undefined)).toEqual({ runs: 0, deaths: 0, banked: 0, lost: 0 });
+      const delves = [
+        { tick: 0, regionId: 'r', kills: 2, lootGp: 500, died: false },
+        { tick: 1, regionId: 'r', kills: 4, lootGp: 900, died: false },
+        { tick: 2, regionId: 'r', kills: 1, lootGp: 300, died: true },
+      ];
+      expect(raidTotals(delves)).toEqual({ runs: 3, deaths: 1, banked: 1400, lost: 300 });
     });
     it('a Delve Log row calls onPick with its region (raid here again)', () => {
       const game = newGame(42);

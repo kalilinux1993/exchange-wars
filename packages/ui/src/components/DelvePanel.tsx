@@ -1,6 +1,6 @@
 import { REGIONS, regionIndex } from '@exchange-wars/engine';
 import type { Game } from '../game';
-import { fmtCompact, fmtDuration, recentDelves } from '../game';
+import { fmtCompact, fmtDuration, raidTotals, recentDelves } from '../game';
 
 /**
  * Delve Log (12i): a persistent chronicle of finished expeditions — the
@@ -19,11 +19,25 @@ export function DelvePanel({
   onPick?: (regionId: string) => void;
 }) {
   const rows = recentDelves(game.delves, limit);
-  const total = game.delves?.length ?? 0;
+  const t = raidTotals(game.delves);
   return (
     <section className="panel delvelog">
       <h2>
-        Delve Log {total > 0 && <span className="dim small">{total} logged</span>}
+        Delve Log{' '}
+        {t.runs > 0 && (
+          <span
+            className="dim small"
+            title="loot gp kept from delves you survived vs forfeited to the dark on deaths — your raiding risk/reward, the counterpart to trading realized profit"
+          >
+            {t.runs} run{t.runs === 1 ? '' : 's'} · <b className="pct up">{fmtCompact(t.banked)}</b> banked
+            {t.lost > 0 && (
+              <>
+                {' · '}
+                <b className="pct down">{fmtCompact(t.lost)}</b> lost
+              </>
+            )}
+          </span>
+        )}
       </h2>
       {rows.length === 0 ? (
         <p className="dim small">no expeditions yet — finish a raid in the Adventure tab and it will chronicle here</p>
