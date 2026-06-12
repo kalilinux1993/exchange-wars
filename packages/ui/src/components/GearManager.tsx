@@ -28,7 +28,17 @@ export function GearManager({
   const inv = agent?.inventory ?? {};
   const worn = agent?.worn ?? {};
   const lvls = levelsOf(agent?.combatXp);
-  const ownedGear = items.filter((i) => (inv[i.id] ?? 0) > 0 && GEAR[i.id] !== undefined);
+  // Owned gear, each with its upgrade verdict, ordered most-actionable-first:
+  // wearable upgrades by biggest gain, then sidegrades/downgrades, then the
+  // locked (under-level) pieces last — so what's worth equipping is up top.
+  const ownedGear = items
+    .filter((i) => (inv[i.id] ?? 0) > 0 && GEAR[i.id] !== undefined)
+    .map((i) => ({ item: i, gd: gearDelta(i.id, worn, lvls)! }))
+    .sort((a, b) => {
+      if (a.gd.usable !== b.gd.usable) return a.gd.usable ? -1 : 1; // locked sinks
+      if (b.gd.delta !== a.gd.delta) return b.gd.delta - a.gd.delta; // biggest upgrade first
+      return a.item.name < b.item.name ? -1 : 1;
+    });
   const wornSlots = Object.entries(worn);
 
   return (
@@ -69,9 +79,8 @@ export function GearManager({
         </p>
       ) : (
         <ul className="rows small">
-          {ownedGear.map((i) => {
+          {ownedGear.map(({ item: i, gd }) => {
             const g = GEAR[i.id]!;
-            const gd = gearDelta(i.id, worn, lvls)!;
             const sk = gd.skill === 'atk' ? 'Attack' : 'Defence';
             const skShort = gd.skill === 'atk' ? 'atk' : 'def';
             const equipped = worn[g.slot] === i.id;

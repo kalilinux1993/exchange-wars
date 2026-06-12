@@ -1081,6 +1081,24 @@ describe('UI shell', () => {
       fireEvent.click(screen.getByRole('button', { name: 'unequip' }));
       expect(onCommand).toHaveBeenCalledWith({ type: 'unequip', slot: 'weapon' });
     });
+
+    it('orders owned gear with the biggest upgrade first', () => {
+      const agent = {
+        inventory: { rune_dart: 1, dragon_longsword: 1, rune_2h_sword: 1 }, // atk 16 / 50 / 45
+        worn: {}, // empty weapon slot → delta = full atk
+        combatXp: { atk: xpForLevel(99), def: xpForLevel(99), hp: 0 },
+      } as unknown as AgentState;
+      const items = [
+        { id: 'rune_dart', name: 'Rune dart' },
+        { id: 'dragon_longsword', name: 'Dragon longsword' },
+        { id: 'rune_2h_sword', name: 'Rune 2h sword' },
+      ] as unknown as ItemDef[];
+      const { container } = render(<GearManager agent={agent} items={items} onCommand={() => {}} />);
+      const names = Array.from(container.querySelectorAll('li')).map((r) => r.textContent ?? '');
+      const at = (n: string) => names.findIndex((t) => t.includes(n));
+      expect(at('Dragon longsword')).toBeLessThan(at('Rune 2h sword')); // +50 above +45
+      expect(at('Rune 2h sword')).toBeLessThan(at('Rune dart')); // +45 above +16
+    });
   });
 
   it('PlayerPanel equips your best gear in one click', () => {
