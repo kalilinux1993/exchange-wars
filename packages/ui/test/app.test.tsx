@@ -59,6 +59,8 @@ import {
   realizedFromBook,
   realizedPnL,
   streakAtRisk,
+  recordDailyBest,
+  dailyBestView,
   totalRealized,
   totalUnrealized,
   updateNews,
@@ -404,6 +406,48 @@ describe('UI shell', () => {
     localStorage.setItem('ew-daily-streak', JSON.stringify({ count: 4, lastDay: yesterday, best: 4 }));
     render(<App initial={newGame(dailySeed())} />);
     expect(screen.queryByText(/keep your streak/i)).toBeNull();
+  });
+
+  describe('recordDailyBest', () => {
+    const TODAY = 20260611;
+    it('first play of a daily starts the record at the current worth', () => {
+      expect(recordDailyBest(null, TODAY, 1000)).toEqual({ day: TODAY, best: 1000 });
+    });
+    it('keeps the running max on the same day', () => {
+      expect(recordDailyBest({ day: TODAY, best: 1000 }, TODAY, 1500)).toEqual({ day: TODAY, best: 1500 });
+    });
+    it('returns the same ref when worth does not beat the record (skips the write)', () => {
+      const prev = { day: TODAY, best: 1500 };
+      expect(recordDailyBest(prev, TODAY, 1200)).toBe(prev); // identity — no new high
+    });
+    it('a new day resets the record to the current worth', () => {
+      expect(recordDailyBest({ day: TODAY, best: 1500 }, 20260612, 800)).toEqual({ day: 20260612, best: 800 });
+    });
+  });
+
+  describe('dailyBestView', () => {
+    const TODAY = 20260611;
+    it('hidden off the record day, or before any progress past the start', () => {
+      expect(dailyBestView(null, TODAY, 9999, 100)).toBeNull();
+      expect(dailyBestView({ day: 20260610, best: 5000 }, TODAY, 9999, 100)).toBeNull(); // stale day
+      expect(dailyBestView({ day: TODAY, best: 100 }, TODAY, 100, 100)).toBeNull(); // best == start, no progress
+    });
+    it('shown once past the start; atPeak true only when worth is at/above the best', () => {
+      expect(dailyBestView({ day: TODAY, best: 1500 }, TODAY, 1200, 1000)).toEqual({ best: 1500, atPeak: false });
+      expect(dailyBestView({ day: TODAY, best: 1500 }, TODAY, 1500, 1000)).toEqual({ best: 1500, atPeak: true });
+    });
+  });
+
+  it('shows your daily best to beat on the daily, persisted across reloads', () => {
+    localStorage.setItem('ew-daily-best', JSON.stringify({ day: dailySeed(), best: HUMAN_START_GP + 10_000 }));
+    render(<App initial={newGame(dailySeed())} />);
+    expect(screen.getByText(`🏁 ${fmtCompact(HUMAN_START_GP + 10_000)}`)).toBeTruthy();
+  });
+
+  it('shows no daily-best tag off the daily', () => {
+    localStorage.setItem('ew-daily-best', JSON.stringify({ day: dailySeed(), best: HUMAN_START_GP + 10_000 }));
+    render(<App initial={newGame(42)} />);
+    expect(screen.queryByText(/🏁/)).toBeNull();
   });
 
   it('loadCorruptSave / discardCorruptSave round-trip the quarantine', () => {

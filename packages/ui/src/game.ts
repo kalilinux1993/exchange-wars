@@ -118,6 +118,43 @@ export function streakAtRisk(streak: DailyStreak | null, today: number): boolean
   return streak !== null && streakDaySpan(streak.lastDay, today) === 1;
 }
 
+/** A localStorage-only per-day high score: the best net worth reached on one daily seed. */
+export interface DailyBest {
+  /** the dailySeed() value (YYYYMMDD) this record belongs to */
+  day: number;
+  /** highest net worth reached while playing that day's daily */
+  best: number;
+}
+
+/**
+ * Track the best net worth on `today`'s daily. Pure: the caller passes today's
+ * seed and the current worth. A new day (or first ever) starts the record at the
+ * current worth; the same day keeps the running max. Returns the SAME reference
+ * when the record didn't move — worth changes most ticks but a new high is rare,
+ * so the caller can skip the localStorage write (mirrors bumpStreak's contract).
+ */
+export function recordDailyBest(prev: DailyBest | null, today: number, worth: number): DailyBest {
+  if (prev && prev.day === today) return worth > prev.best ? { day: today, best: worth } : prev;
+  return { day: today, best: worth };
+}
+
+/**
+ * Display decision for the daily-best tag, kept pure so "when to show + are we at
+ * a new peak" is tested, not buried in JSX. Hidden (null) off the record's day or
+ * before any real progress (best ≤ where you started — no baseline noise). When
+ * shown, `atPeak` is true while current worth is at/above the stored best — i.e.
+ * you're setting a new record right now.
+ */
+export function dailyBestView(
+  best: DailyBest | null,
+  today: number,
+  worth: number,
+  startGp: number,
+): { best: number; atPeak: boolean } | null {
+  if (!best || best.day !== today || best.best <= startGp) return null;
+  return { best: best.best, atPeak: worth >= best.best };
+}
+
 /**
  * Restarting the SAME seed keeps your best previous run as a chart ghost
  * (best = highest final worth, comparing the run being abandoned against any

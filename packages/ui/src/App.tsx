@@ -30,6 +30,8 @@ import { WorthChart } from './components/WorthChart';
 import {
   alertHit,
   bumpStreak,
+  recordDailyBest,
+  dailyBestView,
   checkMilestones,
   MILESTONES,
   finishOfflineProgress,
@@ -56,6 +58,7 @@ import {
   updateNews,
   worthRate,
   type DailyStreak,
+  type DailyBest,
   type Game,
   type Milestone,
   type OfflinePlan,
@@ -114,6 +117,7 @@ export function App({ initial }: { initial?: Game }) {
   const [alerts, setAlerts] = usePref<Record<string, number>>('ew-alerts', {});
   const [sellAlerts, setSellAlerts] = usePref<Record<string, number>>('ew-sell-alerts', {});
   const [streak, setStreak] = usePref<DailyStreak | null>('ew-daily-streak', null);
+  const [dailyBest, setDailyBest] = usePref<DailyBest | null>('ew-daily-best', null);
   const alertFired = useRef<Set<string>>(new Set());
   const sellFired = useRef<Set<string>>(new Set());
   const setAlert = (id: string, price: number | null): void => {
@@ -236,6 +240,17 @@ export function App({ initial }: { initial?: Game }) {
     if (next !== streak) setStreak(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.world.seed]);
+
+  // Daily personal best: while on today's daily, keep the highest net worth ever
+  // reached on this seed (persisted, so it survives reloads and becomes the record
+  // to beat next time). recordDailyBest returns the same ref unless a new high or a
+  // new day, so the write only fires on a genuine record — not every tick.
+  useEffect(() => {
+    if (game.world.seed !== dailySeed()) return;
+    const next = recordDailyBest(dailyBest, dailySeed(), playerWorth(game));
+    if (next !== dailyBest) setDailyBest(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.world.tick, game.world.seed]);
 
   // Keyboard shortcuts: 1/2/3 rooms, p pause/play, ? help. Guarded so we never
   // hijack a key while the player is typing in a field or holding a modifier.
@@ -511,6 +526,23 @@ export function App({ initial }: { initial?: Game }) {
               🔥 {streak.count}
             </span>
           )}
+          {game.world.seed === dailySeed() &&
+            (() => {
+              const v = dailyBestView(dailyBest, dailySeed(), playerWorth(game), game.startGp);
+              return (
+                v && (
+                  <span
+                    className="besttag"
+                    title={`your best net worth on today's daily: ${v.best.toLocaleString('en-US')} gp${
+                      v.atPeak ? ' — you’re setting a new record right now' : ' — beat it'
+                    }`}
+                  >
+                    🏁 {fmtCompact(v.best)}
+                    {v.atPeak && <span className="pct up"> ▲</span>}
+                  </span>
+                )
+              );
+            })()}
         </div>
         {(() => {
           // Market pulse: breadth (items above/below their EMA) + live events —

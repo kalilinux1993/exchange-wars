@@ -112,6 +112,22 @@ body {
   cursor: default;
 }
 
+/* daily personal-best — the record to beat on today's daily. Cool emerald to set
+   it apart from the gold daily tag and the orange streak ember. */
+.besttag {
+  align-self: center;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #d2f5e3;
+  background: linear-gradient(180deg, #0f766e, #134e4a 80%);
+  border: 1px solid #2dd4bf;
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  cursor: default;
+}
+
 /* streak-at-risk call-to-action — louder than the passive ember, it's a button. */
 .streaknudge {
   align-self: center;
