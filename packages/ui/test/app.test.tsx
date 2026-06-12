@@ -16,6 +16,7 @@ import { RecordsPanel, recordRows } from '../src/components/RecordsPanel';
 import { regionDanger } from '../src/components/ExpeditionPanel';
 import { resolveShortcut } from '../src/keyboard';
 import { ProfitPanel } from '../src/components/ProfitPanel';
+import { PositionsPanel } from '../src/components/PositionsPanel';
 import { depthSplit } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
@@ -52,6 +53,7 @@ import {
   OFFLINE_CAP_TICKS,
   openFromBook,
   openPosition,
+  heldPositions,
   parseChallengeSeed,
   realizedFromBook,
   realizedPnL,
@@ -660,6 +662,53 @@ describe('UI shell', () => {
     const view = { markets: [] } as unknown as PlayerView;
     render(<ProfitPanel game={newGame(42)} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} />);
     expect(screen.getByText(/no completed flips yet/i)).toBeTruthy();
+  });
+
+  describe('heldPositions', () => {
+    const mk = (lots: Record<string, { price: number; qty: number }[]>) => ({ lots, realized: {} });
+    it('marks each held position to a live price, best paper P&L first', () => {
+      const book = mk({ a: [{ price: 100, qty: 10 }], b: [{ price: 50, qty: 5 }] });
+      const mark: Record<string, number> = { a: 130, b: 40 }; // a +300 (+30%), b -50 (-20%)
+      const pos = heldPositions(book, (id) => mark[id] ?? 0);
+      expect(pos.map((p) => p.itemId)).toEqual(['a', 'b']); // +300 sorts before -50
+      expect(pos[0]).toMatchObject({
+        itemId: 'a',
+        units: 10,
+        avgCost: 100,
+        mark: 130,
+        marked: true,
+        value: 1300,
+        cost: 1000,
+        unrealized: 300,
+      });
+      expect(pos[0]!.unrealizedPct).toBeCloseTo(0.3);
+      expect(pos[1]).toMatchObject({ itemId: 'b', unrealized: -50 });
+    });
+    it('an unmarked position (no live price) is listed flat, not a fake total loss', () => {
+      const [p] = heldPositions(mk({ a: [{ price: 100, qty: 4 }] }), () => 0);
+      expect(p).toMatchObject({ marked: false, mark: 100, value: 400, cost: 400, unrealized: 0, unrealizedPct: 0 });
+    });
+    it('empty book → no positions', () => {
+      expect(heldPositions(emptyTradeBook(), () => 100)).toEqual([]);
+    });
+  });
+
+  it('PositionsPanel shows held positions with paper P&L and selects on click', () => {
+    const game = newGame(42);
+    game.tradeBook = bookFromFills([{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }], 0.02);
+    const onSelect = vi.fn();
+    const view = { markets: [{ itemId: FIRST.id, lastPrice: 130 }] } as unknown as PlayerView; // +300 paper
+    render(<PositionsPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={onSelect} />);
+    expect(screen.getByText('100→130')).toBeTruthy(); // avg → mark on the row
+    expect(screen.getAllByText(/\+300/).length).toBeGreaterThan(0); // row + header paper total
+    fireEvent.click(screen.getByText(FIRST.name));
+    expect(onSelect).toHaveBeenCalledWith(FIRST.id);
+  });
+
+  it('PositionsPanel shows the empty state with no holdings', () => {
+    const view = { markets: [] } as unknown as PlayerView;
+    render(<PositionsPanel game={newGame(42)} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} />);
+    expect(screen.getByText(/no open positions/i)).toBeTruthy();
   });
 
   describe('openPosition', () => {

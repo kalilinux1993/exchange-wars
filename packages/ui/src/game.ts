@@ -275,6 +275,52 @@ export function openFromBook(book: TradeBook, itemId: string): { units: number; 
   return units > 0 ? { units, avgCost: Math.round(cost / units) } : null;
 }
 
+/** One held position, marked to a live price — the row of the Open Positions glance. */
+export interface HeldPosition {
+  itemId: string;
+  units: number;
+  avgCost: number; // weighted-average buy price per unit (from the FIFO book)
+  mark: number; // per-unit mark price (falls back to avgCost when no live price)
+  marked: boolean; // false when there's no live price — paper P&L is unknown, shown flat
+  value: number; // units * mark
+  cost: number; // units * avgCost
+  unrealized: number; // value - cost (0 when unmarked)
+  unrealizedPct: number; // unrealized / cost (0 when cost is 0)
+}
+
+/**
+ * Every open bought position, each marked at `markOf` — the portfolio glance the
+ * ticket only ever showed one item at a time. Pure (price lookup injected, book
+ * iterated in sorted id order). A position with no live price (markOf ≤ 0) is
+ * still listed but marked flat (mark = avgCost, unrealized = 0) rather than shown
+ * as a fake total loss. Sorted best paper P&L first, id tie-break — winners on top.
+ */
+export function heldPositions(book: TradeBook, markOf: (itemId: string) => number): HeldPosition[] {
+  const out: HeldPosition[] = [];
+  for (const itemId of Object.keys(book.lots).sort()) {
+    const open = openFromBook(book, itemId);
+    if (!open) continue;
+    const raw = markOf(itemId);
+    const marked = raw > 0;
+    const mark = marked ? raw : open.avgCost;
+    const cost = open.units * open.avgCost;
+    const value = open.units * mark;
+    const unrealized = value - cost;
+    out.push({
+      itemId,
+      units: open.units,
+      avgCost: open.avgCost,
+      mark,
+      marked,
+      value,
+      cost,
+      unrealized,
+      unrealizedPct: cost > 0 ? unrealized / cost : 0,
+    });
+  }
+  return out.sort((a, b) => b.unrealized - a.unrealized || (a.itemId < b.itemId ? -1 : 1));
+}
+
 /**
  * Recent *realized* profit per item: FIFO-match each sell fill against the
  * player's earlier buy fills (within the rolling fills window), netting the GE

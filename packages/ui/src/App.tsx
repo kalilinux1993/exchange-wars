@@ -17,6 +17,7 @@ import { MarketTable } from './components/MarketTable';
 import { FirstSteps } from './components/FirstSteps';
 import { TopFlips } from './components/TopFlips';
 import { ProfitPanel } from './components/ProfitPanel';
+import { PositionsPanel } from './components/PositionsPanel';
 import { MilestonesPanel } from './components/MilestonesPanel';
 import { RecordsPanel } from './components/RecordsPanel';
 import { Sparkline } from './components/Sparkline';
@@ -808,6 +809,7 @@ export function App({ initial }: { initial?: Game }) {
           />
           <MoversPanel view={view} items={game.world.items} onSelect={setSelected} />
           <ProfitPanel game={game} view={view} items={game.world.items} onSelect={setSelected} />
+          <PositionsPanel game={game} view={view} items={game.world.items} onSelect={setSelected} />
           <WatchlistPanel
             view={view}
             items={game.world.items}
