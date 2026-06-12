@@ -683,6 +683,15 @@ describe('UI shell', () => {
     expect(screen.getByText(/@ avg 100/)).toBeTruthy();
   });
 
+  it('the position line one-click loads a sell for your whole holding', () => {
+    const game = newGame(42);
+    game.tradeBook = bookFromFills([{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 7, price: 100 }], 0.02);
+    render(<App initial={game} />); // FIRST selected, open position 7 @ 100
+    fireEvent.click(screen.getByText('sell 7'));
+    expect(screen.getByText('sell').className).toContain('active'); // side toggled to sell
+    expect((screen.getByLabelText(/qty/i) as HTMLInputElement).value).toBe('7'); // full position
+  });
+
   describe('lifetime trade book', () => {
     const buy = (itemId: string, qty: number, price: number, tick = 0): Fill => ({ tick, itemId, side: 'buy', qty, price });
     const sell = (itemId: string, qty: number, price: number, tick = 1): Fill => ({ tick, itemId, side: 'sell', qty, price });

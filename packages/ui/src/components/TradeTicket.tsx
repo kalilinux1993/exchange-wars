@@ -182,7 +182,7 @@ export function TradeTicket({
           return (
             <p
               className="dim small position"
-              title="your average cost for the units you bought and still hold (recent fills) — green = unrealized profit at the current price, before the sell tax"
+              title="your average cost for the units you bought and still hold — green = unrealized profit at the current price, before the sell tax"
             >
               position: <b>{position.units.toLocaleString('en-US')}</b> @ avg{' '}
               {position.avgCost.toLocaleString('en-US')}
@@ -191,6 +191,20 @@ export function TradeTicket({
                   {' '}· {pct >= 0 ? '+' : ''}
                   {(pct * 100).toFixed(1)}% now
                 </span>
+              )}
+              {market && (
+                <button
+                  className="chip"
+                  title="load a sell order for your whole position, undercutting the ask one tick"
+                  onClick={() => {
+                    setSide('sell');
+                    setPrice(String(Math.max(1, (market.bestAsk ?? market.lastPrice) - 1)));
+                    setQty(String(position.units));
+                  }}
+                >
+                  {' '}
+                  sell {position.units.toLocaleString('en-US')}
+                </button>
               )}
             </p>
           );
