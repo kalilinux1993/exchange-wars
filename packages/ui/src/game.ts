@@ -386,6 +386,31 @@ export function realizedFromBook(book: TradeBook): ItemPnL[] {
     .sort((a, b) => b.profit - a.profit || (a.itemId < b.itemId ? -1 : 1));
 }
 
+/** Flip consistency: hit-rate + standouts, the "how often / how badly" lens. */
+export interface TradeRecord {
+  winners: number; // items closed at a net profit
+  losers: number; // items closed at a net loss
+  best: { itemId: string; profit: number } | null; // your most profitable item
+  worst: { itemId: string; profit: number } | null; // your biggest loser (the lesson)
+}
+
+/**
+ * Consistency stats over the lifetime book — complements totalRealized's
+ * magnitude with hit-rate (how OFTEN your flips win) and the worst trade (the one
+ * the top-by-profit list hides). Items are scored by NET realized profit, so a
+ * few good fills can rescue an item from the loss column. Pure; `realizedFromBook`
+ * is already profit-desc, so `best`/`worst` are its ends.
+ */
+export function tradeRecord(book: TradeBook): TradeRecord {
+  const pnl = realizedFromBook(book);
+  return {
+    winners: pnl.filter((p) => p.profit > 0).length,
+    losers: pnl.filter((p) => p.profit < 0).length,
+    best: pnl.length > 0 ? { itemId: pnl[0]!.itemId, profit: pnl[0]!.profit } : null,
+    worst: pnl.length > 0 ? { itemId: pnl[pnl.length - 1]!.itemId, profit: pnl[pnl.length - 1]!.profit } : null,
+  };
+}
+
 /** Lifetime realized P&L across all items (the "locked in" bottom line). */
 export function totalRealized(book: TradeBook): number {
   let sum = 0;

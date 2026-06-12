@@ -1,6 +1,6 @@
 import type { ItemDef, PlayerView } from '@exchange-wars/engine';
 import type { Game } from '../game';
-import { fmtCompact, realizedFromBook, totalRealized, totalUnrealized } from '../game';
+import { fmtCompact, realizedFromBook, totalRealized, totalUnrealized, tradeRecord } from '../game';
 
 /**
  * Profit by item (11b; lifetime in 11o): which items your flips actually made
@@ -44,6 +44,27 @@ export function ProfitPanel({
           </span>
         )}
       </h2>
+      {(() => {
+        const rec = tradeRecord(game.tradeBook);
+        const scored = rec.winners + rec.losers;
+        if (scored === 0) return null;
+        return (
+          <p
+            className="dim small"
+            title="how consistent your flips are — items closed in profit vs at a loss, and your single worst item (the one the top list hides)"
+          >
+            profitable on <b className="pct up">{rec.winners}</b> of {scored} item{scored === 1 ? '' : 's'}
+            {rec.worst && rec.worst.profit < 0 && (
+              <span>
+                {' · worst '}
+                <b className="pct down">
+                  {names.get(rec.worst.itemId) ?? rec.worst.itemId} {fmtCompact(rec.worst.profit)}
+                </b>
+              </span>
+            )}
+          </p>
+        );
+      })()}
       {pnl.length === 0 ? (
         <p className="dim small">no completed flips yet — buy an item then sell it to see your realized profit</p>
       ) : (

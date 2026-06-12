@@ -64,6 +64,7 @@ import {
   worthBreakdown,
   parseChallengeSeed,
   realizedFromBook,
+  tradeRecord,
   realizedPnL,
   streakAtRisk,
   recordDailyBest,
@@ -678,6 +679,44 @@ describe('UI shell', () => {
     expect(screen.getByText(/net/)).toBeTruthy();
     expect(screen.getByText('cash', { exact: false })).toBeTruthy();
     expect(screen.getByText('40%')).toBeTruthy(); // goods share
+  });
+
+  describe('tradeRecord', () => {
+    it('counts winners/losers and pins best + worst by net profit', () => {
+      const book = emptyTradeBook();
+      book.realized = {
+        a: { profit: 500, soldUnits: 5 },
+        b: { profit: -200, soldUnits: 3 },
+        c: { profit: 1200, soldUnits: 2 },
+      };
+      expect(tradeRecord(book)).toEqual({
+        winners: 2,
+        losers: 1,
+        best: { itemId: 'c', profit: 1200 },
+        worst: { itemId: 'b', profit: -200 },
+      });
+    });
+    it('empty book → zeros and no standouts', () => {
+      expect(tradeRecord(emptyTradeBook())).toEqual({ winners: 0, losers: 0, best: null, worst: null });
+    });
+  });
+
+  it('ProfitPanel shows flip consistency (hit-rate + worst item)', () => {
+    const game = newGame(42);
+    const SECOND = DEFAULT_ITEMS[1]!;
+    game.tradeBook = bookFromFills(
+      [
+        { tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 },
+        { tick: 1, itemId: FIRST.id, side: 'sell', qty: 10, price: 200 }, // win
+        { tick: 2, itemId: SECOND.id, side: 'buy', qty: 10, price: 200 },
+        { tick: 3, itemId: SECOND.id, side: 'sell', qty: 10, price: 100 }, // loss
+      ],
+      0.02,
+    );
+    const view = { markets: [] } as unknown as PlayerView;
+    render(<ProfitPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} />);
+    expect(screen.getByText(/of 2 items/)).toBeTruthy(); // both flips scored
+    expect(screen.getByText(/worst/)).toBeTruthy(); // the loss is surfaced
   });
 
   it('loadCorruptSave / discardCorruptSave round-trip the quarantine', () => {
