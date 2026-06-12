@@ -71,6 +71,7 @@ import {
   tradeRecord,
   recordFills,
   fillSummary,
+  fillToastFlavor,
   realizedPnL,
   streakAtRisk,
   recordDailyBest,
@@ -1363,6 +1364,28 @@ describe('UI shell', () => {
       expect(fresh[0]).toMatchObject({ itemId: FIRST.id, side: 'buy', qty: 5, price: 100 });
       // idempotent: a re-scan of the same trades window latches nothing new
       expect(recordFills(game)).toHaveLength(0);
+    });
+    it('fillToastFlavor names a single-item burst, aggregates a mixed one', () => {
+      const name = (id: string) => (({ shark: 'Shark', bond: 'Bond' }) as Record<string, string>)[id] ?? id;
+      expect(fillToastFlavor([], name)).toBeNull();
+      expect(
+        fillToastFlavor(
+          [
+            { tick: 0, itemId: 'shark', side: 'buy', qty: 30, price: 800 },
+            { tick: 1, itemId: 'shark', side: 'buy', qty: 20, price: 810 },
+          ],
+          name,
+        ),
+      ).toBe('bought 50 Shark'); // one item, one side → named
+      expect(
+        fillToastFlavor(
+          [
+            { tick: 0, itemId: 'shark', side: 'buy', qty: 30, price: 800 },
+            { tick: 0, itemId: 'bond', side: 'sell', qty: 5, price: 100 },
+          ],
+          name,
+        ),
+      ).toBe('bought 30 · sold 5'); // mixed items → aggregate
     });
   });
 

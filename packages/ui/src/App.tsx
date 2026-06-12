@@ -56,7 +56,7 @@ import {
   offlineRatePerMin,
   openFromBook,
   recordFills,
-  fillSummary,
+  fillToastFlavor,
   playerWorth,
   recordWorth,
   saveGame,
@@ -352,7 +352,7 @@ export function App({ initial }: { initial?: Game }) {
     // (bulk/offline fills are summarized elsewhere). Lowest-priority toast: the
     // milestone/alert toasts below run after and override it on a busy tick.
     if (notifyFills) {
-      const fs = fillSummary(newFills);
+      const fs = fillToastFlavor(newFills, (id) => game.world.items.find((i) => i.id === id)?.name ?? id);
       if (fs) setToast({ id: 'fills', name: '🪙 your offers filled', flavor: fs, achieved: () => false });
     }
     const newly = checkMilestones(game, v, w);

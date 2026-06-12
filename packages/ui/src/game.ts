@@ -407,6 +407,22 @@ export function fillSummary(fills: Fill[]): string | null {
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
+/**
+ * A richer fill toast line: when the burst is ALL one item on ONE side (the
+ * common case — a single resting order clearing), name it ("bought 50 Shark");
+ * otherwise fall back to the aggregate `fillSummary`. Pure (name lookup injected).
+ */
+export function fillToastFlavor(fills: Fill[], nameOf: (id: string) => string): string | null {
+  if (fills.length === 0) return null;
+  const oneItem = fills.every((f) => f.itemId === fills[0]!.itemId);
+  const oneSide = fills.every((f) => f.side === fills[0]!.side);
+  if (oneItem && oneSide) {
+    const qty = fills.reduce((s, f) => s + f.qty, 0);
+    return `${fills[0]!.side === 'buy' ? 'bought' : 'sold'} ${qty.toLocaleString('en-US')} ${nameOf(fills[0]!.itemId)}`;
+  }
+  return fillSummary(fills);
+}
+
 export interface ItemPnL {
   itemId: string;
   /** Realized profit on completed round-trips, gp, after the sell tax. */
