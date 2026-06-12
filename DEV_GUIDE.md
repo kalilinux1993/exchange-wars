@@ -1,5 +1,32 @@
 # Dev Guide
 
+> **Consolidation gap:** phases **10h–13c** are documented in `.phases/` + FINDINGS #94–#167 but not yet folded here (pre-existing debt from the autonomous build loop). The 13d–13y arc below is consolidated; 10h–13c await a future pass.
+
+## Phases 13d–13y consolidated — equipment manager + decision-support polish + RPG juice (2026-06-12)
+
+Per-phase detail in `.phases/` and FINDINGS #168–#189; ~22 bricks + 2 adversarial reviews. Triggered by a user bug report ("manually-bought gear gets sold by the clerk; the satchel never changes; let me equip like OSRS"), then a feature-complete game's decision-support and juice were rounded out. **Everything after 13f is UI-only** (no engine change) by deliberate design, since the one Jesse-gated `verify-score` redeploy was unavailable in the loop.
+
+### Engine additions (replay-affecting → redeploy batch 12b+13d+13e+13f+13r)
+- **Clerk gear-safety** (13d): the autoFlip clerk shares `agent.inventory` with the player and was selling gear the human bought to equip. Fix gates clerk sell/buy on the cost `basis` it records for its own stock — a held item with no basis was bought by the human (FINDINGS #168). Sim byte-identical (clerk only ever holds basis-bearing buys).
+- **Equipment manager** (13e): `AgentState.worn` per slot + `equip`/`unequip`/`equipBest` commands (inventory↔worn moves, conservation-counted in invariants.ts, level-gated, rejected mid-expedition). `deriveStats(pack, lvls, worn?)` — worn OVERRIDES the pack per slot; **absent `worn` = byte-identical old behaviour**, so every expedition test and the benchmark are untouched and the sim hash is unchanged (FINDINGS #169/#170). Worn gear is NOT in the at-risk pack → safe on death.
+- **`equipBest` tie-break** (13r, review-driven): the three "best gear per slot" pickers (`deriveStats`/`equipBest`/UI `equipped()`) broke stat-ties by different iteration orders; `equipBest`+`equipped()` now resolve by smaller itemId (order-independent). Cosmetic only (tied pieces are stat-identical), but the lying "identical tie-break" comment was the real hazard (FINDINGS #182).
+
+### UI — equipment surfaces (no engine change)
+- **Paperdoll coherence** (13g): CharacterPanel's `equipped()`/`deriveStats()` now factor `agent.worn`, so the Adventure figure + "in battle" stats reflect ACTUAL equipped gear, not a satchel-best preview that disagreed after equipping (FINDINGS #171).
+- **Gear deltas at the decision point**: a satchel upgrade badge (`gearDelta`, 13h), the same delta on the buy ticket BEFORE purchase (13i), and a ⚔/🛡 marker + "gear" track filter so gear is findable among 128 commodities (13j). The buy-gear arc end-to-end: find → preview → compare → equip (FINDINGS #172/#173/#174).
+
+### UI — decision-support lenses (the session's two themes)
+- **Affordability** (info the data CAN prove, never a realizable-profit claim): `flipAffordability` ×N badge + "fits purse" filter + "GE-capped" marker on TopFlips (13l/13t), underwater-positions glance on PositionsPanel (13n), "need +X" shortfall + purse on UpgradeShop (13s), return-on-stake badge on WealthPanel (13k). FINDINGS #173/#176/#178/#183/#184.
+- **Signal-on-the-control → readout-then-action**: gear delta ON the buy ticket (13i), banked-loot payoff ON the extract button (13o), red tint ON the price field below break-even (13q); then the dive-decision triad — embark forecast (full hp) → mid-dive push read at CURRENT hp (13p) → rest heal-ETA between dives (13x) — and the action beside each readout: "rest to full" one-click (13y). FINDINGS #179/#180/#181/#188/#189.
+
+### UI — trading review + RPG juice
+- **Recent flips** (13u): `recentFlips` re-runs the FIFO match over the fills window (same tax as `applyFillToBook`) to keep per-flip detail the lifetime book aggregates away, as a 3rd TradeFeed mode (tape/mine/flips) — completing acquire→risk→review (FINDINGS #185).
+- **Level-up feedback** (13v/13w): `leveledUp` diff-detection → an "⚔ Attack up!" toast (lazy-init ref, below deeds in the toast-priority order) + a gold skill-cell flash; toast says what, flash says where (FINDINGS #186/#187).
+
+### Reviews (2 adversarial passes)
+- **Equipment consistency** (pre-13r): three best-per-slot pickers — found the tie-break divergence (→13r); conservation/determinism/fallback/invariants all SOUND.
+- **Money helpers** (pre-13t): `returnOnStake`/`flipAffordability`/`underwaterSummary`/`gearDelta` — verdict SOUND (no sign/tax/edge bugs); one latent flag tightened + surfaced (→13t).
+
 ## Phases 9y–10g consolidated — content, trading depth, polish (2026-06-11)
 
 Per-phase detail in `.phases/` and FINDINGS #85–#93; the ~9 bricks since the 9g–9w map.
