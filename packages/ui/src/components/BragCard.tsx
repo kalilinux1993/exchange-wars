@@ -8,7 +8,8 @@ import { diveRecords, diveStreak, fmtCompact, type Game } from '../game';
  * screenshot-able visual artifact that complements the text/native brag (the picture to its link).
  * Pure display; reuses `combatLevel`/`diveStreak`/`diveRecords`/`fmtCompact`.
  */
-export function BragCard({ game, worth }: { game: Game; worth: number }) {
+export function BragCard({ game, worth, handle }: { game: Game; worth: number; handle?: string }) {
+  const who = (handle ?? '').trim();
   const xp = game.world.agents[game.playerId]?.combatXp;
   const cmb = combatLevel(xp);
   const streak = diveStreak(game.delves);
@@ -30,10 +31,15 @@ export function BragCard({ game, worth }: { game: Game; worth: number }) {
           </linearGradient>
         </defs>
         <rect x={2} y={2} width={476} height={266} rx={10} fill="url(#bc-sky)" stroke="#d4a937" strokeWidth={2} />
-        <text x={240} y={42} className="bc-title" textAnchor="middle">
+        <text x={240} y={who ? 38 : 42} className="bc-title" textAnchor="middle">
           ⚔ EXCHANGE WARS
         </text>
-        <line x1={44} y1={58} x2={436} y2={58} stroke="#5b4a25" strokeWidth={1} />
+        {who && (
+          <text x={240} y={54} className="bc-byline" textAnchor="middle">
+            — {who} —
+          </text>
+        )}
+        <line x1={44} y1={who ? 64 : 58} x2={436} y2={who ? 64 : 58} stroke="#5b4a25" strokeWidth={1} />
         {/* hero figures: combat level · net worth */}
         <text x={140} y={124} className="bc-hero" textAnchor="middle">
           {cmb}
@@ -62,7 +68,7 @@ export function BragCard({ game, worth }: { game: Game; worth: number }) {
           );
         })}
         <text x={240} y={252} className="bc-foot" textAnchor="middle">
-          seed {game.world.seed} · kalilinux1993.github.io/exchange-wars
+          {who ? `${who} · ` : ''}seed {game.world.seed} · kalilinux1993.github.io/exchange-wars
         </text>
       </svg>
     </section>

@@ -1087,6 +1087,11 @@ kbd {
   font-weight: 700;
   letter-spacing: 3px;
 }
+.bc-byline {
+  fill: var(--parchment);
+  font-size: 12px;
+  letter-spacing: 1px;
+}
 .bc-hero {
   fill: var(--parchment);
   font-size: 38px;

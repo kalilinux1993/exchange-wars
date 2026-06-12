@@ -1270,7 +1270,7 @@ export function App({ initial }: { initial?: Game }) {
       </main>
       <main className={room === 'hall' ? 'board' : 'board tabhidden'}>
         <section className="middle">
-          <BragCard game={game} worth={playerWorth(game)} />
+          <BragCard game={game} worth={playerWorth(game)} handle={localStorage.getItem('ew-handle') ?? ''} />
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
           <RecordsPanel game={game} />
           <ConquestPanel game={game} />

@@ -2201,6 +2201,13 @@ describe('UI shell', () => {
       expect(rich.container.textContent).toContain('survival'); // a clean dive → streak chip
       expect(rich.container.textContent).toContain('deeds'); // a milestone → deeds chip
     });
+    it('personalizes the card with a handle when set, and is unchanged without one', () => {
+      const named = render(<BragCard game={newGame(42)} worth={50_000} handle="jesse" />);
+      expect(named.container.querySelector('.bc-byline')!.textContent).toContain('jesse'); // the byline
+      named.unmount();
+      const anon = render(<BragCard game={newGame(42)} worth={50_000} handle="  " />); // whitespace → none
+      expect(anon.container.querySelector('.bc-byline')).toBeNull();
+    });
   });
 
   it('TradeTicket previews the gear upgrade before you buy', () => {
