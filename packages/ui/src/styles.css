@@ -1425,6 +1425,14 @@ kbd {
   color: var(--gold-bright);
 }
 
+/* your own row on the Sprint Board — a subtle gold highlight. */
+.sprintboard li.you {
+  background: rgba(212, 169, 55, 0.1);
+  border-left: 2px solid var(--gold);
+  padding-left: 4px;
+  margin-left: -6px;
+}
+
 .submitrow {
   display: flex;
   gap: 6px;

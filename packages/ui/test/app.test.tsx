@@ -17,7 +17,7 @@ import { regionDanger } from '../src/components/ExpeditionPanel';
 import { resolveShortcut } from '../src/keyboard';
 import { ProfitPanel } from '../src/components/ProfitPanel';
 import { depthSplit } from '../src/components/TradeTicket';
-import { LeaderboardPanel } from '../src/components/LeaderboardPanel';
+import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { ghostWorthAt } from '../src/components/WorthChart';
 import { chooseSave, sanitizeHandle, type Session } from '../src/cloud';
@@ -1521,6 +1521,34 @@ describe('UI shell', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Sprint verified — new best!', expect.stringContaining('123,456')),
     );
+  });
+
+  describe('myRank', () => {
+    const rows = [{ handle: 'alice' }, { handle: 'bob' }, { handle: 'carol' }];
+    it('finds your 1-based rank by sanitized handle', () => {
+      expect(myRank(rows, 'bob')).toBe(2);
+      expect(myRank(rows, 'bob@example.com')).toBe(2); // email-shaped → local part
+      expect(myRank(rows, 'dave')).toBeNull(); // not on this board
+    });
+    it('never matches anonymous or an unset handle', () => {
+      expect(myRank([{ handle: 'anonymous trader' }], '')).toBeNull();
+      expect(myRank([{ handle: 'anonymous trader' }], '   ')).toBeNull();
+    });
+  });
+
+  it('the Sprint Board highlights your own row and rank', async () => {
+    localStorage.setItem('ew-handle', 'gertrude'); // your handle
+    fetchRoutes = (url) =>
+      url.includes('/rest/v1/leaderboard')
+        ? jsonResponse([
+            { handle: 'topdog', worth: 99_999, deepest: 0 },
+            { handle: 'gertrude', worth: 77_777, deepest: 2 },
+          ])
+        : null;
+    render(<LeaderboardPanel game={newGame(42)} session={{} as Session} onToast={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText('Sprint Board')).toBeTruthy());
+    expect(screen.getByText(/← you/)).toBeTruthy();
+    expect(screen.getByText(/you're #2 on this seed/)).toBeTruthy();
   });
 
   it('unprovable runs (pre-recording saves) cannot submit', async () => {
