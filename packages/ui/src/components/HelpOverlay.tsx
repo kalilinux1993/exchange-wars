@@ -1,4 +1,5 @@
 import { REGIONS, SPRINT_TICKS } from '@exchange-wars/engine';
+import { HUMAN_START_GP } from '../game';
 
 export const HELP_SEEN_KEY = 'ew-help-seen';
 
@@ -9,8 +10,8 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
         <h2>How to Play</h2>
         <ul className="guide">
           <li>
-            You're a Grand Exchange flipper with <b>55,000 gp</b> and <b>3 offer slots</b>. Buy low, sell
-            high — the exchange takes <b>2% tax</b> on every sale.
+            You're a Grand Exchange flipper with <b>{HUMAN_START_GP.toLocaleString('en-US')} gp</b> and{' '}
+            <b>3 offer slots</b>. Buy low, sell high — the exchange takes <b>2% tax</b> on every sale.
           </li>
           <li>
             Three rooms: <b>🪙 Exchange</b> to trade, <b>⚔ Adventure</b> to delve, <b>🏰 Hall</b> for your
@@ -66,7 +67,9 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
           </li>
           <li>
             <b>Keyboard</b>: <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> jump between rooms, <kbd>p</kbd> pauses or
-            resumes the world, <kbd>?</kbd> toggles this guide.
+            resumes the world, <kbd>?</kbd> toggles this guide. In the Exchange,{' '}
+            <kbd>j</kbd>/<kbd>k</kbd> (or <kbd>↑</kbd>/<kbd>↓</kbd>) walk the market and <kbd>b</kbd>/<kbd>s</kbd>{' '}
+            pick buy or sell.
           </li>
         </ul>
         <button className="submit buy" onClick={onClose}>

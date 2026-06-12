@@ -21,6 +21,7 @@ import { ConquestPanel } from '../src/components/ConquestPanel';
 import { MarketTable } from '../src/components/MarketTable';
 import { DelvePanel } from '../src/components/DelvePanel';
 import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
+import { HelpOverlay } from '../src/components/HelpOverlay';
 import { WealthPanel } from '../src/components/WealthPanel';
 import { PlayerPanel } from '../src/components/PlayerPanel';
 import { depthSplit } from '../src/components/TradeTicket';
@@ -493,6 +494,12 @@ describe('UI shell', () => {
     game.world.agents[game.playerId]!.gp = HUMAN_START_GP + 50_000;
     render(<App initial={game} />);
     expect(screen.queryByText(/new daily record/i)).toBeNull();
+  });
+
+  it('the help overlay documents the keyboard trading shortcuts (j/k, b/s)', () => {
+    render(<HelpOverlay onClose={() => {}} />);
+    expect(screen.getByText(/walk the market/i)).toBeTruthy(); // j/k nav
+    expect(screen.getByText(/pick buy or sell/i)).toBeTruthy(); // b/s side
   });
 
   it('MilestonesPanel shows a progress bar on the closest unearned deeds', () => {
