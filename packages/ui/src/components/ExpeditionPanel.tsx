@@ -263,6 +263,10 @@ export function ExpeditionPanel({
             kind === 'antifire'
               ? ownedFix((id) => !!CONSUMABLES[id]?.antifire)
               : ownedFix((id) => (CONSUMABLES[id]?.heal ?? 0) > 0);
+          // The distinct items that, packed one each, clear every warning above.
+          // (A fire-region food shortfall can share one super-antifire fix, so
+          // dedupe — "prep me" only earns its place with 2+ DISTINCT items.)
+          const fixes = [...new Set(warnings.map((w) => fixFor(w.kind)).filter((x): x is string => !!x))];
           return (
             <>
               <p
@@ -289,6 +293,23 @@ export function ExpeditionPanel({
                   </p>
                 );
               })}
+              {fixes.length >= 2 && (
+                <p className="warn small">
+                  <button
+                    className="chip"
+                    title="pack one of each item that clears the warnings above — fixes the whole loadout in one tap"
+                    onClick={() =>
+                      setDraft((d) => {
+                        const next = { ...d };
+                        for (const fix of fixes) next[fix] = Math.min((next[fix] ?? 0) + 1, view.inventory[fix] ?? 1);
+                        return next;
+                      })
+                    }
+                  >
+                    ⚑ prep me
+                  </button>
+                </p>
+              )}
             </>
           );
         })()}

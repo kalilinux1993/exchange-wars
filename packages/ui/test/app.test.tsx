@@ -803,6 +803,21 @@ describe('UI shell', () => {
     expect(screen.queryByText(/breathe fire/)).toBeNull(); // now packed → warning gone
   });
 
+  it('"prep me" fixes every embark warning in one tap', () => {
+    const game = newGame(42);
+    const inv = game.world.agents[game.playerId]!.inventory;
+    inv.super_antifire_potion_4 = 2; // antifire fix — owned, not packed
+    inv.shark = 3; // food fix (distinct item) — owned, not packed
+    game.delves = [{ tick: 0, regionId: 'dragons_maw', kills: 1, lootGp: 0, died: false }]; // fiery + a hard fight for a fresh fighter
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByTitle(/raid here again/)); // select dragons_maw on the embark screen
+    expect(screen.getByText(/breathe fire/)).toBeTruthy(); // antifire warning
+    expect(screen.getByText(/no food packed/)).toBeTruthy(); // food warning
+    fireEvent.click(screen.getByText(/prep me/)); // one tap fixes both
+    expect(screen.queryByText(/breathe fire/)).toBeNull();
+    expect(screen.queryByText(/no food packed/)).toBeNull();
+  });
+
   describe('positionConcentration', () => {
     const pos = (itemId: string, value: number) => ({
       itemId, value, units: 0, avgCost: 0, mark: 0, marked: true, cost: 0, unrealized: 0, unrealizedPct: 0,
