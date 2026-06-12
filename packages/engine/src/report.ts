@@ -14,6 +14,10 @@ export function netWorth(state: WorldState, agent: AgentState): number {
     const book = state.books[def.id];
     if (!book) continue;
     let qty = agent.inventory[def.id] ?? 0;
+    // Equipped gear is wealth too — count it at liquidation value (unequip→sell),
+    // exactly as inventory holdings are, so equipping a piece doesn't drop your
+    // net worth. (Mirrors invariants.ts's worn conservation count.)
+    if (agent.worn) for (const id of Object.values(agent.worn)) if (id === def.id) qty += 1;
     for (const o of book.buys) if (o.agentId === agent.id) total += o.escrowGp;
     for (const o of book.sells) if (o.agentId === agent.id) qty += o.remaining;
     for (const o of book.buys) {

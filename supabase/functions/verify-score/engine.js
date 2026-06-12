@@ -1829,6 +1829,9 @@ function netWorth(state, agent) {
     const book = state.books[def.id];
     if (!book) continue;
     let qty = agent.inventory[def.id] ?? 0;
+    if (agent.worn) {
+      for (const id of Object.values(agent.worn)) if (id === def.id) qty += 1;
+    }
     for (const o of book.buys) if (o.agentId === agent.id) total += o.escrowGp;
     for (const o of book.sells) if (o.agentId === agent.id) qty += o.remaining;
     for (const o of book.buys) {

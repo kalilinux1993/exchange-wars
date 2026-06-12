@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { addAgent, createWorld } from '../src/sim';
 import { applyCommand } from '../src/commands';
 import { checkInvariants } from '../src/invariants';
+import { placeOrder } from '../src/exchange';
 import { deriveStats } from '../src/quest';
+import { netWorth } from '../src/report';
 
 describe('equipment manager', () => {
   it('equips gear from inventory to its slot and back, conserving items', () => {
@@ -105,6 +107,19 @@ describe('equipment manager', () => {
     expect(again.reason).toBe('no-upgrade');
     expect(p.worn?.['weapon']).toBe('rune_2h_sword');
     checkInvariants(state);
+  });
+
+  it('netWorth counts equipped gear — equipping does not drop your worth', () => {
+    const state = createWorld({ seed: 1 });
+    const buyer = addAgent(state, 'player', 100_000, {}); // someone to post a resting bid
+    const p = addAgent(state, 'player', 0, { rune_2h_sword: 1 }); // holds the gear, no gp
+    placeOrder(state, buyer, 'rune_2h_sword', 'buy', 1000, 1); // a bid gives the gear a liquidation value
+    const before = netWorth(state, p); // gear in the satchel, valued at the 1000 bid
+    expect(before).toBeGreaterThanOrEqual(1000);
+    p.combatXp = { atk: 50_000, def: 50_000 };
+    expect(applyCommand(state, p.id, { type: 'equip', itemId: 'rune_2h_sword' }).ok).toBe(true);
+    expect(p.worn?.['weapon']).toBe('rune_2h_sword');
+    expect(netWorth(state, p)).toBe(before); // now WORN, still counted — equipping is worth-neutral
   });
 
   it('equipBest resolves stat-ties deterministically by smaller itemId', () => {
