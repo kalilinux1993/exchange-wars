@@ -553,6 +553,13 @@ th.num {
   border: 1px solid var(--gold);
   background: rgba(212, 169, 55, 0.08);
   animation: rise 300ms ease-out backwards;
+  /* it's a button now (15l): click to trade the event item in the ticket */
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.event-chip:hover {
+  background: rgba(212, 169, 55, 0.16);
 }
 
 .event-chip.demand_surge,

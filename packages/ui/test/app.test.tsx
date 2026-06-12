@@ -238,6 +238,18 @@ describe('UI shell', () => {
     expect(toast.textContent).toContain(REGIONS[1]!.name); // and names the newly-opened region in its flavor
   });
 
+  it('an active market event renders a clickable chip that opens the item in the ticket', () => {
+    const game = newGame(42);
+    const first = game.world.items[0]!.id;
+    const ev = game.world.items.find((i) => i.id !== first && i.wikiId !== undefined)!; // not the default selection; has an icon
+    game.world.events = [{ id: 'e1', itemId: ev.id, kind: 'demand_surge', startTick: 0, endTick: 9999 }];
+    render(<App initial={game} />);
+    const chip = screen.getByRole('button', { name: new RegExp(ev.name) });
+    expect(chip.querySelector('img.itemimg')).toBeTruthy(); // the event item's real icon
+    fireEvent.click(chip);
+    expect(screen.getByText(new RegExp(`Offer · ${ev.id.replace(/_/g, ' ')}`, 'i'))).toBeTruthy(); // the ticket loaded the event item
+  });
+
   it('milestones latch once and persist on the save', () => {
     const game = newGame(42);
     const v = playerView(game.world, game.playerId)!;

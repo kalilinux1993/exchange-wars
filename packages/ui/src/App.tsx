@@ -16,6 +16,7 @@ import { NewsLog } from './components/NewsLog';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { MarketTable } from './components/MarketTable';
 import { FirstSteps } from './components/FirstSteps';
+import { ItemIcon } from './components/Icon';
 import { TopFlips } from './components/TopFlips';
 import { ProfitPanel } from './components/ProfitPanel';
 import { PositionsPanel } from './components/PositionsPanel';
@@ -817,13 +818,22 @@ export function App({ initial }: { initial?: Game }) {
         );
         if (active.length === 0) return null;
         const names = new Map(game.world.items.map((i) => [i.id, i.name]));
+        const wikiOf = new Map(game.world.items.map((i) => [i.id, i.wikiId]));
         return (
           <div className="newsbar">
             {active.map((e) => (
-              <span key={e.id} className={`event-chip ${e.kind}`} title="ticks until the event ends">
-                ⚡ {names.get(e.itemId) ?? e.itemId} {EVENT_LABELS[e.kind]} ·{' '}
-                {(e.endTick - game.world.tick).toLocaleString('en-US')} left
-              </span>
+              <button
+                key={e.id}
+                className={`event-chip ${e.kind}`}
+                title="trade this event — open the item in the ticket"
+                onClick={() => {
+                  setSelected(e.itemId);
+                  pickRoom('exchange');
+                }}
+              >
+                ⚡ <ItemIcon id={e.itemId} wikiId={wikiOf.get(e.itemId)} size={12} className="itemicon" /> {names.get(e.itemId) ?? e.itemId}{' '}
+                {EVENT_LABELS[e.kind]} · {(e.endTick - game.world.tick).toLocaleString('en-US')} left
+              </button>
             ))}
           </div>
         );
