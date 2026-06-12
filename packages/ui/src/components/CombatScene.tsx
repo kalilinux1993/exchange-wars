@@ -17,6 +17,27 @@ export interface FighterKit {
   shield: boolean;
 }
 
+/**
+ * Per-region arena backdrop — a muted, dark-leaning gradient that gives each fight a
+ * sense of place and makes the descent (soft plains → fiery Maw → light-eating Abyss)
+ * visible mid-fight, not just labelled. Palettes are kept low and dark so the hp bars,
+ * figures, and hit-splats stay legible on top. Unknown ids fall back to neutral stone.
+ */
+const ARENA_THEMES: Record<string, { from: string; to: string }> = {
+  lumbridge_plains: { from: '#33402b', to: '#19200f' }, // mossy green hills
+  varrock_sewers: { from: '#2a3326', to: '#13180f' }, // murky underground
+  edgeville_dungeon: { from: '#343029', to: '#18150f' }, // stony, lamplit
+  brimhaven_caverns: { from: '#2b362b', to: '#131a13' }, // moss & mould
+  wilderness_ruins: { from: '#3a2a32', to: '#190f15' }, // ominous dusk, demons
+  dragons_maw: { from: '#3c2c1c', to: '#1b1006' }, // ember & antifire
+  inferno_gate: { from: '#46271a', to: '#1d0b07' }, // everything burns
+  the_abyss: { from: '#2a1a33', to: '#0d0716' }, // void purple, eats light
+};
+const ARENA_DEFAULT = { from: '#2e2e2e', to: '#161616' };
+export function arenaTheme(regionId?: string): { from: string; to: string } {
+  return (regionId && ARENA_THEMES[regionId]) || ARENA_DEFAULT;
+}
+
 export function CombatScene({
   monsterId,
   monsterHp,
@@ -24,6 +45,7 @@ export function CombatScene({
   playerMaxHp,
   logLen,
   kit,
+  regionId,
 }: {
   monsterId: string;
   monsterHp: number;
@@ -32,7 +54,10 @@ export function CombatScene({
   logLen: number;
   /** Which equipment slots are filled with usable gear (lights the figure). */
   kit: FighterKit;
+  /** The region you're fighting in — themes the backdrop. Falls back to neutral stone. */
+  regionId?: string;
 }) {
+  const theme = arenaTheme(regionId);
   const m = monsterById(monsterId);
   const ref = useRef({ p: playerHp, m: monsterHp, key: -1, ps: '', ms: '' });
   if (logLen !== ref.current.key) {
@@ -53,6 +78,16 @@ export function CombatScene({
   const big = m.elite ? 1.25 : 1;
   return (
     <svg className="combatscene" viewBox="0 0 200 104" role="img" aria-label={`fighting ${m.name}`}>
+      {/* region-themed backdrop — a muted gradient that sets the mood of WHERE you fight,
+          kept dark so the figures, hp bars, and splats stay legible on top. */}
+      <defs>
+        <linearGradient id="arena-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={theme.from} />
+          <stop offset="100%" stopColor={theme.to} />
+        </linearGradient>
+      </defs>
+      <rect className="arena-bg" x={0} y={0} width={200} height={104} fill="url(#arena-sky)" />
+
       {/* arena floor — grounds the figures so they don't float */}
       <line x1={6} y1={96} x2={194} y2={96} className="ground" />
       <ellipse cx={52} cy={96} rx={26} ry={4} className="shadow" />

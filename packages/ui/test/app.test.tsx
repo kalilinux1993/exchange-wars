@@ -19,6 +19,7 @@ import { ProfitPanel } from '../src/components/ProfitPanel';
 import { PositionsPanel } from '../src/components/PositionsPanel';
 import { ConquestPanel } from '../src/components/ConquestPanel';
 import { RegionMap } from '../src/components/RegionMap';
+import { CombatScene, arenaTheme } from '../src/components/CombatScene';
 import { MarketTable } from '../src/components/MarketTable';
 import { DelvePanel } from '../src/components/DelvePanel';
 import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
@@ -586,6 +587,28 @@ describe('UI shell', () => {
     expect(r0row.querySelectorAll('.roster-foe.unmet').length).toBe(roster.length - 1); // the rest
     // total glyphs == roster size (deduped)
     expect(r0row.querySelectorAll('.roster-foe').length).toBe(roster.length);
+  });
+
+  describe('arenaTheme (region combat backdrop)', () => {
+    it('gives distinct palettes per region and a neutral default for unknown/absent ids', () => {
+      const plains = arenaTheme('lumbridge_plains');
+      const abyss = arenaTheme('the_abyss');
+      expect(plains).not.toEqual(abyss); // the journey is visibly different end to end
+      expect(arenaTheme('not_a_region')).toEqual(arenaTheme(undefined)); // unknown falls back
+      expect(plains.from).toMatch(/^#[0-9a-f]{6}$/i); // well-formed colour stops
+    });
+  });
+
+  it('CombatScene paints the region-themed backdrop gradient', () => {
+    const kit = { weapon: false, helm: false, body: false, legs: false, shield: false };
+    const { container } = render(
+      <CombatScene monsterId="goblin" monsterHp={10} playerHp={20} playerMaxHp={20} logLen={1} kit={kit} regionId="the_abyss" />,
+    );
+    const bg = container.querySelector('rect.arena-bg');
+    expect(bg).toBeTruthy();
+    expect(bg!.getAttribute('fill')).toBe('url(#arena-sky)');
+    const stop = container.querySelector('#arena-sky stop');
+    expect(stop!.getAttribute('stop-color')).toBe(arenaTheme('the_abyss').from); // themed by the region
   });
 
   it('RegionMap pulses the node when the selection changes, but not on first mount', () => {

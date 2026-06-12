@@ -1326,9 +1326,11 @@ kbd {
   width: 100%;
   height: auto;
   margin: 4px 0;
+  /* fallback tint behind the SVG; the region-themed <rect> backdrop draws over it (14u) */
   background: radial-gradient(circle at 70% 40%, #2a1416, var(--ink) 72%);
   border: 1px solid var(--hairline);
   border-radius: 6px;
+  overflow: hidden; /* clip the square region backdrop to the rounded corners */
 }
 .combatscene .ground {
   stroke: #4a3d22;

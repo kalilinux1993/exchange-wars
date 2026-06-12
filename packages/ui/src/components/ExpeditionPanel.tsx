@@ -260,6 +260,7 @@ export function ExpeditionPanel({
                   playerMaxHp={exp.combat!.maxHp ?? trainedMax}
                   logLen={exp.combat!.log.length}
                   kit={fighterKit}
+                  regionId={exp.regionId}
                 />
                 <p className="small">
                   <b>{m.name}</b> — {Math.max(0, exp.combat!.monsterHp)}/{m.hp} hp · you{' '}
