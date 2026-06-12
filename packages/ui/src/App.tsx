@@ -965,6 +965,7 @@ export function App({ initial }: { initial?: Game }) {
             game={game}
             view={view}
             onCommand={command}
+            onRest={fastForward}
             regionPick={regionPick}
             onToast={(name, flavor) => setToast({ id: 'expedition', name, flavor, achieved: () => false })}
             onDelveEnd={(record) => {

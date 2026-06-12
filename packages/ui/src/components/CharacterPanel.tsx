@@ -98,11 +98,14 @@ export function CharacterPanel({
   agent,
   names,
   titles = [],
+  onRest,
 }: {
   agent: AgentState | undefined;
   names: Map<string, string>;
   /** Display names of earned deeds, offered as selectable titles. */
   titles?: string[];
+  /** Fast-forward N ticks to mend — wired to the "rest to full" button. */
+  onRest?: ((ticks: number) => void) | undefined;
 }) {
   const lvls = levelsOf(agent?.combatXp);
   const trainedMax = maxHpFor(lvls.hp);
@@ -247,6 +250,15 @@ export function CharacterPanel({
           {restEta !== null && (
             <span className="dim small resteta" title="wounds mend only out of the field — fast-forward this many ticks to reach full hp before your next dive">
               · ≈{restEta.toLocaleString('en-US')} ticks to heal
+              {onRest && (
+                <button
+                  className="chip"
+                  title="fast-forward exactly enough ticks to mend to full (the market moves too)"
+                  onClick={() => onRest(restEta)}
+                >
+                  rest to full
+                </button>
+              )}
             </span>
           )}
         </div>

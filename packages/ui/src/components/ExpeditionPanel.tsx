@@ -49,6 +49,7 @@ export function ExpeditionPanel({
   game,
   view,
   onCommand,
+  onRest,
   onToast,
   onDelveEnd,
   regionPick,
@@ -56,6 +57,8 @@ export function ExpeditionPanel({
   game: Game;
   view: PlayerView;
   onCommand: (cmd: PlayerCommand) => void;
+  /** Fast-forward N ticks (UI time-advance, not a player command) — drives "rest to full". */
+  onRest?: (ticks: number) => void;
   onToast: (name: string, flavor: string) => void;
   /** Called once when an expedition ends (death or extract) with its Delve Log entry. */
   onDelveEnd?: (record: DelveRecord) => void;
@@ -156,6 +159,7 @@ export function ExpeditionPanel({
           agent={agent}
           names={names}
           titles={MILESTONES.filter((m) => game.milestones.includes(m.id)).map((m) => m.name)}
+          onRest={onRest}
         />
         {resting && (
           <p className="warn small" title="wounds persist between expeditions — rest (or embark hurt, your gamble)">

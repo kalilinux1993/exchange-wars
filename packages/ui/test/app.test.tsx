@@ -1877,6 +1877,15 @@ describe('UI shell', () => {
     expect(screen.queryByText(/ticks to heal/)).toBeNull();
   });
 
+  it('CharacterPanel "rest to full" fast-forwards the heal ETA', () => {
+    const wounded = { inventory: {}, combatXp: { atk: 0, def: 0, hp: 0 }, hp: 40 } as unknown as AgentState;
+    const onRest = vi.fn();
+    render(<CharacterPanel agent={wounded} names={new Map()} onRest={onRest} />);
+    fireEvent.click(screen.getByRole('button', { name: 'rest to full' }));
+    expect(onRest).toHaveBeenCalledTimes(1);
+    expect(onRest.mock.calls[0]![0]).toBeGreaterThan(0); // (trainedMax − 40) × REST_REGEN_TICKS
+  });
+
   it('CharacterPanel flashes a skill cell the moment it levels up', () => {
     const at = (atkXp: number) =>
       ({ inventory: {}, combatXp: { atk: atkXp, def: 0, hp: 0 } }) as unknown as AgentState;
