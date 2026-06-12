@@ -1,7 +1,7 @@
 import { REGIONS, SPRINT_TICKS } from '@exchange-wars/engine';
 import { useEffect, useState } from 'react';
 import { fetchLeaderboard, sanitizeHandle, submitSprint, type BoardRow, type Session } from '../cloud';
-import type { Game } from '../game';
+import { dailySeed, type Game } from '../game';
 
 const HANDLE_KEY = 'ew-handle';
 
@@ -52,6 +52,7 @@ export function LeaderboardPanel({
   const provable = game.logSince === 0;
   const eligible = session !== null && reached && provable && !busy;
   const meRank = myRank(rows, handle); // your row on this seed, if any
+  const isDaily = seed === dailySeed(); // today's shared world → this is THE daily board
 
   const submit = (): void => {
     setBusy(true);
@@ -72,10 +73,10 @@ export function LeaderboardPanel({
 
   return (
     <section className="panel sprintboard">
-      <h2>Sprint Board</h2>
+      <h2>{isDaily ? '🗓 Daily Board' : 'Sprint Board'}</h2>
       <p className="dim small">
-        seed {seed} · best fortune at tick {SPRINT_TICKS.toLocaleString('en-US')} — every entry
-        verified by replay
+        {isDaily ? "today's shared world — everyone racing the daily competes here · " : `seed ${seed} · `}
+        best fortune at tick {SPRINT_TICKS.toLocaleString('en-US')} — every entry verified by replay
       </p>
       {meRank !== null && <p className="dim small">you're #{meRank} on this seed</p>}
       <ul className="rows small">

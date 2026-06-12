@@ -1551,6 +1551,13 @@ describe('UI shell', () => {
     expect(screen.getByText(/you're #2 on this seed/)).toBeTruthy();
   });
 
+  it('the board reframes as the Daily Board on today\'s seed', async () => {
+    fetchRoutes = (url) => (url.includes('/rest/v1/leaderboard') ? jsonResponse([]) : null);
+    render(<LeaderboardPanel game={newGame(dailySeed())} session={{} as Session} onToast={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText('🗓 Daily Board')).toBeTruthy());
+    expect(screen.getByText(/everyone racing the daily/)).toBeTruthy();
+  });
+
   it('unprovable runs (pre-recording saves) cannot submit', async () => {
     fetchRoutes = (url) => (url.includes('/rest/v1/leaderboard') ? jsonResponse([]) : null);
     const game = newGame(42);
