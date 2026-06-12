@@ -39,6 +39,7 @@ import {
   applyOfflineProgress,
   bumpStreak,
   checkMilestones,
+  MILESTONES,
   CORRUPT_SAVE_KEY,
   dailySeed,
   deathRecap,
@@ -2404,6 +2405,30 @@ describe('UI shell', () => {
     const newly = checkMilestones(game, view, 0);
     expect(newly.map((m) => m.id)).toContain('first-blood');
     expect(game.milestoneTicks!['first-blood']).toBe(1234);
+  });
+
+  it('the Realm Conquered deed needs EVERY region mastered, with partial progress', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    const deed = MILESTONES.find((m) => m.id === 'realm-conquered')!;
+    const roster = (r: { monsters: string[]; elite?: string }) =>
+      [...new Set(r.elite ? [...r.monsters, r.elite] : r.monsters)];
+
+    // fresh world — nothing slain
+    expect(deed.achieved(game, view, 0)).toBe(false);
+    expect(deed.progress!(game, view, 0)).toBe(0);
+
+    // master ONE region's full roster → partial credit, still not done
+    game.world.stats.killsByMonster = Object.fromEntries(roster(REGIONS[0]!).map((id) => [id, 1]));
+    expect(deed.achieved(game, view, 0)).toBe(false);
+    expect(deed.progress!(game, view, 0)).toBeCloseTo(1 / REGIONS.length);
+
+    // master EVERY region → achieved + progress 1, and it latches via checkMilestones
+    const allFoes = new Set(REGIONS.flatMap((r) => roster(r)));
+    game.world.stats.killsByMonster = Object.fromEntries([...allFoes].map((id) => [id, 1]));
+    expect(deed.achieved(game, view, 0)).toBe(true);
+    expect(deed.progress!(game, view, 0)).toBe(1);
+    expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('realm-conquered');
   });
 
   it('BountyBoard shows reward-per-kill and a progress bar', () => {

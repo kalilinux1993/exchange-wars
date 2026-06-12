@@ -1,6 +1,6 @@
 // Game bootstrap + persistence. The human is an idle-policy player agent:
 // engine-inert unless automation is purchased, acting only via UI commands.
-import { addAgent, CONSUMABLES, createWorld, EVENT_LABELS, GE_TAX_RATE, GEAR, levelsOf, MONSTERS, netWorth, playerView, runTicks } from '@exchange-wars/engine';
+import { addAgent, CONSUMABLES, createWorld, EVENT_LABELS, GE_TAX_RATE, GEAR, levelsOf, MONSTERS, netWorth, playerView, REGIONS, runTicks } from '@exchange-wars/engine';
 import type { GearSlot, PlayerView, RunLogEntry, WorldEvent, WorldState } from '@exchange-wars/engine';
 
 export interface Game {
@@ -1172,6 +1172,15 @@ export const MILESTONES: Milestone[] = [
     flavor: 'Every page of the bestiary, written in something other than ink.',
     achieved: (g) => MONSTERS.every((m) => (g.world.stats.killsByMonster?.[m.id] ?? 0) > 0),
     progress: (g) => MONSTERS.filter((m) => (g.world.stats.killsByMonster?.[m.id] ?? 0) > 0).length / MONSTERS.length,
+  },
+  {
+    id: 'realm-conquered',
+    name: 'Realm Conquered',
+    flavor: 'Every region mastered — every native foe felled at least once. The realm is yours.',
+    // The conquest capstone: ALL regions show 👑 in the ConquestPanel. Reuses
+    // `regionMastery` so the deed and the panel agree on what "mastered" means.
+    achieved: (g) => REGIONS.every((r) => regionMastery(r, g.world.stats.killsByMonster).done),
+    progress: (g) => REGIONS.filter((r) => regionMastery(r, g.world.stats.killsByMonster).done).length / REGIONS.length,
   },
   {
     id: 'dragon-slayer',
