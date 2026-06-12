@@ -1,7 +1,7 @@
-import { GEAR, GE_TAX_RATE } from '@exchange-wars/engine';
+import { GEAR } from '@exchange-wars/engine';
 import type { ItemDef, ItemId, PlayerView, Trade } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { marketMood, nextRowIndex, valueBand } from '../game';
+import { flipMargin, marketMood, nextRowIndex, valueBand } from '../game';
 
 const SPARK_POINTS = 20;
 
@@ -10,14 +10,6 @@ type SortKey = 'name' | 'bid' | 'ask' | 'last' | 'vol' | 'margin';
 /** After-tax flip margin per unit (undercut the spread one tick each way), or
  *  null when there's no two-sided book — the same sum TopFlips ranks, per row,
  *  so the whole market is sortable by flippability, not just the top few. */
-function flipMargin(m: { bestBid: number | null; bestAsk: number | null }): number | null {
-  if (m.bestBid === null || m.bestAsk === null) return null;
-  const buy = m.bestBid + 1;
-  const sell = m.bestAsk - 1;
-  if (buy <= 0 || sell <= 0) return null;
-  return sell - buy - Math.floor(sell * GE_TAX_RATE);
-}
-
 /** Tiny price history from the engine's recent-trades window (display-only read). */
 function Spark({ prices }: { prices: number[] }) {
   if (prices.length < 2) return <span className="dim">·</span>;

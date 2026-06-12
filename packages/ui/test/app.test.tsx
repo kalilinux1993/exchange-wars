@@ -22,6 +22,7 @@ import { RegionMap } from '../src/components/RegionMap';
 import { CombatScene, arenaTheme } from '../src/components/CombatScene';
 import { EmbarkPanel } from '../src/components/EmbarkPanel';
 import { MarketTable } from '../src/components/MarketTable';
+import { WatchlistPanel } from '../src/components/WatchlistPanel';
 import { DelvePanel } from '../src/components/DelvePanel';
 import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
 import { GearManager } from '../src/components/GearManager';
@@ -62,6 +63,7 @@ import {
   priceSwing,
   valueBand,
   marketMood,
+  flipMargin,
   bookFromFills,
   emptyTradeBook,
   HUMAN_START_GP,
@@ -715,6 +717,20 @@ describe('UI shell', () => {
     });
     const ids = DEFAULT_ITEMS.slice(0, 3).map((i) => i.id);
     const view = { markets: ids.map(mkt) } as unknown as PlayerView;
+
+    it('WatchlistPanel shows each starred item flip margin + value-band (the decision board)', () => {
+      const items = [{ id: 'gold_bar', name: 'Gold bar', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
+      const v = {
+        markets: [{ itemId: 'gold_bar', bestBid: 100, bestAsk: 110, lastPrice: 110, ema: 110, volume: 1, bestBidIsMine: false, bestAskIsMine: false }],
+      } as unknown as PlayerView;
+      const { container } = render(
+        <WatchlistPanel view={v} items={items} watch={['gold_bar']} alerts={{}} sellAlerts={{}} onSelect={() => {}} onRemove={() => {}} onSetAlert={() => {}} onSetSellAlert={() => {}} />,
+      );
+      const sig = container.querySelector('.watchsignal');
+      expect(sig).toBeTruthy();
+      expect(sig!.textContent).toMatch(/flip \+6/); // after-tax margin at bid 100 / ask 110
+      expect(sig!.textContent).toContain('🟢'); // lastPrice 110 in band 100..200 → pos 0.1 → cheap
+    });
 
     it('the "cheap" track shows only items trading in the cheap third of their value band', () => {
       const items = [
@@ -1497,6 +1513,12 @@ describe('UI shell', () => {
         { itemId: 'c', lastPrice: 150, ema: 140, volume: 0 }, // NOT traded → no breadth count; pos 0.5 → fair
       ];
       expect(marketMood(markets, items)).toEqual({ up: 1, down: 1, cheap: 1, rich: 1 }); // c excluded from up/down; fair counts neither
+    });
+    it('flipMargin nets the 2% tax on a two-sided book; null on a one-sided / non-positive book', () => {
+      expect(flipMargin({ bestBid: 100, bestAsk: 110 })).toBe(6); // buy 101, sell 109, −floor(109*.02=2) → 6
+      expect(flipMargin({ bestBid: null, bestAsk: 110 })).toBeNull();
+      expect(flipMargin({ bestBid: 100, bestAsk: null })).toBeNull();
+      expect(flipMargin({ bestBid: 1, bestAsk: 1 })).toBeNull(); // sell = 0 → null
     });
     it('worthBreakdown clamps an over-escrowed residual to 0 (torn-snapshot display guard)', () => {
       const view = { gp: 1000, openOrders: [{ side: 'buy', price: 100, remaining: 10 }] } as unknown as PlayerView;

@@ -1,5 +1,5 @@
 import type { ItemDef, PlayerView } from '@exchange-wars/engine';
-import { alertHit } from '../game';
+import { alertHit, flipMargin, valueBand } from '../game';
 
 /**
  * The watchlist (9w): items the player stars, with live price + trend vs the
@@ -29,6 +29,7 @@ export function WatchlistPanel({
   onSetSellAlert: (id: string, price: number | null) => void;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
+  const defOf = new Map(items.map((i) => [i.id, i]));
   const rows = watch.map((id) => view.markets.find((m) => m.itemId === id)).filter((m): m is NonNullable<typeof m> => !!m);
   return (
     <section className="panel watchlist">
@@ -54,6 +55,22 @@ export function WatchlistPanel({
                 <span className={pct >= 0 ? 'pct up' : 'pct down'}>
                   {pct >= 0 ? '▲' : '▼'} {Math.abs(Math.round(pct * 100))}%
                 </span>
+                {(() => {
+                  const mg = flipMargin(m);
+                  const band = valueBand(defOf.get(m.itemId), m.lastPrice);
+                  if (mg === null && band === null) return null;
+                  return (
+                    <span className="dim small watchsignal" title="after-tax flip margin at the current spread · where it sits in its cost→value band (🟢 cheap / ⚪ fair / 🟡 rich)">
+                      {mg !== null && (
+                        <b className={mg > 0 ? 'pct up' : 'dim'}>
+                          flip {mg > 0 ? '+' : ''}
+                          {mg}
+                        </b>
+                      )}
+                      {band && ` ${band === 'cheap' ? '🟢' : band === 'rich' ? '🟡' : '⚪'}`}
+                    </span>
+                  );
+                })()}
                 <label className="alertset" title="buy alert — when the price drops to this">
                   ≤
                   <input

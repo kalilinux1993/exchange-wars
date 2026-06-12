@@ -1033,6 +1033,20 @@ export function valueBand(
   return pos < 0.34 ? 'cheap' : pos < 0.67 ? 'fair' : 'rich';
 }
 
+/**
+ * After-tax flip margin per unit at the current spread: undercut the spread one tick each way
+ * (buy at bestBid+1, sell at bestAsk−1) and net the 2% sell tax. `null` when the book isn't
+ * two-sided or a leg is non-positive. Pure — the single source for the market column AND the
+ * watchlist row (they can't disagree on a margin).
+ */
+export function flipMargin(m: { bestBid: number | null; bestAsk: number | null }): number | null {
+  if (m.bestBid === null || m.bestAsk === null) return null;
+  const buy = m.bestBid + 1;
+  const sell = m.bestAsk - 1;
+  if (buy <= 0 || sell <= 0) return null;
+  return sell - buy - Math.floor(sell * GE_TAX_RATE);
+}
+
 /** A one-line macro read of the whole market — breadth + value distribution. */
 export interface MarketMood {
   up: number; // traded items trading above their EMA (momentum up)
