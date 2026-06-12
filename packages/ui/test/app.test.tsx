@@ -607,6 +607,14 @@ describe('UI shell', () => {
       expect(outmatched.favored).toBe(false);
       expect(outmatched.roundsToKill).toBeGreaterThan(outmatched.roundsToFall);
     });
+    it('a foe-hit bonus (dragonfire) shortens rounds-to-fall, not rounds-to-kill', () => {
+      const you = { atk: 20, def: 20, hp: 50 };
+      const foe = { atk: 20, def: 10, hp: 60 };
+      const base = combatForecast(you, foe);
+      const drag = combatForecast(you, foe, 5); // +5/round incoming
+      expect(drag.roundsToFall).toBeLessThan(base.roundsToFall);
+      expect(drag.roundsToKill).toBe(base.roundsToKill); // your damage is unaffected
+    });
   });
 
   it('the embark screen forecasts the exchange vs the hardest foe', () => {

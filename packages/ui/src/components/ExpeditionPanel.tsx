@@ -408,6 +408,26 @@ export function ExpeditionPanel({
                   <b>{m.name}</b> — {Math.max(0, exp.combat!.monsterHp)}/{m.hp} hp · you{' '}
                   {Math.max(0, exp.combat!.playerHp)}/{exp.combat!.maxHp ?? trainedMax}
                 </p>
+                {(() => {
+                  // Live read at the CURRENT hp — should I push or flee? Counts
+                  // dragonfire (+ceil(atk/2)/round when no antifire) so it doesn't
+                  // lie in a dragon fight. Estimate (rolls vary); leech drains loot
+                  // not hp, so it's irrelevant to the survival race.
+                  const youAtk = stats.atk + (exp.boost?.atk ?? 0);
+                  const youDef = stats.def + (exp.boost?.def ?? 0);
+                  const dragonBonus = m.dragonfire && !exp.combat!.antifire ? Math.ceil(m.atk / 2) : 0;
+                  const f = combatForecast(
+                    { atk: youAtk, def: youDef, hp: exp.combat!.playerHp },
+                    { atk: m.atk, def: m.def, hp: exp.combat!.monsterHp },
+                    dragonBonus,
+                  );
+                  return (
+                    <p className="dim small forecast" title="live read at the current hp — expected rounds either way (an estimate; rolls vary). dragonfire is counted when no antifire holds.">
+                      ≈<b>{f.roundsToKill}</b> hit{f.roundsToKill === 1 ? '' : 's'} to finish it · it downs you in ≈
+                      <b>{f.roundsToFall}</b> · <b className={f.favored ? 'up' : 'down'}>{f.favored ? 'winning the race' : 'flee?'}</b>
+                    </p>
+                  );
+                })()}
               </>
             );
           })()}

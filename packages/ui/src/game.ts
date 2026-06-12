@@ -251,15 +251,18 @@ export interface CombatForecast {
 /**
  * Forecast a one-on-one exchange from EXPECTED damage both ways. The player
  * strikes first each round, so a tie (you'd kill on the very round you'd fall) is
- * a win → `favored` is `roundsToKill <= roundsToFall`. An estimate (real rounds
- * roll with variance), meant for the embark decision, not a promise. Pure.
+ * a win → `favored` is `roundsToKill <= roundsToFall`. `foeHitBonus` is flat extra
+ * damage the foe lands each round on top of its roll — dragonfire's `ceil(atk/2)`
+ * when no antifire is up (quest.ts) — so the live in-combat read doesn't lie in a
+ * dragon fight. An estimate (real rounds roll with variance), not a promise. Pure.
  */
 export function combatForecast(
   you: { atk: number; def: number; hp: number },
   foe: { atk: number; def: number; hp: number },
+  foeHitBonus = 0,
 ): CombatForecast {
   const roundsToKill = Math.ceil(foe.hp / expectedHit(you.atk, foe.def));
-  const roundsToFall = Math.ceil(you.hp / expectedHit(foe.atk, you.def));
+  const roundsToFall = Math.ceil(you.hp / (expectedHit(foe.atk, you.def) + foeHitBonus));
   return { roundsToKill, roundsToFall, favored: roundsToKill <= roundsToFall };
 }
 
