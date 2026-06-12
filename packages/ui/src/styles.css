@@ -1519,6 +1519,11 @@ input.belowbe {
   font-size: 0.72rem;
   white-space: nowrap;
 }
+/* "GE" tag on a flip you can afford but the buy limit (not your gp) caps. */
+.gecap {
+  color: var(--parchment-dim);
+  font-size: 0.64rem;
+}
 
 /* a contract you can deliver right now — a faint green nudge. */
 .contracts li.contract.ready {

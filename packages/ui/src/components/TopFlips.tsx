@@ -60,7 +60,9 @@ export interface FlipAfford {
 export function flipAffordability(buy: number, gp: number, limit: number | null): FlipAfford {
   const byGp = buy > 0 ? Math.floor(gp / buy) : 0;
   const units = limit === null ? byGp : Math.min(byGp, limit);
-  return { units, affordable: units >= 1, limited: limit !== null && limit < byGp };
+  // `limited` only means "you have gp to spare but the GE limit caps you" — so it
+  // requires a real (≥1) capped position, not the limit===0 can't-buy case.
+  return { units, affordable: units >= 1, limited: limit !== null && limit < byGp && units >= 1 };
 }
 
 /**
@@ -135,9 +137,22 @@ export function TopFlips({
               </span>
               <span
                 className={`flipafford${f.afford.affordable ? '' : ' short'}`}
-                title={f.afford.affordable ? 'units your gp can buy now' : 'beyond your purse'}
+                title={
+                  !f.afford.affordable
+                    ? 'beyond your purse'
+                    : f.afford.limited
+                      ? `the GE buy limit caps this at ${f.afford.units.toLocaleString('en-US')} this window — your gp could do more`
+                      : 'units your gp can buy now'
+                }
               >
-                {f.afford.affordable ? `×${f.afford.units.toLocaleString('en-US')}` : '✕'}
+                {f.afford.affordable ? (
+                  <>
+                    ×{f.afford.units.toLocaleString('en-US')}
+                    {f.afford.limited && <span className="gecap"> GE</span>}
+                  </>
+                ) : (
+                  '✕'
+                )}
               </span>
             </li>
           ))}

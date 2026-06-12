@@ -1181,6 +1181,19 @@ describe('UI shell', () => {
     it('treats a null limit as unlimited', () => {
       expect(flipAffordability(100, 1_000, null)).toEqual({ units: 10, affordable: true, limited: false });
     });
+    it('does not flag a zero buy limit as "limited" — that is unaffordable, not capped', () => {
+      expect(flipAffordability(100, 1_000, 0)).toEqual({ units: 0, affordable: false, limited: false });
+    });
+  });
+
+  it('TopFlips marks a flip the GE buy limit caps (gp to spare)', () => {
+    const view = {
+      gp: 1_000_000, // plenty — the GE limit, not your purse, is the cap
+      markets: [{ itemId: 'a', bestBid: 100, bestAsk: 200, buyRemaining: 5 }],
+    } as unknown as PlayerView;
+    const items = [{ id: 'a', name: 'Item A' }] as unknown as ItemDef[];
+    const { container } = render(<TopFlips view={view} items={items} onSelect={() => {}} />);
+    expect(container.querySelector('.gecap')).toBeTruthy(); // "GE" marker on the ×N badge
   });
 
   it('TopFlips shows the affordability badge and a "fits purse" filter', () => {
