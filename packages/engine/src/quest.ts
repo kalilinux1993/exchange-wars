@@ -179,7 +179,7 @@ export function expeditionSeed(worldSeed: number, expeditionId: number): number 
  * repertoire grows with depth (8u): portals tempt you one region past your
  * right, imps gamble your blood, merchants surface where the food runs out. */
 export interface EventState {
-  kind: 'shrine' | 'gamble' | 'portal' | 'imp' | 'merchant' | 'spar' | 'toll' | 'courier' | 'forge';
+  kind: 'shrine' | 'gamble' | 'portal' | 'imp' | 'merchant' | 'spar' | 'toll' | 'courier' | 'forge' | 'altar';
   prompt: string;
 }
 
@@ -207,6 +207,12 @@ export const TOLL_COST = 150;
  * the brews charge inventory for), composing with any potion boost already up. */
 export const FORGE_COST = 300;
 export const FORGE_ATK = 8;
+/** The blood altar: spill HEALTH for a dive-long Attack boost — the forge's
+ * inverse (hp as currency, not gp). Bigger boost than the forge because the
+ * cost is your survival buffer; refused if you can't spare the blood (you must
+ * have MORE than BLOOD_HP, so it never kills you outright). Conservation-free. */
+export const BLOOD_HP = 20;
+export const BLOOD_ATK = 14;
 /** The strongbox courier ships this fraction of your loot gp home (safe from
  * death) and keeps COURIER_CUT of what's shipped — de-risk at a haircut. */
 export const COURIER_FRACTION = 0.5;

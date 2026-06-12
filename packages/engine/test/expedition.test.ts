@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyCommand, MASTERY_BASE, type PlayerCommand } from '../src/commands';
 import { hashState } from '../src/hash';
 import { checkInvariants } from '../src/invariants';
-import { FORGE_ATK, FORGE_COST, levelsOf, maxHpFor, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS, SPAR_XP, TOLL_COST, xpForLevel } from '../src/quest';
+import { BLOOD_ATK, BLOOD_HP, FORGE_ATK, FORGE_COST, levelsOf, maxHpFor, PLAYER_BASE, REGION_CLEAR_KILLS, REGIONS, REST_REGEN_TICKS, SPAR_XP, TOLL_COST, xpForLevel } from '../src/quest';
 import { addAgent, BOUNTY_CHECK_TICKS, createWorld, tickWorld } from '../src/sim';
 import type { WorldState } from '../src/types';
 
@@ -277,6 +277,40 @@ describe('expeditions', () => {
     expect(f.state.ledger.gpBurned).toBe(burn2);
     expect(e2.boost ?? null).toBeNull();
     checkInvariants(f.state);
+  });
+
+  it('blood altar: spill health for an Attack boost, refused if you cannot spare it, ledger-free', () => {
+    const { state, id } = fixture(7);
+    const agent = state.agents[id]!;
+    ok(state, id, { type: 'startExpedition', regionId: 'lumbridge_plains', pack: {} });
+    const exp = agent.expedition!;
+    const ledgerBefore = JSON.stringify(state.ledger);
+
+    // Healthy: pay BLOOD_HP, gain +BLOOD_ATK dive-long; no ledger change at all.
+    exp.hp = BLOOD_HP + 30;
+    exp.event = { kind: 'altar', prompt: 'test altar' };
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.hp).toBe(30);
+    expect(exp.boost).toEqual({ atk: BLOOD_ATK, def: 0 });
+    expect(JSON.stringify(state.ledger)).toBe(ledgerBefore); // hp + boost only — nothing minted/burned
+    checkInvariants(state);
+
+    // Composes with a brew boost: better atk wins, def preserved.
+    exp.hp = BLOOD_HP + 30;
+    exp.boost = { atk: BLOOD_ATK + 5, def: 10 };
+    exp.event = { kind: 'altar', prompt: 'test altar' };
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.boost).toEqual({ atk: BLOOD_ATK + 5, def: 10 }); // not downgraded
+    expect(exp.hp).toBe(30); // still paid the blood
+
+    // Can't spare it (hp <= cost): refused — no hp lost, no boost, never lethal.
+    exp.hp = BLOOD_HP; // exactly the cost → too little
+    delete exp.boost;
+    exp.event = { kind: 'altar', prompt: 'test altar' };
+    ok(state, id, { type: 'choose', accept: true });
+    expect(exp.hp).toBe(BLOOD_HP); // unchanged — you kept your blood
+    expect(exp.boost ?? null).toBeNull();
+    checkInvariants(state);
   });
 
   it('new faces in the dark: portal hops a region, merchant sells dear, imp gambles your blood', () => {
