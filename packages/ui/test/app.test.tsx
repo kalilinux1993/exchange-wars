@@ -1800,6 +1800,29 @@ describe('UI shell', () => {
     expect(container.querySelector('.mover.underwater')).toBeTruthy(); // the losing row is tinted
   });
 
+  it('PositionsPanel cuts a loser with a two-tap market sell (arm, then confirm)', () => {
+    const game = newGame(42);
+    game.tradeBook = bookFromFills([{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }], 0.02);
+    const onCommand = vi.fn();
+    const onSelect = vi.fn();
+    // underwater (avg 100 → mark 80), with a resting best bid at 78 to sell into
+    const view = { markets: [{ itemId: FIRST.id, lastPrice: 80, bestBid: 78 }] } as unknown as PlayerView;
+    render(<PositionsPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={onSelect} onCommand={onCommand} />);
+    fireEvent.click(screen.getByText('✂ cut')); // first tap ARMS — must not sell yet
+    expect(onCommand).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('confirm ✓')); // confirm — market-sell the whole position
+    expect(onCommand).toHaveBeenCalledWith({ type: 'place', itemId: FIRST.id, side: 'sell', price: 78, qty: 10 });
+    expect(onSelect).not.toHaveBeenCalled(); // the chip stops the row's load-in-ticket click
+  });
+
+  it('PositionsPanel shows no cut chip without an onCommand handler', () => {
+    const game = newGame(42);
+    game.tradeBook = bookFromFills([{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }], 0.02);
+    const view = { markets: [{ itemId: FIRST.id, lastPrice: 80, bestBid: 78 }] } as unknown as PlayerView;
+    render(<PositionsPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} />);
+    expect(screen.queryByText('✂ cut')).toBeNull();
+  });
+
   describe('blendBuy (average-down preview)', () => {
     it('blends the new buy into your held cost basis, signed by direction', () => {
       const hold = { units: 10, avgCost: 100 };

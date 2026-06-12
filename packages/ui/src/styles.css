@@ -1579,6 +1579,14 @@ input.belowbe {
 .conquest-row.done .conquestbar > span {
   background: #2dd4bf;
 }
+/* "cut a loser" chip on an underwater position row — reds up once armed to confirm. */
+.positions .chip.cut {
+  padding: 0 6px;
+}
+.positions .chip.cut.armed {
+  color: #e06c5f;
+  border-color: #e06c5f;
+}
 /* a conquest row stacks a header line (name · bar · N/M) over its roster strip. */
 .conquest-row {
   flex-direction: column;

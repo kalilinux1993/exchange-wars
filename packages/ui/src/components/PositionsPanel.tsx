@@ -1,4 +1,5 @@
-import type { ItemDef, PlayerView } from '@exchange-wars/engine';
+import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
+import { useState } from 'react';
 import type { Game } from '../game';
 import { fmtCompact, heldPositions, positionConcentration, underwaterSummary } from '../game';
 
@@ -17,16 +18,22 @@ export function PositionsPanel({
   view,
   items,
   onSelect,
+  onCommand,
   limit = 8,
 }: {
   game: Game;
   view: PlayerView;
   items: ItemDef[];
   onSelect: (id: string) => void;
+  /** When provided, underwater rows get a two-tap "cut" that market-sells the position. */
+  onCommand?: (cmd: PlayerCommand) => void;
   limit?: number;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
   const priceOf = new Map(view.markets.map((m) => [m.itemId, m.lastPrice]));
+  const bidOf = new Map(view.markets.map((m) => [m.itemId, m.bestBid]));
+  // Which loser is armed for a cut — a tap arms, a second confirms (no accidental loss-lock).
+  const [armed, setArmed] = useState<string | null>(null);
   const positions = heldPositions(game.tradeBook, (id) => priceOf.get(id) ?? 0);
   const shown = positions.slice(0, limit);
   const totalValue = positions.reduce((s, p) => s + p.value, 0);
@@ -101,6 +108,32 @@ export function PositionsPanel({
                 {fmtCompact(p.unrealized)}
                 {p.marked && p.cost > 0 && <span className="dim small"> {pct(p.unrealizedPct)}</span>}
               </span>
+              {onCommand && p.marked && p.unrealized < 0 && (
+                armed === p.itemId ? (
+                  <button
+                    className="chip cut armed"
+                    title={`sell all ${p.units.toLocaleString('en-US')} at ${(bidOf.get(p.itemId) ?? p.mark).toLocaleString('en-US')} now — books the loss`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCommand({ type: 'place', itemId: p.itemId, side: 'sell', price: bidOf.get(p.itemId) ?? p.mark, qty: p.units });
+                      setArmed(null);
+                    }}
+                  >
+                    confirm ✓
+                  </button>
+                ) : (
+                  <button
+                    className="chip cut"
+                    title="cut this loser — sell the whole position at the best bid (tap again to confirm)"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setArmed(p.itemId);
+                    }}
+                  >
+                    ✂ cut
+                  </button>
+                )
+              )}
             </li>
           ))}
           {positions.length > shown.length && (
