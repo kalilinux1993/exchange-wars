@@ -1,7 +1,7 @@
 import { GEAR, GE_TAX_RATE } from '@exchange-wars/engine';
 import type { ItemDef, ItemId, PlayerView, Trade } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { nextRowIndex, valueBand } from '../game';
+import { marketMood, nextRowIndex, valueBand } from '../game';
 
 const SPARK_POINTS = 20;
 
@@ -167,6 +167,18 @@ export function MarketTable({
           {shown.length}/{view.markets.length}
         </span>
       </h2>
+      {(() => {
+        const mood = marketMood(view.markets, items);
+        return (
+          <p
+            className="dim small marketmood"
+            title="market breadth — traded items up vs down on their EMA, and how many sit cheap vs rich in their cost→value band (a macro read of the whole market)"
+          >
+            📊 <b className="up">{mood.up}↑</b> / <b className="down">{mood.down}↓</b> ·{' '}
+            <span className="up">🟢 {mood.cheap} cheap</span> · <span className="down">🟡 {mood.rich} rich</span>
+          </p>
+        );
+      })()}
       <table>
         <thead>
           <tr>

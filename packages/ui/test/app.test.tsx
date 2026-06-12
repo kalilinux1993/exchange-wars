@@ -61,6 +61,7 @@ import {
   breakEvenSell,
   priceSwing,
   valueBand,
+  marketMood,
   bookFromFills,
   emptyTradeBook,
   HUMAN_START_GP,
@@ -719,6 +720,18 @@ describe('UI shell', () => {
       fireEvent.click(screen.getByRole('button', { name: 'cheap' }));
       expect(screen.getByText('Floor Iron')).toBeTruthy(); // cheap (pos 0.1) stays
       expect(screen.queryByText('Rich Silk')).toBeNull(); // rich (pos 0.9) filtered out
+    });
+
+    it('renders a market-mood breadth line', () => {
+      const items = [{ id: 'x', name: 'X', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
+      const v = {
+        markets: [{ itemId: 'x', bestBid: 1, bestAsk: 2, lastPrice: 110, ema: 100, volume: 5, bestBidIsMine: false, bestAskIsMine: false }],
+      } as unknown as PlayerView;
+      const { container } = render(<MarketTable view={v} items={items} trades={[]} selected="x" onSelect={() => {}} eventItems={new Set()} active />);
+      const mood = container.querySelector('.marketmood');
+      expect(mood).toBeTruthy();
+      expect(mood!.textContent).toMatch(/1↑/); // the one traded item is above its EMA
+      expect(mood!.textContent).toMatch(/1 cheap/); // pos 0.1 → cheap
     });
 
     it('j / k walk the selection through the displayed order, clamped at the ends', () => {
@@ -1461,6 +1474,19 @@ describe('UI shell', () => {
       expect(valueBand(def, 999)).toBe('rich'); // above ceiling → clamps rich
       expect(valueBand({ baseCost: 100, consumeValue: 100 }, 100)).toBeNull(); // no band
       expect(valueBand(undefined, 100)).toBeNull();
+    });
+    it('marketMood counts breadth (traded only) and the cheap/rich value spread', () => {
+      const items = [
+        { id: 'a', baseCost: 100, consumeValue: 200 },
+        { id: 'b', baseCost: 100, consumeValue: 200 },
+        { id: 'c', baseCost: 100, consumeValue: 200 },
+      ];
+      const markets = [
+        { itemId: 'a', lastPrice: 110, ema: 100, volume: 5 }, // traded, last>ema → up; pos 0.1 → cheap
+        { itemId: 'b', lastPrice: 190, ema: 200, volume: 3 }, // traded, last<ema → down; pos 0.9 → rich
+        { itemId: 'c', lastPrice: 150, ema: 140, volume: 0 }, // NOT traded → no breadth count; pos 0.5 → fair
+      ];
+      expect(marketMood(markets, items)).toEqual({ up: 1, down: 1, cheap: 1, rich: 1 }); // c excluded from up/down; fair counts neither
     });
     it('worthBreakdown clamps an over-escrowed residual to 0 (torn-snapshot display guard)', () => {
       const view = { gp: 1000, openOrders: [{ side: 'buy', price: 100, remaining: 10 }] } as unknown as PlayerView;

@@ -1033,6 +1033,40 @@ export function valueBand(
   return pos < 0.34 ? 'cheap' : pos < 0.67 ? 'fair' : 'rich';
 }
 
+/** A one-line macro read of the whole market — breadth + value distribution. */
+export interface MarketMood {
+  up: number; // traded items trading above their EMA (momentum up)
+  down: number; // traded items below their EMA
+  cheap: number; // items in the cheap third of their value band
+  rich: number; // items in the rich third
+}
+
+/**
+ * Aggregate the market into a mood: how many items are up vs down (BREADTH — counted only for
+ * items with volume, since an untraded item's EMA-vs-last is meaningless), and how many sit cheap
+ * vs rich in their fundamental band (via `valueBand`). The macro counterpart to per-item movers. Pure.
+ */
+export function marketMood(
+  markets: { itemId: string; lastPrice: number; ema: number; volume: number }[],
+  items: { id: string; baseCost: number; consumeValue: number }[],
+): MarketMood {
+  const defOf = new Map(items.map((i) => [i.id, i]));
+  let up = 0;
+  let down = 0;
+  let cheap = 0;
+  let rich = 0;
+  for (const m of markets) {
+    if (m.volume > 0) {
+      if (m.lastPrice >= m.ema) up += 1;
+      else down += 1;
+    }
+    const b = valueBand(defOf.get(m.itemId), m.lastPrice);
+    if (b === 'cheap') cheap += 1;
+    else if (b === 'rich') rich += 1;
+  }
+  return { up, down, cheap, rich };
+}
+
 export function priceSwing(prices: number[]): PriceSwing | null {
   if (prices.length < 2) return null;
   let lo = prices[0]!;
