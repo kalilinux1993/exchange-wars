@@ -1456,6 +1456,37 @@ export const OFFLINE_TPS = 1;
 export const OFFLINE_CAP_TICKS = 100_000; // ~28h at 1 tps — a full day away still pays
 const OFFLINE_MIN_TICKS = 60; // ignore sub-minute blips (tab switches, reloads)
 
+/** The item whose price moved most over a span — the "while you were away" headline. */
+export interface MarketMover {
+  itemId: string;
+  startPrice: number;
+  endPrice: number;
+  pct: number; // (end - start) / start
+}
+
+/**
+ * The single biggest price mover from a before→after snapshot — what the market did
+ * while you were gone (14y). Skips items with no valid start/end price; only reports a
+ * move worth mentioning (≥3%), so a flat market stays quiet rather than crying a 0.1%
+ * wiggle as news. Iterates the `after` array (state order) for a deterministic tie-break.
+ * Pure — prices injected.
+ */
+export function biggestMover(
+  before: Record<string, number>,
+  after: { itemId: string; lastPrice: number }[],
+): MarketMover | null {
+  let best: MarketMover | null = null;
+  for (const m of after) {
+    const start = before[m.itemId];
+    if (!start || start <= 0 || !m.lastPrice || m.lastPrice <= 0) continue;
+    const pct = (m.lastPrice - start) / start;
+    if (best === null || Math.abs(pct) > Math.abs(best.pct)) {
+      best = { itemId: m.itemId, startPrice: start, endPrice: m.lastPrice, pct };
+    }
+  }
+  return best && Math.abs(best.pct) >= 0.03 ? best : null;
+}
+
 export interface OfflineResult {
   ticks: number;
   worthBefore: number;
@@ -1463,6 +1494,8 @@ export interface OfflineResult {
   /** What the Sellsword hunted/banked while away (10l). */
   sellswordKills: number;
   sellswordBanked: number;
+  /** The biggest market move while away — the "the world didn't sleep" headline (14y). */
+  topMover: MarketMover | null;
 }
 
 export interface OfflinePlan {
@@ -1470,6 +1503,8 @@ export interface OfflinePlan {
   worthBefore: number;
   sellswordKills0: number;
   sellswordBanked0: number;
+  /** Per-item lastPrice captured before the away ticks ran — drives the top mover. */
+  pricesBefore: Record<string, number>;
 }
 
 /**
@@ -1490,6 +1525,7 @@ export function planOfflineProgress(game: Game, nowMs: number): OfflinePlan | nu
     worthBefore: playerWorth(game),
     sellswordKills0: game.world.stats.sellswordKills ?? 0,
     sellswordBanked0: game.world.stats.sellswordBanked ?? 0,
+    pricesBefore: Object.fromEntries(before.markets.map((m) => [m.itemId, m.lastPrice])),
   };
 }
 
@@ -1497,12 +1533,14 @@ export function planOfflineProgress(game: Game, nowMs: number): OfflinePlan | nu
 export function finishOfflineProgress(game: Game, plan: OfflinePlan): OfflineResult {
   const worthAfter = playerWorth(game);
   recordWorth(game, worthAfter);
+  const after = playerView(game.world, game.playerId);
   return {
     ticks: plan.ticks,
     worthBefore: plan.worthBefore,
     worthAfter,
     sellswordKills: (game.world.stats.sellswordKills ?? 0) - plan.sellswordKills0,
     sellswordBanked: (game.world.stats.sellswordBanked ?? 0) - plan.sellswordBanked0,
+    topMover: after ? biggestMover(plan.pricesBefore, after.markets) : null,
   };
 }
 

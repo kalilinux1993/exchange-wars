@@ -40,6 +40,9 @@ import { WorthChart, ghostWorthAt } from '../src/components/WorthChart';
 import { chooseSave, sanitizeHandle, type Session } from '../src/cloud';
 import {
   applyOfflineProgress,
+  planOfflineProgress,
+  finishOfflineProgress,
+  biggestMover,
   bumpStreak,
   checkMilestones,
   MILESTONES,
@@ -358,6 +361,37 @@ describe('UI shell', () => {
     const res = applyOfflineProgress(game, 1_000 + 5_000_000)!; // long enough to raid
     expect(res.sellswordKills).toBeGreaterThan(0);
     expect(res.sellswordBanked).toBeGreaterThanOrEqual(0);
+  });
+
+  describe('biggestMover (while-you-were-away headline)', () => {
+    const mk = (itemId: string, lastPrice: number) => ({ itemId, lastPrice });
+    it('picks the largest absolute % move above the 3% news floor', () => {
+      const mv = biggestMover({ a: 100, b: 200, c: 50 }, [mk('a', 110), mk('b', 160), mk('c', 51)]);
+      expect(mv).toMatchObject({ itemId: 'b', startPrice: 200, endPrice: 160 }); // -20% beats a's +10%, c's +2%
+      expect(Math.round(mv!.pct * 100)).toBe(-20);
+    });
+    it('is null when nothing cleared 3% — a flat market is not news', () => {
+      expect(biggestMover({ a: 100, b: 200 }, [mk('a', 101), mk('b', 198)])).toBeNull(); // +1% / -1%
+    });
+    it('skips items with no/zero start or end price', () => {
+      const mv = biggestMover({ a: 0, b: 100 }, [mk('a', 999), mk('b', 130), mk('z', 500)]);
+      expect(mv?.itemId).toBe('b'); // a's start is 0, z has no captured start → only b (+30%) qualifies
+      expect(biggestMover({}, [])).toBeNull();
+    });
+  });
+
+  it('finishOfflineProgress diffs the captured pre-away prices to report the top mover', () => {
+    const game = newGame(42);
+    game.lastSeenMs = 1_000;
+    const plan = planOfflineProgress(game, 1_000 + 600_000)!; // captures pricesBefore
+    // No ticks ran → after == before → nothing moved → no headline.
+    expect(finishOfflineProgress(game, plan).topMover).toBeNull();
+    // Pretend one item was half the price before → finish sees a ~+100% rise → it's the mover.
+    const id = game.world.items[0]!.id;
+    const planLow = { ...plan, pricesBefore: { ...plan.pricesBefore, [id]: (plan.pricesBefore[id] ?? 100) / 2 } };
+    const mv = finishOfflineProgress(game, planLow).topMover;
+    expect(mv?.itemId).toBe(id);
+    expect(mv!.pct).toBeGreaterThan(0.4);
   });
 
   it('shows the away banner when reopening after time has passed', () => {

@@ -892,6 +892,23 @@ export function App({ initial }: { initial?: Game }) {
                   banked
                 </span>
               )}
+              {o.topMover &&
+                (() => {
+                  const mv = o.topMover!;
+                  const name = game.world.items.find((i) => i.id === mv.itemId)?.name ?? mv.itemId;
+                  const up = mv.pct >= 0;
+                  return (
+                    <span className="awaymover" title="the item whose price moved most while you were away — the market doesn't sleep">
+                      {' '}
+                      · {up ? '📈' : '📉'}{' '}
+                      <b className={up ? 'up' : 'down'}>
+                        {name} {up ? '+' : ''}
+                        {Math.round(mv.pct * 100)}%
+                      </b>{' '}
+                      ({fmtCompact(mv.startPrice)}→{fmtCompact(mv.endPrice)})
+                    </span>
+                  );
+                })()}
               <button className="chip" onClick={() => setAwayDismissed(true)}>
                 ×
               </button>
