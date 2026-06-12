@@ -1,5 +1,5 @@
 import type { PlayerView } from '@exchange-wars/engine';
-import { MILESTONES, type Game } from '../game';
+import { fmtDuration, MILESTONES, type Game } from '../game';
 
 export function MilestonesPanel({
   unlocked,
@@ -22,6 +22,13 @@ export function MilestonesPanel({
     return { m, done, pct };
   });
   const next = ranked.filter((r) => !r.done).sort((a, b) => b.pct - a.pct).slice(0, 3);
+  // The most-recently-earned deed (of those stamped) — a sense of run pacing.
+  const ticks = game.milestoneTicks ?? {};
+  const latest = unlocked
+    .filter((id) => ticks[id] !== undefined)
+    .map((id) => ({ m: MILESTONES.find((x) => x.id === id), tick: ticks[id]! }))
+    .filter((e) => e.m !== undefined)
+    .sort((a, b) => b.tick - a.tick)[0];
   return (
     <section className="panel milestones">
       <h2>
@@ -41,6 +48,11 @@ export function MilestonesPanel({
           </span>
         ))}
       </div>
+      {latest && (
+        <p className="dim small" title={latest.m!.flavor}>
+          🏅 latest: <b>{latest.m!.name}</b> · {fmtDuration(Math.max(0, game.world.tick - latest.tick))} ago
+        </p>
+      )}
       {next.length > 0 && (
         <ul className="rows small">
           {next.map(({ m, pct }) => (

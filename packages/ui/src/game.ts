@@ -14,6 +14,8 @@ export interface Game {
   lastSeenMs?: number;
   /** Latched milestone ids (persisted; never un-latch). */
   milestones: string[];
+  /** World tick each milestone was earned (optional; absent on old saves). */
+  milestoneTicks?: Record<string, number>;
   /** The Chronicle: event begin/end headlines (capped, persisted). */
   newsLog: NewsEntry[];
   /** Events we've already headlined (so endings can be detected). */
@@ -588,6 +590,7 @@ export function checkMilestones(game: Game, view: PlayerView, worth: number): Mi
     if (game.milestones.includes(m.id)) continue;
     if (m.achieved(game, view, worth)) {
       game.milestones.push(m.id);
+      (game.milestoneTicks ??= {})[m.id] = game.world.tick; // stamp when it was earned
       newly.push(m);
     }
   }
@@ -707,6 +710,7 @@ export function newGame(seed: number): Game {
     startGp: HUMAN_START_GP,
     worthHistory: [{ tick: 0, worth: HUMAN_START_GP }],
     milestones: [],
+    milestoneTicks: {},
     newsLog: [],
     seenEvents: [],
     fills: [],
@@ -796,6 +800,7 @@ export function normalizeGame(game: Game): Game {
     startGp: game.startGp ?? HUMAN_START_GP,
     worthHistory: game.worthHistory ?? [],
     milestones: game.milestones ?? [],
+    milestoneTicks: game.milestoneTicks ?? {},
     newsLog: game.newsLog ?? [],
     seenEvents: game.seenEvents ?? [],
     fills: game.fills ?? [],

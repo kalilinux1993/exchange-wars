@@ -18,6 +18,7 @@ import { resolveShortcut } from '../src/keyboard';
 import { ProfitPanel } from '../src/components/ProfitPanel';
 import { depthSplit } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
+import { MilestonesPanel } from '../src/components/MilestonesPanel';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { ghostWorthAt } from '../src/components/WorthChart';
 import { chooseSave, sanitizeHandle, type Session } from '../src/cloud';
@@ -1092,6 +1093,27 @@ describe('UI shell', () => {
     expect(statDeeds).toContain('swordhand');
     expect(statDeeds).toContain('bulwark');
     expect(statDeeds).not.toContain('iron-constitution'); // one xp short
+  });
+
+  it('checkMilestones stamps the tick a deed was earned', () => {
+    const game = newGame(42);
+    game.world.tick = 1234;
+    game.world.stats.monstersSlain = 1; // achieves 'first-blood'
+    const view = playerView(game.world, game.playerId)!;
+    const newly = checkMilestones(game, view, 0);
+    expect(newly.map((m) => m.id)).toContain('first-blood');
+    expect(game.milestoneTicks!['first-blood']).toBe(1234);
+  });
+
+  it('MilestonesPanel shows the latest earned deed with its timing', () => {
+    const game = newGame(42);
+    game.world.tick = 600; // 10 min after earning
+    game.milestones = ['first-blood'];
+    game.milestoneTicks = { 'first-blood': 0 };
+    const view = playerView(game.world, game.playerId)!;
+    render(<MilestonesPanel unlocked={game.milestones} game={game} view={view} worth={0} />);
+    expect(screen.getByText(/🏅 latest:/)).toBeTruthy();
+    expect(screen.getByText(/10m ago/)).toBeTruthy();
   });
 
   it('sell the spoils: one click realizes what the resting bids would pay', () => {
