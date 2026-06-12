@@ -665,6 +665,18 @@ describe('UI shell', () => {
       expect(onDelveEnd).not.toHaveBeenCalled(); // no spurious Delve Log entry
       expect(onToast).not.toHaveBeenCalled(); // no false "You died" attributed to the player
     });
+    it('a sellsword-owned dive is clearly flagged so the player does not mistake it for their own', () => {
+      const { game } = startDive(true); // hunt on + the slot occupied → the sellsword's
+      const view = playerView(game.world, game.playerId)!;
+      render(<ExpeditionPanel game={game} view={view} onCommand={() => {}} onToast={() => {}} onDelveEnd={() => {}} />);
+      expect(screen.getByText(/your sellsword is on this dive/i)).toBeTruthy();
+    });
+    it('no sellsword banner on the player\'s own dive', () => {
+      const { game } = startDive(false);
+      const view = playerView(game.world, game.playerId)!;
+      render(<ExpeditionPanel game={game} view={view} onCommand={() => {}} onToast={() => {}} onDelveEnd={() => {}} />);
+      expect(screen.queryByText(/your sellsword is on this dive/i)).toBeNull();
+    });
     it('raidTotals sums loot banked on survival vs lost to deaths', () => {
       expect(raidTotals(undefined)).toEqual({ runs: 0, deaths: 0, banked: 0, lost: 0 });
       const delves = [

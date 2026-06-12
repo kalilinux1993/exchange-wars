@@ -164,7 +164,11 @@ export function ExpeditionPanel({
         )}
         {(view.upgrades['sellsword'] ?? 0) > 0 && (
           <p className="dim small">
-            🗡 sellsword: {agent?.sellsword ? 'hunting the shallows while you trade' : 'resting at the inn'}{' '}
+            🗡 sellsword: {agent?.sellsword ? 'hunting the shallows while you trade' : 'resting at the inn'}
+            {((st.sellswordKills ?? 0) > 0 || (st.sellswordBanked ?? 0) > 0) &&
+              ` · ${(st.sellswordKills ?? 0).toLocaleString('en-US')} kills · ${(st.sellswordBanked ?? 0).toLocaleString(
+                'en-US',
+              )} gp banked`}{' '}
             <button
               className="chip"
               title="the hireling runs conservative expeditions on its own — shallow regions only, flees danger, never gambles your kit"
@@ -428,6 +432,14 @@ export function ExpeditionPanel({
   return (
     <section className="panel expedition">
       <h2>Expeditions · {region.name}</h2>
+      {agent?.sellsword && (
+        // The hunt is on + the slot is occupied → this dive is the sellsword's
+        // (it shares agent.expedition). Make that unmistakable so the player
+        // doesn't mistake it for their own or fight its rounds by accident.
+        <p className="warn small" title="your hireling runs this dive on its own — call it back from the toggle below to take the reins yourself">
+          🗡 your sellsword is on this dive — it fights on its own
+        </p>
+      )}
       <p className="dim small">
         atk {stats.atk} · def {stats.def} · cleared {exp.cleared}
         {regionIndex(exp.regionId) === progress ? `/${REGION_CLEAR_KILLS} to unlock the next region` : ''} · loot{' '}

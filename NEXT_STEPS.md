@@ -29,7 +29,8 @@ Through brick 59 (10g): RPG layer (8 regions, stats/xp, brews, bounties, sellswo
 
 ## Quality
 - **Adversarial review — pure helpers (12u, brick 125):** the session's ~25 pure helpers reviewed for correctness/edge-cases — verdict **SOUND**, edges pinned as regression tests.
-- **Adversarial review — effects/listeners (brick 128):** found + FIXED a HIGH bug — the sellsword autopilot shares `agent.expedition`, so its dives polluted the Delve Log (12i) + fired false player "You died" toasts. Fixed 12x (`bySellsword` snapshot gate). Also fixed the celebration refs not resetting on restart. Remaining notes pre-existing/cosmetic (Space vs shortcut BUTTON-guard inconsistency) — non-blocking.
+- **Adversarial review — effects/listeners (brick 128):** found + FIXED a HIGH bug — the sellsword autopilot shares `agent.expedition`, so its dives polluted the Delve Log (12i) + fired false player "You died" toasts. Fixed 12x (`bySellsword` snapshot gate); 12y added the render-side banner + toggle haul. Also fixed the celebration refs not resetting on restart. Remaining notes pre-existing/cosmetic (Space vs shortcut BUTTON-guard inconsistency) — non-blocking.
+  - **Jesse-present follow-up:** an engine-side `bySellsword` flag on `ExpeditionState` would let the UI distinguish ownership cleanly (vs the `agent.sellsword` heuristic) and DISABLE player controls during a sellsword dive — a small replay-affecting change to batch with the verify-score redeploy.
 
 ## Trading safety
 - ~~"sell the spoils" bulk button dumped GEAR too (could liquidate the raiding kit)~~ FIXED 12r (`lootSpoils` — bulk keeps gear; per-item sell still sells anything). Optional follow-up: a "sell gear too" override.
