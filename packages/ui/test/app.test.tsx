@@ -20,6 +20,7 @@ import { depthSplit } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
 import { FirstSteps, firstSteps } from '../src/components/FirstSteps';
+import { ContractsBoard, contractPremium } from '../src/components/ContractsBoard';
 import { TradeFeed } from '../src/components/TradeFeed';
 import { WorthChart, ghostWorthAt } from '../src/components/WorthChart';
 import { chooseSave, sanitizeHandle, type Session } from '../src/cloud';
@@ -1115,6 +1116,26 @@ describe('UI shell', () => {
     const newly = checkMilestones(game, view, 0);
     expect(newly.map((m) => m.id)).toContain('first-blood');
     expect(game.milestoneTicks!['first-blood']).toBe(1234);
+  });
+
+  describe('contractPremium', () => {
+    it('is the fraction over market price, null without a mark', () => {
+      expect(contractPremium(120, 100)).toBeCloseTo(0.2, 5);
+      expect(contractPremium(90, 100)).toBeCloseTo(-0.1, 5); // market spiked past the deal
+      expect(contractPremium(120, 0)).toBeNull();
+    });
+  });
+
+  it('ContractsBoard shows each contract premium and flags fillable rows', () => {
+    const view = {
+      contracts: [{ id: 1, itemId: 'a', qty: 2, unitPrice: 120, expiresTick: 1000 }],
+      inventory: { a: 5 }, // enough to fill
+      markets: [{ itemId: 'a', lastPrice: 100 }],
+    } as unknown as PlayerView;
+    const items = [{ id: 'a', name: 'Item A' }] as unknown as ItemDef[];
+    render(<ContractsBoard view={view} items={items} tick={0} onCommand={() => {}} />);
+    expect(screen.getByText(/\+20%/)).toBeTruthy(); // premium over market
+    expect(document.querySelector('.contract.ready')).toBeTruthy(); // fillable highlight
   });
 
   describe('offlineRatePerMin', () => {

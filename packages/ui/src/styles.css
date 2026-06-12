@@ -1441,6 +1441,11 @@ kbd {
   color: var(--gold-bright);
 }
 
+/* a contract you can deliver right now — a faint green nudge. */
+.contracts li.contract.ready {
+  background: rgba(127, 217, 138, 0.08);
+}
+
 /* your own row on the Sprint Board — a subtle gold highlight. */
 .sprintboard li.you {
   background: rgba(212, 169, 55, 0.1);
