@@ -19,6 +19,7 @@ import { ProfitPanel } from '../src/components/ProfitPanel';
 import { PositionsPanel } from '../src/components/PositionsPanel';
 import { ConquestPanel } from '../src/components/ConquestPanel';
 import { MarketTable } from '../src/components/MarketTable';
+import { DelvePanel } from '../src/components/DelvePanel';
 import { depthSplit } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
@@ -67,6 +68,8 @@ import {
   regionRoster,
   regionMastery,
   nextRowIndex,
+  summarizeDelve,
+  recentDelves,
   totalRealized,
   totalUnrealized,
   updateNews,
@@ -539,6 +542,34 @@ describe('UI shell', () => {
       const filter = screen.getByPlaceholderText(/filter items/i);
       fireEvent.keyDown(filter, { key: 'j' }); // target is the INPUT — guarded
       expect(onSelect).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Delve Log', () => {
+    it('summarizeDelve maps an ending expedition to a record; died is the in-combat signal', () => {
+      const snap = { regionId: 'wilderness_ruins', cleared: 4, packGp: 1840 };
+      expect(summarizeDelve(snap, false, 500)).toEqual({ tick: 500, regionId: 'wilderness_ruins', kills: 4, lootGp: 1840, died: false });
+      expect(summarizeDelve(snap, true, 500)).toEqual({ tick: 500, regionId: 'wilderness_ruins', kills: 4, lootGp: 1840, died: true });
+    });
+    it('recentDelves is newest-first and capped, undefined → empty', () => {
+      const log = Array.from({ length: 5 }, (_, i) => ({ tick: i, regionId: 'r', kills: i, lootGp: i, died: false }));
+      expect(recentDelves(log, 3).map((d) => d.tick)).toEqual([4, 3, 2]);
+      expect(recentDelves(undefined, 3)).toEqual([]);
+    });
+    it('DelvePanel shows the empty state with no delves', () => {
+      render(<DelvePanel game={newGame(42)} />);
+      expect(screen.getByText(/no expeditions yet/i)).toBeTruthy();
+    });
+    it('DelvePanel lists finished delves with their outcome', () => {
+      const game = newGame(42);
+      game.delves = [
+        { tick: game.world.tick, regionId: REGIONS[0]!.id, kills: 2, lootGp: 500, died: false },
+        { tick: game.world.tick, regionId: REGIONS[0]!.id, kills: 1, lootGp: 300, died: true },
+      ];
+      render(<DelvePanel game={game} />);
+      expect(screen.getByText(/2 logged/)).toBeTruthy();
+      expect(screen.getByText('🏆', { exact: false })).toBeTruthy(); // survived row
+      expect(screen.getByText('☠', { exact: false })).toBeTruthy(); // died row
     });
   });
 

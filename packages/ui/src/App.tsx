@@ -21,6 +21,7 @@ import { PositionsPanel } from './components/PositionsPanel';
 import { MilestonesPanel } from './components/MilestonesPanel';
 import { RecordsPanel } from './components/RecordsPanel';
 import { ConquestPanel } from './components/ConquestPanel';
+import { DelvePanel } from './components/DelvePanel';
 import { Sparkline } from './components/Sparkline';
 import type { TicketPrefill } from './components/TradeTicket';
 import { PlayerPanel } from './components/PlayerPanel';
@@ -33,6 +34,7 @@ import {
   bumpStreak,
   recordDailyBest,
   dailyBestView,
+  DELVE_LOG_CAP,
   checkMilestones,
   MILESTONES,
   finishOfflineProgress,
@@ -898,6 +900,13 @@ export function App({ initial }: { initial?: Game }) {
             view={view}
             onCommand={command}
             onToast={(name, flavor) => setToast({ id: 'expedition', name, flavor, achieved: () => false })}
+            onDelveEnd={(record) => {
+              const log = (game.delves ??= []);
+              log.push(record);
+              if (log.length > DELVE_LOG_CAP) log.splice(0, log.length - DELVE_LOG_CAP);
+              saveGame(game);
+              force();
+            }}
           />
         </section>
         <section className="middle">
@@ -910,6 +919,7 @@ export function App({ initial }: { initial?: Game }) {
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
           <RecordsPanel game={game} />
           <ConquestPanel game={game} />
+          <DelvePanel game={game} />
           <AlmanacPanel game={game} />
         </section>
         <section className="middle">

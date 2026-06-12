@@ -16,6 +16,9 @@ export interface Game {
   milestones: string[];
   /** World tick each milestone was earned (optional; absent on old saves). */
   milestoneTicks?: Record<string, number>;
+  /** The Delve Log: a capped chronicle of completed expeditions (optional; old
+   * saves predate it). Persisted, survives the dive the engine's exp state can't. */
+  delves?: DelveRecord[];
   /** The Chronicle: event begin/end headlines (capped, persisted). */
   newsLog: NewsEntry[];
   /** Events we've already headlined (so endings can be detected). */
@@ -164,6 +167,36 @@ export function dailyBestView(
 export function nextRowIndex(cur: number, delta: number, len: number): number {
   if (len <= 0) return -1;
   return Math.max(0, Math.min(len - 1, cur + delta));
+}
+
+/** One finished expedition, as remembered by the Delve Log after the dive ends. */
+export interface DelveRecord {
+  tick: number; // world tick the delve ended
+  regionId: string;
+  kills: number; // encounters cleared this dive
+  lootGp: number; // loot at stake when it ended — banked if survived, lost if died
+  died: boolean; // true = fell in combat; false = extracted with the spoils
+}
+
+/** Newest expeditions kept in the Delve Log. */
+export const DELVE_LOG_CAP = 30;
+
+/**
+ * Turn an ending expedition into a Delve Log entry. `died` is the caller's robust
+ * signal (the dive vanished mid-combat) — you can only extract out of combat, so
+ * ending-in-combat means death, ending-otherwise means a clean extract. Pure.
+ */
+export function summarizeDelve(
+  snapshot: { regionId: string; cleared: number; packGp: number },
+  died: boolean,
+  tick: number,
+): DelveRecord {
+  return { tick, regionId: snapshot.regionId, kills: snapshot.cleared, lootGp: snapshot.packGp, died };
+}
+
+/** The Delve Log newest-first, capped to `n` — the order the panel shows. Pure. */
+export function recentDelves(delves: DelveRecord[] | undefined, n: number): DelveRecord[] {
+  return (delves ?? []).slice(-n).reverse();
 }
 
 /** A region's full native roster: its encounter pool + named elite, deduped, order-stable. */
@@ -994,6 +1027,7 @@ export function normalizeGame(game: Game): Game {
     worthHistory: game.worthHistory ?? [],
     milestones: game.milestones ?? [],
     milestoneTicks: game.milestoneTicks ?? {},
+    delves: game.delves ?? [],
     newsLog: game.newsLog ?? [],
     seenEvents: game.seenEvents ?? [],
     fills: game.fills ?? [],

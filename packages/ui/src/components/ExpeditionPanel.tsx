@@ -12,7 +12,7 @@ import {
 } from '@exchange-wars/engine';
 import type { PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { deathRecap, MILESTONES, type Game } from '../game';
+import { deathRecap, MILESTONES, summarizeDelve, type DelveRecord, type Game } from '../game';
 import { usePref } from '../usePref';
 import { CharacterPanel } from './CharacterPanel';
 import { CombatScene } from './CombatScene';
@@ -50,11 +50,14 @@ export function ExpeditionPanel({
   view,
   onCommand,
   onToast,
+  onDelveEnd,
 }: {
   game: Game;
   view: PlayerView;
   onCommand: (cmd: PlayerCommand) => void;
   onToast: (name: string, flavor: string) => void;
+  /** Called once when an expedition ends (death or extract) with its Delve Log entry. */
+  onDelveEnd?: (record: DelveRecord) => void;
 }) {
   const agent = game.world.agents[game.playerId];
   const exp = agent?.expedition;
@@ -71,24 +74,33 @@ export function ExpeditionPanel({
   const prevRef = useRef<{
     active: boolean;
     inCombat: boolean;
-    snapshot: { regionId: string; pack: Record<string, number>; packGp: number } | undefined;
+    snapshot: { regionId: string; pack: Record<string, number>; packGp: number; cleared: number } | undefined;
   }>({ active: false, inCombat: false, snapshot: undefined });
   useEffect(() => {
     const prev = prevRef.current;
     const now = {
       active: exp !== undefined,
       inCombat: exp?.combat != null,
-      snapshot: exp ? { regionId: exp.regionId, pack: { ...exp.pack }, packGp: exp.packGp } : prev.snapshot,
+      snapshot: exp
+        ? { regionId: exp.regionId, pack: { ...exp.pack }, packGp: exp.packGp, cleared: exp.cleared }
+        : prev.snapshot,
     };
-    if (prev.active && prev.inCombat && !now.active && prev.snapshot) {
-      const r = deathRecap(game.world.items, prev.snapshot.pack, prev.snapshot.packGp);
-      const where = REGIONS[regionIndex(prev.snapshot.regionId)]?.name ?? 'the depths';
-      const keptLine = r.kept.length > 0 ? `kept: ${r.kept.join(', ')}` : 'you carried nothing worth keeping';
-      const lostLine =
-        r.lostUnits > 0 || r.lostGp > 0
-          ? ` — the dark kept ${r.lostUnits} item${r.lostUnits === 1 ? '' : 's'} and ${r.lostGp.toLocaleString('en-US')} loot gp`
-          : '';
-      onToast(`You died in ${where}`, `${keptLine}${lostLine}`);
+    if (prev.active && !now.active && prev.snapshot) {
+      // An expedition ended. Vanishing mid-combat = death; otherwise a clean
+      // extract (you can only extract out of combat). Both get a Delve Log entry;
+      // only death also narrates the loss as a toast.
+      const died = prev.inCombat;
+      onDelveEnd?.(summarizeDelve(prev.snapshot, died, game.world.tick));
+      if (died) {
+        const r = deathRecap(game.world.items, prev.snapshot.pack, prev.snapshot.packGp);
+        const where = REGIONS[regionIndex(prev.snapshot.regionId)]?.name ?? 'the depths';
+        const keptLine = r.kept.length > 0 ? `kept: ${r.kept.join(', ')}` : 'you carried nothing worth keeping';
+        const lostLine =
+          r.lostUnits > 0 || r.lostGp > 0
+            ? ` — the dark kept ${r.lostUnits} item${r.lostUnits === 1 ? '' : 's'} and ${r.lostGp.toLocaleString('en-US')} loot gp`
+            : '';
+        onToast(`You died in ${where}`, `${keptLine}${lostLine}`);
+      }
     }
     prevRef.current = now;
     // eslint-disable-next-line react-hooks/exhaustive-deps
