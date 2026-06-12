@@ -882,6 +882,32 @@ export function breakEvenSell(avgCost: number, taxRate: number): number {
 }
 
 /**
+ * Realized recent price action over the trade window the sparkline draws — the LIVE
+ * counterpart to an item's static volatility tier (`def.volatility`). `swingPct` is the
+ * peak-to-trough range as a fraction of the low; `read` buckets it: steady (<4%) is calm
+ * enough that a flip's spread should hold, wild (≥10%) means it can evaporate before both
+ * legs fill. Fewer than two trades → `null` (you can't read swing from one point). Pure.
+ */
+export interface PriceSwing {
+  lo: number;
+  hi: number;
+  swingPct: number; // (hi - lo) / lo
+  read: 'steady' | 'choppy' | 'wild';
+}
+export function priceSwing(prices: number[]): PriceSwing | null {
+  if (prices.length < 2) return null;
+  let lo = prices[0]!;
+  let hi = prices[0]!;
+  for (const p of prices) {
+    if (p < lo) lo = p;
+    if (p > hi) hi = p;
+  }
+  const swingPct = lo > 0 ? (hi - lo) / lo : 0;
+  const read = swingPct < 0.04 ? 'steady' : swingPct < 0.1 ? 'choppy' : 'wild';
+  return { lo, hi, swingPct, read };
+}
+
+/**
  * Recent *realized* profit per item: FIFO-match each sell fill against the
  * player's earlier buy fills (within the rolling fills window), netting the GE
  * tax on the sale side. Only completed round-trips count — an open position

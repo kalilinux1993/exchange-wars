@@ -2,7 +2,7 @@ import { GE_TAX_RATE } from '@exchange-wars/engine';
 import type { CommandResult, ItemDef, ItemId, PlayerCommand, PlayerView, Side } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { Sparkline } from './Sparkline';
-import { blendBuy, breakEvenSell, gearDelta } from '../game';
+import { blendBuy, breakEvenSell, gearDelta, priceSwing } from '../game';
 
 /**
  * Split the resting book into bid/ask proportions for the liquidity bar —
@@ -161,6 +161,23 @@ export function TradeTicket({
       )}
       {eventNote && <p className="warn small">{eventNote}</p>}
       <Sparkline prices={recentPrices} />
+      {(() => {
+        const sw = priceSwing(recentPrices);
+        if (!sw) return null;
+        const pct = Math.round(sw.swingPct * 100);
+        const tag = sw.read === 'steady' ? '🟢 steady' : sw.read === 'choppy' ? '🟡 choppy' : '🔴 wild';
+        return (
+          <p
+            className="dim small swing"
+            title="how much this item's traded price has actually swung over the recent trades the chart shows — the live counterpart to its volatility tier. A wild swing means the spread can vanish before both legs of your flip fill."
+          >
+            recent {sw.lo.toLocaleString('en-US')}–{sw.hi.toLocaleString('en-US')} ·{' '}
+            <b className={sw.read === 'wild' ? 'down' : sw.read === 'steady' ? 'up' : undefined}>
+              swing {pct}% · {tag}
+            </b>
+          </p>
+        );
+      })()}
       {flipBuy > 0 && flipSell > 0 && (
         <p className="dim small flipline" title="undercut the spread one tick each way; margin is per unit after the 2% sell tax">
           flip:{' '}

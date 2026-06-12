@@ -52,6 +52,7 @@ import {
   applyFillToBook,
   blendBuy,
   breakEvenSell,
+  priceSwing,
   bookFromFills,
   emptyTradeBook,
   HUMAN_START_GP,
@@ -1193,6 +1194,15 @@ describe('UI shell', () => {
       expect(positionConcentration([])).toEqual({ weights: [], topPct: 0, count: 0 });
       expect(raidTotals(undefined)).toEqual({ runs: 0, deaths: 0, banked: 0, lost: 0 });
     });
+    it('priceSwing reads the realized lo/hi range and buckets the choppiness', () => {
+      expect(priceSwing([])).toBeNull(); // no trades
+      expect(priceSwing([1000])).toBeNull(); // one point can't swing
+      expect(priceSwing([100, 100, 100])).toMatchObject({ lo: 100, hi: 100, swingPct: 0, read: 'steady' }); // flat
+      expect(priceSwing([100, 103])).toMatchObject({ lo: 100, hi: 103, read: 'steady' }); // +3% < 4%
+      expect(priceSwing([100, 108, 95])).toMatchObject({ lo: 95, hi: 108, read: 'wild' }); // (108-95)/95 ≈ 13.7% ≥ 10%
+      expect(priceSwing([100, 106])!.read).toBe('choppy'); // 6% in the [4%,10%) band
+      expect(priceSwing([100, 130])!.read).toBe('wild'); // +30% -> wild
+    });
     it('worthBreakdown clamps an over-escrowed residual to 0 (torn-snapshot display guard)', () => {
       const view = { gp: 1000, openOrders: [{ side: 'buy', price: 100, remaining: 10 }] } as unknown as PlayerView;
       expect(worthBreakdown(view, 1500).holdings).toBe(0); // residual 1500−1000−1000 = −500 → clamped
@@ -1545,6 +1555,53 @@ describe('UI shell', () => {
       />,
     );
     expect(screen.queryByText(/equips as/)).toBeNull();
+  });
+
+  it('TradeTicket shows the realized price-swing readout when recent trades exist', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    const { container } = render(
+      <TradeTicket
+        view={view}
+        selected="gold_bar"
+        items={game.world.items}
+        lvls={{ atk: 99, def: 99 }}
+        prefill={null}
+        onCommand={() => {}}
+        lastResult={null}
+        eventNote={null}
+        recentPrices={[100, 140, 110]} // lo 100, hi 140 → +40% swing → wild
+        position={null}
+        watched={false}
+        onToggleWatch={() => {}}
+      />,
+    );
+    const swing = container.querySelector('p.swing');
+    expect(swing).toBeTruthy();
+    expect(swing!.textContent).toMatch(/recent 100–140/);
+    expect(swing!.textContent).toMatch(/swing 40% · 🔴 wild/);
+  });
+
+  it('TradeTicket omits the swing readout when there are too few trades', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    const { container } = render(
+      <TradeTicket
+        view={view}
+        selected="gold_bar"
+        items={game.world.items}
+        lvls={{ atk: 99, def: 99 }}
+        prefill={null}
+        onCommand={() => {}}
+        lastResult={null}
+        eventNote={null}
+        recentPrices={[100]} // one trade — nothing to swing
+        position={null}
+        watched={false}
+        onToggleWatch={() => {}}
+      />,
+    );
+    expect(container.querySelector('p.swing')).toBeNull();
   });
 
   it('TradeTicket tints the price field red when a sell is below break-even', () => {
