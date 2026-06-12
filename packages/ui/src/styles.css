@@ -1074,51 +1074,14 @@ kbd {
 .dropchip {
   white-space: nowrap;
 }
-/* Run Card — a shareable SVG trophy of the run (stone-and-gold livery) */
+/* Run Card — a shareable SVG trophy of the run (stone-and-gold livery). The card's text styles
+   (bc-*) are EMBEDDED in the SVG itself (CARD_CSS in BragCard.tsx) so it stays self-contained when
+   exported to a standalone .svg file — only the container sizing lives here. */
 .runcard .bragcard {
   width: 100%;
   height: auto;
   display: block;
   margin-top: 4px;
-}
-.bc-title {
-  fill: #e8c869;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 3px;
-}
-.bc-byline {
-  fill: var(--parchment);
-  font-size: 12px;
-  letter-spacing: 1px;
-}
-.bc-hero {
-  fill: var(--parchment);
-  font-size: 38px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.bc-hero.gold {
-  fill: #e8c869;
-}
-.bc-herolabel {
-  fill: var(--parchment-dim);
-  font-size: 11px;
-  letter-spacing: 1px;
-}
-.bc-chipval {
-  fill: var(--rise);
-  font-size: 16px;
-  font-weight: 600;
-}
-.bc-chiplabel {
-  fill: var(--parchment-dim);
-  font-size: 10px;
-  letter-spacing: 0.5px;
-}
-.bc-foot {
-  fill: #8a7a4a;
-  font-size: 10px;
 }
 
 /* band meter: where the price sits between an item's floor and ceiling (cost→value range) */

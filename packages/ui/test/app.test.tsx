@@ -24,7 +24,7 @@ import { EmbarkPanel } from '../src/components/EmbarkPanel';
 import { MarketTable } from '../src/components/MarketTable';
 import { WatchlistPanel } from '../src/components/WatchlistPanel';
 import { BandMeter } from '../src/components/BandMeter';
-import { BragCard } from '../src/components/BragCard';
+import { BragCard, shareOrDownload } from '../src/components/BragCard';
 import { ItemIcon } from '../src/components/Icon';
 import { DelvePanel } from '../src/components/DelvePanel';
 import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
@@ -2207,6 +2207,31 @@ describe('UI shell', () => {
       named.unmount();
       const anon = render(<BragCard game={newGame(42)} worth={50_000} handle="  " />); // whitespace → none
       expect(anon.container.querySelector('.bc-byline')).toBeNull();
+    });
+    it('the card is self-contained: an embedded <style> carries its colours/fonts', () => {
+      const { container } = render(<BragCard game={newGame(42)} worth={50_000} />);
+      const style = container.querySelector('.bragcard style');
+      expect(style).toBeTruthy();
+      expect(style!.textContent).toMatch(/\.bc-title/); // styles travel with the SVG, not the page
+      expect(container.querySelector('.bragcard')!.getAttribute('xmlns')).toBe('http://www.w3.org/2000/svg');
+    });
+    it('the save chip exports the card; jsdom (no canShare) takes the download path without throwing', () => {
+      const { container } = render(<BragCard game={newGame(42)} worth={50_000} />);
+      const save = within(container).getByRole('button', { name: /save/ });
+      expect(() => fireEvent.click(save)).not.toThrow(); // serialize + fallback download, guarded
+    });
+    it('shareOrDownload uses the native share sheet (files) when canShare allows', async () => {
+      const share = vi.fn().mockResolvedValue(undefined);
+      (navigator as unknown as { canShare: unknown; share: unknown }).canShare = () => true;
+      (navigator as unknown as { canShare: unknown; share: unknown }).share = share;
+      try {
+        await shareOrDownload(new Blob(['<svg/>'], { type: 'image/svg+xml' }), 'run.svg');
+        expect(share).toHaveBeenCalledTimes(1);
+        expect((share.mock.calls[0]![0] as { files: File[] }).files[0]!.name).toBe('run.svg');
+      } finally {
+        delete (navigator as unknown as { canShare?: unknown }).canShare;
+        delete (navigator as unknown as { share?: unknown }).share;
+      }
     });
   });
 
