@@ -1,6 +1,6 @@
 import type { PlayerView } from '@exchange-wars/engine';
 import type { Game } from '../game';
-import { fmtCompact, worthBreakdown } from '../game';
+import { fmtCompact, returnOnStake, worthBreakdown } from '../game';
 
 /** Net-worth segments: liquid cash, gp tied up in buy offers, goods held. */
 const SEGS = [
@@ -20,10 +20,19 @@ export function WealthPanel({ game, view, worth }: { game: Game; view: PlayerVie
   const b = worthBreakdown(view, worth);
   const atRisk = game.world.agents[game.playerId]?.expedition?.packGp ?? 0;
   const pct = (n: number) => (b.total > 0 ? Math.round((n / b.total) * 100) : 0);
+  const ret = returnOnStake(game.startGp, worth);
   return (
     <section className="panel wealth">
       <h2>
         Wealth <span className="dim small">{fmtCompact(b.total)} net</span>
+        <span
+          className={`stakeret ${ret.up ? 'pct up' : 'pct down'}`}
+          title={`net worth vs your ${fmtCompact(game.startGp)} starting stake — your all-time trading result (excludes loot still at risk in the wild)`}
+        >
+          {ret.up ? '↑ +' : '↓ −'}
+          {fmtCompact(Math.abs(ret.delta))} ({ret.up ? '+' : '−'}
+          {Math.abs(Math.round(ret.pct * 100))}%)
+        </span>
       </h2>
       {b.total > 0 ? (
         <>

@@ -693,6 +693,27 @@ export function worthBreakdown(view: PlayerView, total: number): WorthBreakdown 
   return { cash, buyOrders, holdings: Math.max(0, total - cash - buyOrders), total };
 }
 
+/** Your all-time result against the stake you began with. */
+export interface StakeReturn {
+  /** Net worth now minus the original stake (gp; negative = underwater). */
+  delta: number;
+  /** delta / stake as a fraction (0.25 = +25%); 0 when stake is 0. */
+  pct: number;
+  up: boolean;
+}
+
+/**
+ * Return on your starting stake — the "am I up, and by how much?" glance that
+ * `worth` alone doesn't answer. `startGp` is the original HUMAN_START_GP, kept
+ * across reloads, so this is lifetime profit vs your first coin (what the
+ * double-your-stake deed tracks), not session-scoped. Pure. At-risk expedition
+ * loot is excluded because `worth` excludes it (unbanked = not yours yet).
+ */
+export function returnOnStake(startGp: number, worth: number): StakeReturn {
+  const delta = worth - startGp;
+  return { delta, pct: startGp > 0 ? delta / startGp : 0, up: delta >= 0 };
+}
+
 /** How a buy reshapes a position you already hold — the average-down preview. */
 export interface BlendedBuy {
   units: number; // resulting total units

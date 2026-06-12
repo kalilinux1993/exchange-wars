@@ -1474,6 +1474,13 @@ kbd {
   font-size: 0.82em;
   cursor: help;
 }
+/* return-on-stake badge in the Wealth header — your all-time result at a glance. */
+.stakeret {
+  margin-left: 0.5rem;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
 
 /* a contract you can deliver right now — a faint green nudge. */
 .contracts li.contract.ready {

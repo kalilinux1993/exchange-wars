@@ -67,6 +67,7 @@ import {
   lootSpoils,
   gearDelta,
   worthBreakdown,
+  returnOnStake,
   parseChallengeSeed,
   realizedFromBook,
   tradeRecord,
@@ -866,6 +867,32 @@ describe('UI shell', () => {
     expect(screen.getByText(/net/)).toBeTruthy();
     expect(screen.getByText('cash', { exact: false })).toBeTruthy();
     expect(screen.getByText('40%')).toBeTruthy(); // goods share
+  });
+
+  describe('returnOnStake', () => {
+    it('reports gain over the starting stake as gp and fraction', () => {
+      expect(returnOnStake(1000, 1250)).toEqual({ delta: 250, pct: 0.25, up: true });
+    });
+    it('reports a loss as negative, up=false', () => {
+      const r = returnOnStake(1000, 600);
+      expect(r.delta).toBe(-400);
+      expect(r.pct).toBeCloseTo(-0.4, 5);
+      expect(r.up).toBe(false);
+    });
+    it('treats break-even as up (delta 0)', () => {
+      expect(returnOnStake(1000, 1000)).toEqual({ delta: 0, pct: 0, up: true });
+    });
+    it('guards a zero stake (no divide-by-zero)', () => {
+      expect(returnOnStake(0, 500)).toEqual({ delta: 500, pct: 0, up: true });
+    });
+  });
+
+  it('WealthPanel shows return on the starting stake', () => {
+    const game = newGame(42);
+    game.startGp = 1000;
+    const view = { gp: 1000, openOrders: [{ side: 'buy', price: 50, remaining: 4 }] } as unknown as PlayerView;
+    render(<WealthPanel game={game} view={view} worth={2000} />); // +1000 over the 1000 stake = +100%
+    expect(screen.getByText(/\+100%/)).toBeTruthy();
   });
 
   describe('lootSpoils', () => {
