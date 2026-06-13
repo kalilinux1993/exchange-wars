@@ -584,6 +584,16 @@ th.num {
   stroke-dasharray: 4 3;
   opacity: 0.5;
 }
+/* worth-goal target line (17t): a distinct teal dash above your worth — the line you're climbing to. */
+.worth .goalline {
+  stroke: #2dd4bf;
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+  opacity: 0.75;
+}
+.goalnote {
+  color: #2dd4bf;
+}
 
 /* deed markers on the fortune curve — where each achievement landed (11t). */
 .worth .deedmark {

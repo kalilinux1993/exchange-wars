@@ -1,5 +1,16 @@
 import { fmtCompact, fmtDuration, nextRoundTarget, worthRate } from '../game';
 
+/** The player's worth goal (17l), read live from localStorage each render so the chart tracks the
+ *  WealthPanel without lifting that state. A positive number, or 0 when unset/invalid (17t). */
+function readGoal(): number {
+  try {
+    const v = JSON.parse(localStorage.getItem('ew-worth-goal') ?? '0');
+    return typeof v === 'number' && v > 0 ? v : 0;
+  } catch {
+    return 0;
+  }
+}
+
 /** Ghost worth at a tick: linear interpolation; clamps to the endpoints. */
 export function ghostWorthAt(history: { tick: number; worth: number }[], tick: number): number {
   if (history.length === 0) return 0;
@@ -46,7 +57,12 @@ export function WorthChart({
   const worths = history.map((p) => p.worth);
   const gWorths = g ? g.map((p) => p.worth) : [];
   const min = Math.min(...worths, ...gWorths, startGp);
-  const max = Math.max(...worths, ...gWorths, startGp);
+  const dataMax = Math.max(...worths, ...gWorths, startGp);
+  // Worth goal (17t): chart it as a target ABOVE your worth — but only if it's near enough that folding it
+  // into the range doesn't flatten the worth line (a far goal stays the WealthPanel's job).
+  const goal = readGoal();
+  const showGoal = goal > 0 && goal <= dataMax * 3;
+  const max = showGoal ? Math.max(dataMax, goal) : dataMax;
   const range = Math.max(1, max - min);
   const x = (t: number) => ((t - minT) / Math.max(1, maxT - minT)) * W;
   const y = (w: number) => H - 6 - ((w - min) / range) * (H - 12);
@@ -62,6 +78,11 @@ export function WorthChart({
       <h2>Fortune</h2>
       <svg viewBox={`0 0 ${W} ${H}`} className="worth" preserveAspectRatio="none" aria-hidden="true">
         <line x1="0" y1={y(startGp)} x2={W} y2={y(startGp)} className="baseline" />
+        {showGoal && (
+          <line x1="0" y1={y(goal)} x2={W} y2={y(goal)} className="goalline">
+            <title>🎯 goal {fmtCompact(goal)}</title>
+          </line>
+        )}
         {g && (
           <polyline
             points={toPts(g)}
@@ -110,6 +131,11 @@ export function WorthChart({
         {etaMin !== null && (
           <span className="eta" title="at your recent gp/min rate, when you'd reach the next round number">
             {' '}· ≈{fmtDuration(Math.round(etaMin * 60))} to {fmtCompact(target)}
+          </span>
+        )}
+        {showGoal && (
+          <span className="goalnote" title="your worth target (set in the Wealth panel) — the dashed line above">
+            {' '}· 🎯 {fmtCompact(goal)}
           </span>
         )}
       </p>

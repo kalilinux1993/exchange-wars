@@ -3864,6 +3864,21 @@ describe('UI shell', () => {
     expect(screen.getByText(/≈10m to 200K/)).toBeTruthy();
   });
 
+  it('WorthChart draws a goal target line for a chartable goal, not a far one (17t)', () => {
+    localStorage.clear();
+    const history = [{ tick: 0, worth: 50_000 }, { tick: 100, worth: 60_000 }]; // peak 60k
+    localStorage.setItem('ew-worth-goal', JSON.stringify(100_000)); // ≤ 3× peak → chartable
+    const { container, rerender } = render(<WorthChart history={history} startGp={55_000} ghost={null} />);
+    expect(container.querySelector('.goalline')).toBeTruthy();
+    expect(container.textContent).toMatch(/🎯/); // the note + tooltip
+    localStorage.setItem('ew-worth-goal', JSON.stringify(5_000_000)); // far above → left to the WealthPanel
+    rerender(<WorthChart history={[...history]} startGp={55_000} ghost={null} />);
+    expect(container.querySelector('.goalline')).toBeNull();
+    localStorage.setItem('ew-worth-goal', JSON.stringify(0)); // no goal
+    rerender(<WorthChart history={[...history]} startGp={55_000} ghost={null} />);
+    expect(container.querySelector('.goalline')).toBeNull();
+  });
+
   it('WorthChart marks earned deeds on the curve, skipping off-range ticks', () => {
     const history = [
       { tick: 0, worth: 50_000 },
