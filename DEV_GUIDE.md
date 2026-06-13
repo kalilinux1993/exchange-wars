@@ -1,9 +1,25 @@
 # Dev Guide
 
-> **Consolidated record: complete (Phase 1 → 18m).** The whole autonomous build loop is now folded into the
+> **Consolidated record: complete (Phase 1 → 18x).** The whole autonomous build loop is now folded into the
 > sections below (newest-first); per-brick detail lives in `.phases/` + FINDINGS. The former 10h–13c gap was
 > closed in 16h. Engine-redeploy obligation still open: the `verify-score` batch `12b+13d+13e+13f+13r+14j`
 > (Jesse-gated on `SUPABASE_ACCESS_TOKEN`).
+
+## Phases 18n–18x consolidated — the AUDIT-SEAM chapter: reference-verify money/combat (4 real bug fixes), visual-QA layout, a11y, keyboard completion, 2 reviews (2026-06-13)
+
+Per-brick detail in `.phases/` and FINDINGS #300–#311; 11 bricks. **UI-only, ALL of it** — no engine change, so the `verify-score` batch is unchanged. Suite grew 444→453 unit + 11 e2e. As features saturated, the value moved to AUDITING the existing code against engine/visual/a11y ground truth — and the audits paid: 5 real bugs caught + fixed, plus 2 SOUND reviews. The defining lesson (#302–#311): a green test suite is necessary, not sufficient — it can't see a wrong predictor (tests used inputs where the bug didn't bite), a 6/1/1 layout void, an unlabeled button, or a per-unit tax that's the WHOLE tax below price 50.
+
+### The reference-verify money/combat seam — 4 real desyncs fixed, 2 verified sound
+UI helpers that predict/mirror engine math drift silently. Checked every one against the engine: **combatForecast** ignored the engine's `hitChance` entirely (quest.ts:410), reading "favored" for a fight you'd lose by missing — now per-round `hitChance·expectedHit` (18o). **bidWalk** returned GROSS sell proceeds — now per-fill net, matching `paySeller` (18p). **realized P&L** (`applyFillToBook`/`recentFlips`) floored the 2% tax PER UNIT, which is 0 below price 50, so cheap-staple flips (the core loop) booked ZERO tax (+300 shown vs +234 real) — now per-fill (18w, the biggest catch). **deathRecap** hardcoded keep-3, ignoring the Death Ward upgrade (18g). **worthBreakdown** (residual of netWorth) and **flipMargin** (qty-1-exact — its per-unit floor matches the engine for a 1-unit flip; 18x added a doc invariant + cheap-item test so 18w's per-fill fix isn't reflexively mis-applied) verified SOUND. FINDINGS #302/#303/#310/#311 + 18g/18o.
+
+### Visual-QA layout pass — the Hall void (18s · 18t)
+Capturing each tab and reading the image (what the suite can't): Exchange + Adventure healthy, but the Hall packed SIX panels in column 1 and ONE each in cols 2-3 (6/1/1) → ~40% empty. Redistributed to 3/3/2 (identity/progression/competition) — pure JSX reorder (class-based locators unaffected), verified balanced by a re-capture (18t). Also: Open Positions sort lenses (P&L/value/band — the sort decides which of the capped-8 surface, 18s). FINDINGS #306/#307.
+
+### a11y audit + keyboard completion (18q · 18u · 18v)
+`f` swings and `r` flees complete keyboard-playable combat (the trade loop + embark already were) — the whole game is now keyboard-drivable; gated/refs-fresh, eat stays a click (footgun). An a11y sweep found the convention sound (every symbol button carries a `title`/`aria-label`) except the EmbarkPanel pack steppers (`−`/`+`) — named them; row Tab-focusability deferred (nested-interactive anti-pattern). FINDINGS #304/#308/#309.
+
+### Feedback + the 2 reviews (18r)
+18r reviewed 18g–18q — SOUND, the autonomous core-math fixes verified byte-identical to engine ground truth (the green-check earns trust only when independent). FINDINGS #305.
 
 ## Phases 17w–18m consolidated — the see→act actionability arc completed, momentum + leaderboard + book-hygiene readouts, 2 reviews (1 caught real bugs) (2026-06-13)
 
