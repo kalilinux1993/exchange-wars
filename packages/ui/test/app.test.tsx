@@ -97,6 +97,8 @@ import {
   sessionPnL,
   restartStakes,
   parseChallengeSeed,
+  parseChallengeTarget,
+  challengeLink,
   realizedFromBook,
   tradeRecord,
   recordFills,
@@ -481,6 +483,21 @@ describe('UI shell', () => {
     expect(parseChallengeSeed('#seed=')).toBeNull();
     expect(parseChallengeSeed('')).toBeNull();
     expect(parseChallengeSeed('#seed=99999999999')).toBeNull(); // 11 digits
+    expect(parseChallengeSeed('#seed=777&w=12345&by=jesse')).toBe(777); // 16s: tolerant of duel params
+  });
+
+  it('challengeLink + parseChallengeTarget round-trip the seed/worth/handle (a "beat me" duel link)', () => {
+    const url = challengeLink('http://ex.test', '/play', 777, 12_345, 'Jesse the Bold');
+    expect(url).toMatch(/#seed=777&w=12345&by=/);
+    const hash = url.slice(url.indexOf('#'));
+    expect(parseChallengeSeed(hash)).toBe(777);
+    expect(parseChallengeTarget(hash)).toEqual({ worth: 12_345, handle: 'Jesse the Bold' }); // encoded then decoded
+    // a bare link carries no target; worth/handle omitted when absent or empty
+    const bare = challengeLink('http://ex.test', '/play', 42);
+    expect(bare).toBe('http://ex.test/play#seed=42');
+    expect(parseChallengeTarget('#seed=42')).toBeNull();
+    // worth without a handle is still a valid target
+    expect(parseChallengeTarget('#seed=42&w=5000')).toEqual({ worth: 5000, handle: null });
   });
 
   it('dailySeed derives a shared YYYYMMDD seed from the UTC date', () => {

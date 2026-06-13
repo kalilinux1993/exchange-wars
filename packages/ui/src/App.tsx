@@ -56,6 +56,9 @@ import {
   fmtDuration,
   ghostForRestart,
   parseChallengeSeed,
+  parseChallengeTarget,
+  challengeLink,
+  type ChallengeTarget,
   planOfflineProgress,
   clearSave,
   discardCorruptSave,
@@ -111,6 +114,7 @@ export function App({ initial }: { initial?: Game }) {
   const [lastResult, setLastResult] = useState<CommandResult | null>(null);
   const [awayDismissed, setAwayDismissed] = useState(false);
   const [challenge, setChallenge] = useState<number | null>(null);
+  const [challengeTarget, setChallengeTarget] = useState<ChallengeTarget | null>(null);
   const [catchUp, setCatchUp] = useState<{ done: number; total: number } | null>(null);
   const planRef = useRef<OfflinePlan | null>(null);
   // The game a chunked catch-up was planned FOR — so the driver can abort if `gameRef` is
@@ -254,6 +258,7 @@ export function App({ initial }: { initial?: Game }) {
     const v0 = playerView(g.world, g.playerId);
     if (v0) checkMilestones(g, v0, playerWorth(g));
     const ch = parseChallengeSeed(window.location.hash);
+    const target = parseChallengeTarget(window.location.hash); // the claimed "beat me" figure (16s)
     if (ch !== null) {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
       if (!hadSaveRef.current) {
@@ -262,6 +267,7 @@ export function App({ initial }: { initial?: Game }) {
         setSelected(gameRef.current.world.items[0]?.id ?? '');
       } else if (g.world.seed !== ch) {
         setChallenge(ch);
+        setChallengeTarget(target);
       }
     }
     force();
@@ -715,7 +721,7 @@ export function App({ initial }: { initial?: Game }) {
   };
 
   const shareBrag = (): void => {
-    const text = bragText(game, playerWorth(game), window.location.origin, window.location.pathname);
+    const text = bragText(game, playerWorth(game), window.location.origin, window.location.pathname, localStorage.getItem('ew-handle') ?? '');
     // Prefer the native share sheet (mobile → one tap to any app, the real viral path); the sheet IS
     // the feedback, and a user cancel rejects the promise — swallow it. Fall back to clipboard copy.
     if (navigator.share) {
@@ -736,7 +742,8 @@ export function App({ initial }: { initial?: Game }) {
     }
   };
   const copyChallenge = (): void => {
-    const url = `${window.location.origin}${window.location.pathname}#seed=${game.world.seed}`;
+    // A duel link: the seed + your current worth + handle, so it dares them to beat YOUR number (16s).
+    const url = challengeLink(window.location.origin, window.location.pathname, game.world.seed, playerWorth(game), localStorage.getItem('ew-handle') ?? '');
     const done = (): void =>
       setToast({
         id: 'challenge-link',
@@ -1061,18 +1068,34 @@ export function App({ initial }: { initial?: Game }) {
       )}
       {challenge !== null && (
         <div className="awaybar">
-          ⚔ challenged to seed <b>{challenge}</b> — same world, fair ground. Starting abandons your current
-          run.
+          {challengeTarget ? (
+            <>
+              ⚔ <b>{challengeTarget.handle ?? 'A challenger'}</b> dares you to beat{' '}
+              <b className="up">{challengeTarget.worth.toLocaleString('en-US')} gp</b> on seed <b>{challenge}</b>. Starting
+              abandons your current run.
+            </>
+          ) : (
+            <>
+              ⚔ challenged to seed <b>{challenge}</b> — same world, fair ground. Starting abandons your current run.
+            </>
+          )}
           <button
             className="chip"
             onClick={() => {
               restart(challenge);
               setChallenge(null);
+              setChallengeTarget(null);
             }}
           >
             accept
           </button>
-          <button className="chip" onClick={() => setChallenge(null)}>
+          <button
+            className="chip"
+            onClick={() => {
+              setChallenge(null);
+              setChallengeTarget(null);
+            }}
+          >
             ×
           </button>
         </div>

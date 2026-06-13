@@ -59,12 +59,46 @@ export function fmtDuration(ticks: number): string {
   return `${ticks}s`;
 }
 
-/** Parse a `#seed=N` challenge fragment (the "race a friend" link). */
+/** Parse a `#seed=N` challenge fragment (the "race a friend" link). Tolerant of trailing
+ * `&w=`/`&by=` duel params (16s) so the bare and target-carrying links both resolve the seed. */
 export function parseChallengeSeed(hash: string): number | null {
-  const m = /^#seed=(\d{1,10})$/.exec(hash);
+  const m = /^#seed=(\d{1,10})(?:&|$)/.exec(hash);
   if (!m) return null;
   const seed = Number(m[1]);
   return Number.isSafeInteger(seed) ? seed : null;
+}
+
+/** Build a challenge link: the seed always, plus the sharer's worth (`&w=`) and handle (`&by=`, encoded)
+ * when given — so a shared link can DARE a friend to beat your number, not just play the world. Pure. */
+export function challengeLink(origin: string, pathname: string, seed: number, worth?: number, handle?: string): string {
+  let hash = `#seed=${seed}`;
+  if (worth !== undefined && Number.isFinite(worth) && worth > 0) hash += `&w=${Math.trunc(worth)}`;
+  const h = (handle ?? '').trim();
+  if (h) hash += `&by=${encodeURIComponent(h)}`;
+  return `${origin}${pathname}${hash}`;
+}
+
+/** The CLAIMED challenge target carried by a link — a friendly "beat me" figure, NOT a verified score
+ * (the replay leaderboard is the proof). `null` when the link has no `&w=`. Pure. */
+export interface ChallengeTarget {
+  worth: number;
+  handle: string | null;
+}
+export function parseChallengeTarget(hash: string): ChallengeTarget | null {
+  const wm = /[#&]w=(\d{1,15})(?:&|$)/.exec(hash);
+  if (!wm) return null;
+  const worth = Number(wm[1]);
+  if (!Number.isSafeInteger(worth) || worth <= 0) return null;
+  const bm = /[#&]by=([^&]+)(?:&|$)/.exec(hash);
+  let handle: string | null = null;
+  if (bm) {
+    try {
+      handle = decodeURIComponent(bm[1]!).trim().slice(0, 24) || null;
+    } catch {
+      handle = null; // malformed encoding — drop the name, keep the number
+    }
+  }
+  return { worth, handle };
 }
 
 /**
@@ -422,7 +456,7 @@ export function isStreakMilestone(current: number): boolean {
  * "here's what I did, beat me on this exact world." Pure: `origin`/`pathname` injected (no `window`).
  * Empty stats are omitted (no "0 deeds"); the title + level + worth + link are always present.
  */
-export function bragText(game: Game, worth: number, origin: string, pathname: string): string {
+export function bragText(game: Game, worth: number, origin: string, pathname: string, handle?: string): string {
   const xp = game.world.agents[game.playerId]?.combatXp;
   const streak = diveStreak(game.delves);
   const records = diveRecords(game.delves);
@@ -430,7 +464,8 @@ export function bragText(game: Game, worth: number, origin: string, pathname: st
   if (records.bestHaul) bits.push(`best haul ${fmtCompact(records.bestHaul.lootGp)}`);
   if (streak.best > 0) bits.push(`${streak.best}-dive streak`);
   if (game.milestones.length > 0) bits.push(`${game.milestones.length} deeds`);
-  const link = `${origin}${pathname}#seed=${game.world.seed}`;
+  // The brag's link IS a duel — it dares the reader to beat THIS worth on the seed (16s).
+  const link = challengeLink(origin, pathname, game.world.seed, worth, handle);
   return `⚔ Exchange Wars — ${bits.join(' · ')}\nBeat me on seed ${game.world.seed}: ${link}`;
 }
 
