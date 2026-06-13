@@ -1,9 +1,31 @@
 # Dev Guide
 
-> **Consolidated record: complete (Phase 1 → 17v).** The whole autonomous build loop is now folded into the
+> **Consolidated record: complete (Phase 1 → 18m).** The whole autonomous build loop is now folded into the
 > sections below (newest-first); per-brick detail lives in `.phases/` + FINDINGS. The former 10h–13c gap was
 > closed in 16h. Engine-redeploy obligation still open: the `verify-score` batch `12b+13d+13e+13f+13r+14j`
 > (Jesse-gated on `SUPABASE_ACCESS_TOKEN`).
+
+## Phases 17w–18m consolidated — the see→act actionability arc completed, momentum + leaderboard + book-hygiene readouts, 2 reviews (1 caught real bugs) (2026-06-13)
+
+Per-brick detail in `.phases/` and FINDINGS #285–#301; 17 bricks. **UI-only, ALL of it** — no engine change, so the `verify-score` batch is unchanged. Suite grew 420→444 unit + 11 e2e (a real-browser resting-confirmation colour e2e added 18k). Two adversarial reviews: 18b (17w–18a) **SOUND**; 18g (18c–18f) found 18c/18d/18f SOUND but caught 18e shipping a wrong gate AND a test that ratified it, plus a pre-existing `deathRecap`↔engine desync — all fixed (the review that earned its keep).
+
+### The see→act actionability arc, completed across all four "states-a-fact" surfaces
+A surface that NAMES something to do should TAKE you there. Each reuses an existing jump (`onSelect`→load-the-item, or `jumpToRegion`→region-nonce-pulse + `pickRoom('adventure')`): **event chips** (15l, prior) → **contracts** "buy {shortfall}" loads the item into the ticket (17y) → **bounties** "hunt" jumps to the target's region (18f, via `huntRegionId` — the id-returning sibling of `monsterRegions`) → **ticket farm line** "hunt" jumps to a drop-item's source region (18m, reusing `itemSources.regionId`). `jumpToRegion` is now a 3-caller primitive (Delve-Log raid-again 12l, 18f, 18m). FINDINGS #287/#294/#301.
+
+### Momentum tooling — the fourth decision axis gets its track
+`momentum(last, ema)` extracted to game.ts as the single source (the mom column's sort + cell + a new track — the third inline copy was the extract trigger) (17z). A `movers` filter track (`|momentum| ≥ 0.05`) surfaces what's dislocated from EMA — empty in the calm baseline, lit by events; completes the momentum axis (column 17o → track 17z) matching volatility's (read→column→track). FINDINGS #288.
+
+### Leaderboard summit + bounty location
+`gapToTop(rows, meRank)` (mirrors `rankGap`'s guards/tie-floor) + a "👑 {gap} gp behind #1" line gated to top contenders #3–#10 (at #2 it duplicates the rank-above gap; below #10 the leader isn't a live target) — two distinct climbs: the next rung + the peak (18a; the gate pinned by a #2-suppression render test added in 18b). Bounties gained their WHERE first: a region suffix via `monsterRegions` (17x). FINDINGS #286/#289/#290.
+
+### Adventure risk⟷reward depth
+The combat foe's drop list inline (risk⟷reward in the fight, 17w). A loadout `⚠ understocked` flag — `loadoutShort` surfaces exactly what `applyLoadout`'s silent clamp would drop (18c). An in-dive death-stakes line — `deathRecap` rendered BEFORE death ("⚰ if you fall: lose {gp} + N items · keep {best}"), the consequence half of the push-vs-bank call (18e). Review 18g then fixed 18e's gate (carried gear is at risk pre-kill, not just loot gp) and threaded `keepN` so `deathRecap` honors the Death Ward upgrade (engine keeps 5, not 3) in BOTH the preview and the death toast — a display↔arbiter desync that predated 18e. FINDINGS #285/#291/#293/#295.
+
+### Feedback loops + book hygiene
+The third order outcome confirmed: `ok && no trades` → "✓ placed — resting on the book" (lastResult tagged with its command, `{result, cmd}`, so a cancel/claim doesn't false-fire, 18h). Open offers show "rested {N}t" + a ⏳ `.stale` flag past 500 ticks — `orderAge` reads the placement `Order.tick` from `world.books` (the view projection drops it; the UI reads state for display), dead-capital triage with no engine/view change (18i). FINDINGS #296/#297.
+
+### Progression, onboarding, visual coherence, watchlist
+Skill tooltips quantify the XP bar ("Attack 40 · 62% to 41 · 1,240 xp to go", maxed→"maxed (99)") (18j). The How-to-Play guide refreshed to match shipped features — momentum sort, movers filter, compact toggle, Adventure ←/→/Enter — pinned by new assertions against drift (18d). The session's new feedback classes (`.resting`/`li.stale`) styled with theme tokens, verified by a real-browser e2e `toHaveCSS` (18k). The watchlist floats a fired alert to the top (stable sort → meaningful motion, not tick jitter), completing alert→SEE→act (18l). FINDINGS #292/#298/#299/#300.
 
 ## Phases 16w–17v consolidated — elite arc, dive-readiness, the four decision axes, watchlist + goal systems, keyboard loop, 3 reviews (2026-06-12)
 
