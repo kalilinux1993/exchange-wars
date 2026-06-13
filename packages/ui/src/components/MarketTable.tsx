@@ -176,7 +176,15 @@ export function MarketTable({
                   ? 'only the items on your watchlist (★ / press w to add)'
                   : t === 'steady'
                     ? 'only calm, actively-traded markets (low recent swing) — the spread holds while both legs fill'
-                    : undefined
+                    : t === 'flippable'
+                      ? 'only items with a positive after-tax spread right now — a flip you could place this moment'
+                      : t === 'gear'
+                        ? 'only equippable gear among the commodities — find your combat upgrades'
+                        : t === 'exotics'
+                          ? 'high-volatility goods (the exotic track) — bigger swings, the clerk leaves these to you'
+                          : t === 'staples'
+                            ? 'everyday commodities — the liquid, lower-volatility bulk of the market'
+                            : undefined
             }
             onClick={() => setTrack(t)}
           >

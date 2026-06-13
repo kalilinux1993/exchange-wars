@@ -42,7 +42,9 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             <b>🟢 cheap</b> (room to run, accumulate), <b>⚪ fair</b>, <b>🟡 rich</b> (near its ceiling, take
             profit). Star items into your <b>Watchlist</b> and set a <b>≤/≥ price alert</b> or a
             threshold-free <b>band alert</b> (🟢 buy-the-dip / 🟡 take-profit) — it tells you the moment a
-            watched item turns cheap or rich.
+            watched item turns cheap or rich. The market table <b>sorts</b> by margin, value-band, swing
+            (volatility), or volume, and <b>filters</b> to flippable, cheap, steady, gear, or your watchlist —
+            narrow 100+ goods to your best candidates in a click.
           </li>
           <li>
             <b>Expeditions</b>: delve {REGIONS.length} regions, plains to {REGIONS[REGIONS.length - 1]!.name}.

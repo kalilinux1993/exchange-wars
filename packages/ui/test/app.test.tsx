@@ -790,6 +790,8 @@ describe('UI shell', () => {
     expect(container.textContent).toMatch(/band alert/);
     expect(container.textContent).toMatch(/cost→value band/);
     expect(container.textContent).toMatch(/dares a friend to beat your fortune/); // the duel
+    expect(container.textContent).toMatch(/sorts.*by margin, value-band, swing/); // the table's sort columns (17j)
+    expect(container.textContent).toMatch(/filters.*to flippable, cheap, steady/); // and its filter tracks (17j)
   });
 
   it('MilestonesPanel shows a progress bar on the closest unearned deeds', () => {
@@ -1117,6 +1119,15 @@ describe('UI shell', () => {
       expect(screen.getByText('Calm Co')).toBeTruthy(); // the calm one stays
       expect(screen.queryByText('Wild Co')).toBeNull(); // wild filtered out
       expect(screen.queryByText('Untraded Co')).toBeNull(); // no swing data → excluded (steady = calm AND liquid)
+    });
+
+    it('every market filter track chip carries an explanatory tooltip (17j)', () => {
+      const items = [{ id: 'x', name: 'X', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
+      const v = { markets: [{ itemId: 'x', bestBid: 1, bestAsk: 2, lastPrice: 100, ema: 100, volume: 0, bestBidIsMine: false, bestAskIsMine: false }] } as unknown as PlayerView;
+      render(<MarketTable view={v} items={items} trades={[]} selected="x" onSelect={() => {}} eventItems={new Set()} active />);
+      for (const t of ['staples', 'exotics', 'gear', 'flippable', 'cheap', 'watched', 'steady']) {
+        expect(screen.getByRole('button', { name: t }).getAttribute('title')).toBeTruthy(); // each lens self-explains on hover
+      }
     });
 
     it('renders a market-mood breadth line', () => {
