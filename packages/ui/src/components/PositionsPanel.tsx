@@ -1,7 +1,8 @@
+import { GE_TAX_RATE } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useState } from 'react';
 import type { Game } from '../game';
-import { bandPosition, fmtCompact, heldPositions, liquidateNow, positionConcentration, underwaterSummary, valueBand } from '../game';
+import { bandPosition, breakEvenSell, fmtCompact, heldPositions, liquidateNow, positionConcentration, underwaterSummary, valueBand } from '../game';
 import { ItemIcon } from './Icon';
 
 /** Distinguishable, theme-fitting segment colours for the allocation bar. */
@@ -209,6 +210,42 @@ export function PositionsPanel({
                   </button>
                 )
               )}
+              {onCommand &&
+                p.marked &&
+                p.unrealized >= 0 &&
+                (() => {
+                  // Take profit — the winner-side twin of "cut losers". Gated on the actual best BID being
+                  // above your break-even (avg cost + the 2% sell tax), so it only ever offers to lock a
+                  // REAL gain — never a paper one (marked at last price) that the spread + tax would erase.
+                  // Shares `armed` with cut: a row is a loser XOR a real-gain winner, so they never collide.
+                  const bid = bidOf.get(p.itemId);
+                  if (bid == null || bid <= breakEvenSell(p.avgCost, GE_TAX_RATE)) return null;
+                  const gain = bid * p.units - Math.floor(bid * p.units * GE_TAX_RATE) - p.cost;
+                  return armed === p.itemId ? (
+                    <button
+                      className="chip take armed"
+                      title={`sell all ${p.units.toLocaleString('en-US')} at ${bid.toLocaleString('en-US')} now — locks ≈${gain.toLocaleString('en-US')} gp after tax`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCommand({ type: 'place', itemId: p.itemId, side: 'sell', price: bid, qty: p.units });
+                        setArmed(null);
+                      }}
+                    >
+                      confirm ✓
+                    </button>
+                  ) : (
+                    <button
+                      className="chip take"
+                      title="take profit — sell the whole position at the best bid, locking the gain after tax (tap again to confirm)"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setArmed(p.itemId);
+                      }}
+                    >
+                      ✓ take
+                    </button>
+                  );
+                })()}
             </li>
           ))}
           {positions.length > shown.length && (

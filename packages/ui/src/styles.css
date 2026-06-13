@@ -1904,6 +1904,14 @@ input.belowbe {
   color: #e06c5f;
   border-color: #e06c5f;
 }
+/* Take-profit — the winner-side twin of cut (21d); green (lock a gain) vs cut's red (stop a loss). */
+.positions .chip.take {
+  padding: 0 6px;
+}
+.positions .chip.take.armed {
+  color: #5fbf8a;
+  border-color: #5fbf8a;
+}
 /* a conquest row stacks a header line (name · bar · N/M) over its roster strip. */
 .conquest-row {
   flex-direction: column;

@@ -3778,6 +3778,32 @@ describe('UI shell', () => {
     expect(screen.queryByText('✂ cut')).toBeNull();
   });
 
+  it('PositionsPanel takes profit on a winner with a two-tap market sell (21d)', () => {
+    const game = newGame(42);
+    game.tradeBook = bookFromFills([{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }], 0.02);
+    const onCommand = vi.fn();
+    const onSelect = vi.fn();
+    // in profit (avg 100 → mark 130); best bid 128 is well above break-even (~103), so selling locks a real gain
+    const view = { markets: [{ itemId: FIRST.id, lastPrice: 130, bestBid: 128 }] } as unknown as PlayerView;
+    render(<PositionsPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={onSelect} onCommand={onCommand} />);
+    expect(screen.queryByText('✂ cut')).toBeNull(); // not a loser → no cut
+    fireEvent.click(screen.getByText('✓ take')); // first tap ARMS — must not sell yet
+    expect(onCommand).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('confirm ✓')); // confirm — market-sell the whole position at the bid
+    expect(onCommand).toHaveBeenCalledWith({ type: 'place', itemId: FIRST.id, side: 'sell', price: 128, qty: 10 });
+    expect(onSelect).not.toHaveBeenCalled(); // the chip stops the row's load-in-ticket click
+  });
+
+  it('PositionsPanel offers no take-profit when the bid would not clear a gain after tax (21d)', () => {
+    const game = newGame(42);
+    game.tradeBook = bookFromFills([{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }], 0.02);
+    // a paper gain at mark (102) but the best bid (101) is below break-even (~103) — selling now nets no gain
+    const view = { markets: [{ itemId: FIRST.id, lastPrice: 102, bestBid: 101 }] } as unknown as PlayerView;
+    render(<PositionsPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} onCommand={() => {}} />);
+    expect(screen.queryByText('✓ take')).toBeNull(); // honest: no real after-tax gain to lock at the live bid
+    expect(screen.queryByText('✂ cut')).toBeNull(); // not underwater at mark either
+  });
+
   describe('blendBuy (average-down preview)', () => {
     it('blends the new buy into your held cost basis, signed by direction', () => {
       const hold = { units: 10, avgCost: 100 };
