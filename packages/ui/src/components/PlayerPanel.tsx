@@ -1,6 +1,6 @@
 import { GEAR, levelsOf } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
-import { bidWalk, gearDelta, lootSpoils, type Game } from '../game';
+import { bidWalk, gearDelta, lootSpoils, orderAge, STALE_ORDER_TICKS, type Game } from '../game';
 import { ItemIcon } from './Icon';
 
 export function PlayerPanel({
@@ -164,18 +164,30 @@ export function PlayerPanel({
         )}
       </h3>
       <ul className="rows">
-        {view.openOrders.map((o) => (
-          <li key={o.id}>
-            <span className={`badge ${o.side}`}>{o.side}</span>
-            <span>{o.itemId.replace(/_/g, ' ')}</span>
-            <span className="num">
-              {o.remaining} @ {o.price.toLocaleString('en-US')}
-            </span>
-            <button className="chip danger" onClick={() => onCommand({ type: 'cancel', itemId: o.itemId, side: o.side })}>
-              abort
-            </button>
-          </li>
-        ))}
+        {view.openOrders.map((o) => {
+          const age = orderAge(game.world, o); // ticks resting (from world.books — display read, 18i)
+          const stale = age !== null && age >= STALE_ORDER_TICKS;
+          return (
+            <li key={o.id} className={stale ? 'stale' : undefined}>
+              <span className={`badge ${o.side}`}>{o.side}</span>
+              <span>{o.itemId.replace(/_/g, ' ')}</span>
+              <span className="num">
+                {o.remaining} @ {o.price.toLocaleString('en-US')}
+                {age !== null && (
+                  <span
+                    className={stale ? 'dim small stale' : 'dim small'}
+                    title={stale ? 'resting a long time unfilled — the market likely moved away; re-price or abort this dead capital' : 'how long this offer has rested unfilled'}
+                  >
+                    {' '}· {stale ? '⏳ ' : ''}rested {age.toLocaleString('en-US')}t
+                  </span>
+                )}
+              </span>
+              <button className="chip danger" onClick={() => onCommand({ type: 'cancel', itemId: o.itemId, side: o.side })}>
+                abort
+              </button>
+            </li>
+          );
+        })}
         {view.openOrders.length === 0 && <li className="dim">no open offers</li>}
       </ul>
     </section>

@@ -1808,6 +1808,24 @@ export function deathRecap(
   return { kept, lostUnits: Math.max(0, units.length - keepN), lostGp: packGp };
 }
 
+/** Past this many ticks resting unfilled, a maker offer is likely mispriced (the market moved away) —
+ *  flag it so the player re-prices or aborts dead capital (18i). */
+export const STALE_ORDER_TICKS = 500;
+
+/** How long an open offer has been resting: `world.tick − its placement tick`, found by id in the book.
+ *  The placement tick (`Order.tick`, the price-time tiebreaker) lives on the full order in `world.books`;
+ *  the `OpenOrderView` projection drops it, so this reads `world.books` directly (a display read of state).
+ *  null when the order isn't on the book (it filled/cancelled between renders). Floors at 0. Pure. */
+export function orderAge(
+  world: { tick: number; books: Record<string, { buys: { id: number; tick: number }[]; sells: { id: number; tick: number }[] }> },
+  order: { id: number; itemId: string; side: 'buy' | 'sell' },
+): number | null {
+  const book = world.books[order.itemId];
+  if (!book) return null;
+  const o = (order.side === 'buy' ? book.buys : book.sells).find((x) => x.id === order.id);
+  return o ? Math.max(0, world.tick - o.tick) : null;
+}
+
 /** What the resting bids (excluding the player's own) would pay for `qty` of
  * an item right now: the walkable quantity, the FLOOR price of that walk, and
  * the gross take. A sell placed at exactly the floor fills in full against

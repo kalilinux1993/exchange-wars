@@ -84,6 +84,7 @@ import {
   importSaveString,
   loadGame,
   loadoutShort,
+  orderAge,
   newGame,
   nextRoundTarget,
   normalizeGame,
@@ -224,6 +225,33 @@ describe('UI shell', () => {
     freshApp();
     placeBuy('999999', '99');
     expect(screen.getByText(/rejected: insufficient-gp/i)).toBeTruthy();
+  });
+
+  it('orderAge reads the resting age from the book by id, null when absent (18i)', () => {
+    const world = { tick: 600, books: { gold_bar: { buys: [{ id: 7, tick: 100 }], sells: [] } } };
+    expect(orderAge(world, { id: 7, itemId: 'gold_bar', side: 'buy' })).toBe(500); // 600 − 100
+    expect(orderAge(world, { id: 7, itemId: 'gold_bar', side: 'sell' })).toBeNull(); // wrong side
+    expect(orderAge(world, { id: 99, itemId: 'gold_bar', side: 'buy' })).toBeNull(); // not on the book
+    expect(orderAge(world, { id: 7, itemId: 'nope', side: 'buy' })).toBeNull(); // no such book
+    expect(orderAge({ tick: 50, books: { x: { buys: [{ id: 1, tick: 100 }], sells: [] } } }, { id: 1, itemId: 'x', side: 'buy' })).toBe(0); // floors at 0
+  });
+
+  it('PlayerPanel shows an open offer rested age and flags a stale one (18i)', () => {
+    const game = newGame(42);
+    const item = game.world.items[0]!.id;
+    applyCommand(game.world, game.playerId, { type: 'place', itemId: item, side: 'buy', price: 2, qty: 2 }); // rests at tick 0
+    game.world.tick = 600; // 600 > STALE_ORDER_TICKS (500) → stale
+    const view = playerView(game.world, game.playerId)!;
+    const { container, unmount } = render(<PlayerPanel game={game} view={view} items={game.world.items} onCommand={() => {}} />);
+    expect(container.textContent).toMatch(/rested 600t/);
+    expect(container.querySelector('li.stale')).toBeTruthy(); // amber-flagged dead capital
+    unmount();
+
+    game.world.tick = 100; // fresh — under the threshold
+    const view2 = playerView(game.world, game.playerId)!;
+    const fresh = render(<PlayerPanel game={game} view={view2} items={game.world.items} onCommand={() => {}} />);
+    expect(fresh.container.textContent).toMatch(/rested 100t/);
+    expect(fresh.container.querySelector('li.stale')).toBeNull(); // not stale yet
   });
 
   it('fast-forward advances the deterministic world and feeds the Fortune chart', () => {
