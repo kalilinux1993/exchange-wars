@@ -128,6 +128,7 @@ import {
   regionMastery,
   expectedHit,
   combatForecast,
+  hitChance,
   healFromPack,
   embarkPrep,
   nextRowIndex,
@@ -1712,6 +1713,20 @@ describe('UI shell', () => {
       const drag = combatForecast(you, foe, 5); // +5/round incoming
       expect(drag.roundsToFall).toBeLessThan(base.roundsToFall);
       expect(drag.roundsToKill).toBe(base.roundsToKill); // your damage is unaffected
+    });
+    it('hitChance mirrors the engine (quest.ts:410): 0.55 + (atk−def)·0.02, clamped [0.15, 0.95] (18o)', () => {
+      expect(hitChance(50, 40)).toBeCloseTo(0.75); // 0.55 + 10·0.02
+      expect(hitChance(20, 20)).toBeCloseTo(0.55); // even
+      expect(hitChance(99, 0)).toBe(0.95); // capped
+      expect(hitChance(0, 99)).toBe(0.15); // floored
+    });
+    it('combatForecast models accuracy — a rarely-landing foe takes far more rounds to fall (18o)', () => {
+      // foe atk 10 vs your def 60 → hitChance 0.15: it lands ~1 swing in 7, so the forecast must
+      // count the misses, not divide hp by per-hit damage as if every swing connected.
+      const f = combatForecast({ atk: 40, def: 60, hp: 100 }, { atk: 10, def: 0, hp: 50 });
+      const perHitOnly = Math.ceil(100 / expectedHit(10, 60)); // the old (no-accuracy) estimate
+      expect(f.roundsToFall).toBeGreaterThan(perHitOnly * 3); // ~1/0.15 ≈ 6.7× longer once misses count
+      expect(f.favored).toBe(true); // you crush a foe that can't hit you
     });
   });
 

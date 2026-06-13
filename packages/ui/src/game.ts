@@ -551,6 +551,16 @@ export function expectedHit(atk: number, def: number): number {
   return Math.max(1, (lo + hi) / 2 - Math.floor(def / 4));
 }
 
+/**
+ * Chance a swing LANDS — mirrors the engine's `hitChance` (quest.ts:410) EXACTLY:
+ * `0.55 + (atk − def)·0.02`, clamped to [0.15, 0.95]. Keep in sync with quest.ts if
+ * that formula moves. Pure. The engine rolls this before every `damage()`, so a
+ * forecast that ignores it over-counts a missing attacker's output.
+ */
+export function hitChance(atk: number, def: number): number {
+  return Math.min(0.95, Math.max(0.15, 0.55 + (atk - def) * 0.02));
+}
+
 /** A rough exchange forecast vs one foe — the embark decision aid. */
 export interface CombatForecast {
   roundsToKill: number; // rounds for you to down the foe
@@ -559,20 +569,24 @@ export interface CombatForecast {
 }
 
 /**
- * Forecast a one-on-one exchange from EXPECTED damage both ways. The player
- * strikes first each round, so a tie (you'd kill on the very round you'd fall) is
- * a win → `favored` is `roundsToKill <= roundsToFall`. `foeHitBonus` is flat extra
- * damage the foe lands each round on top of its roll — dragonfire's `ceil(atk/2)`
- * when no antifire is up (quest.ts) — so the live in-combat read doesn't lie in a
- * dragon fight. An estimate (real rounds roll with variance), not a promise. Pure.
+ * Forecast a one-on-one exchange from expected damage PER ROUND both ways — which is
+ * `hitChance · expectedHit` (the engine rolls accuracy before every hit, quest.ts:454/475),
+ * NOT `expectedHit` alone: ignoring the 0.15–0.95 miss rate over-counts a missing attacker
+ * and (since hit rates are asymmetric) skews the verdict toward the middle. The player strikes
+ * first each round, so a tie (you'd kill on the very round you'd fall) is a win → `favored` is
+ * `roundsToKill <= roundsToFall`. `foeHitBonus` is flat extra damage on a LANDED foe hit —
+ * dragonfire's `ceil(atk/2)` when no antifire (quest.ts:481) — so it sits INSIDE the foe's
+ * accuracy multiply. An estimate (real rounds roll with variance), not a promise. Pure.
  */
 export function combatForecast(
   you: { atk: number; def: number; hp: number },
   foe: { atk: number; def: number; hp: number },
   foeHitBonus = 0,
 ): CombatForecast {
-  const roundsToKill = Math.ceil(foe.hp / expectedHit(you.atk, foe.def));
-  const roundsToFall = Math.ceil(you.hp / (expectedHit(foe.atk, you.def) + foeHitBonus));
+  const yourDpr = hitChance(you.atk, foe.def) * expectedHit(you.atk, foe.def);
+  const foeDpr = hitChance(foe.atk, you.def) * (expectedHit(foe.atk, you.def) + foeHitBonus);
+  const roundsToKill = Math.ceil(foe.hp / yourDpr);
+  const roundsToFall = Math.ceil(you.hp / foeDpr);
   return { roundsToKill, roundsToFall, favored: roundsToKill <= roundsToFall };
 }
 
