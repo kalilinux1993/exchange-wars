@@ -114,7 +114,9 @@ export function App({ initial }: { initial?: Game }) {
   const [, force] = useReducer((x: number) => x + 1, 0);
   const [speed, setSpeed] = useState(0); // ticks per second; world starts paused
   const [selected, setSelected] = useState<ItemId>(game.world.items[0]?.id ?? '');
-  const [lastResult, setLastResult] = useState<CommandResult | null>(null);
+  // Tagged with the command so the ticket can tell a resting place (ok, no trades) from a non-place
+  // command's empty-trades result (cancel/claim/eat) — both have trades.length===0 (18h).
+  const [lastResult, setLastResult] = useState<{ result: CommandResult; cmd: PlayerCommand } | null>(null);
   const [awayDismissed, setAwayDismissed] = useState(false);
   // Deeds latched at the boot/catch-up checkMilestones AFTER offline accrual (17a): no checkMilestones
   // runs during the offline gap, so a milestone the clerk grew your worth past while away latches
@@ -726,7 +728,7 @@ export function App({ initial }: { initial?: Game }) {
     // Recorded BEFORE applying, rejections included — replayRun applies the
     // log verbatim, so the replay re-rejects them identically.
     game.commandLog.push({ tick: game.world.tick, cmd });
-    setLastResult(applyCommand(game.world, game.playerId, cmd));
+    setLastResult({ result: applyCommand(game.world, game.playerId, cmd), cmd });
     refreshProgress();
     saveGame(game);
     schedulePush();

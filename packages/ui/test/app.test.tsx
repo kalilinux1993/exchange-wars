@@ -207,6 +207,7 @@ describe('UI shell', () => {
     expect(screen.getByText(/1\/3 offer slots used/i)).toBeTruthy();
     expect(game.world.agents[game.playerId]!.gp).toBe(HUMAN_START_GP - 4);
     expect(screen.getByText(/2 @ 2/)).toBeTruthy();
+    expect(screen.getByText(/resting on the book/i)).toBeTruthy(); // the ok-but-no-fill confirmation (18h)
   });
 
   it('abort cancels the offer and refunds the escrow', () => {
@@ -216,6 +217,7 @@ describe('UI shell', () => {
     expect(screen.getByText(/0\/3 offer slots used/i)).toBeTruthy();
     expect(game.world.agents[game.playerId]!.gp).toBe(HUMAN_START_GP);
     expect(screen.getByText('no open offers')).toBeTruthy();
+    expect(screen.queryByText(/resting on the book/i)).toBeNull(); // a cancel isn't a place → no resting line (18h)
   });
 
   it('rejects an unaffordable offer with the engine reason', () => {

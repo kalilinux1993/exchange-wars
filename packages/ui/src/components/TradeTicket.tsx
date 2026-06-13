@@ -46,7 +46,9 @@ export function TradeTicket({
   lvls?: { atk: number; def: number };
   prefill: TicketPrefill | null;
   onCommand: (cmd: PlayerCommand) => void;
-  lastResult: CommandResult | null;
+  /** The last command's result, tagged with the command so a resting place is distinguishable from a
+   * non-place command's empty-trades result (18h). */
+  lastResult: { result: CommandResult; cmd: PlayerCommand } | null;
   /** Active-event line for the selected item (formatted by App), or null. */
   eventNote: string | null;
   /** Recent trade prices for the selected item (oldest→newest), for the sparkline. */
@@ -425,9 +427,13 @@ export function TradeTicket({
           place {side} offer
         </button>
       </form>
-      {lastResult && !lastResult.ok && <p className="reject">rejected: {lastResult.reason}</p>}
-      {lastResult && lastResult.ok && lastResult.trades.length > 0 && (
-        <p className="filled">filled {lastResult.trades.reduce((a, t) => a + t.qty, 0)} instantly</p>
+      {lastResult && !lastResult.result.ok && <p className="reject">rejected: {lastResult.result.reason}</p>}
+      {lastResult && lastResult.result.ok && lastResult.result.trades.length > 0 && (
+        <p className="filled">filled {lastResult.result.trades.reduce((a, t) => a + t.qty, 0)} instantly</p>
+      )}
+      {lastResult && lastResult.result.ok && lastResult.result.trades.length === 0 && lastResult.cmd.type === 'place' && (
+        // The third outcome: the offer succeeded but didn't cross — it's resting on the book now (18h).
+        <p className="resting">✓ placed — resting on the book</p>
       )}
       <p className="dim small">
         {view.openOrders.length}/{view.slots} offer slots used
