@@ -41,6 +41,19 @@ export function WatchlistPanel({
   const names = new Map(items.map((i) => [i.id, i.name]));
   const defOf = new Map(items.map((i) => [i.id, i]));
   const rows = watch.map((id) => view.markets.find((m) => m.itemId === id)).filter((m): m is NonNullable<typeof m> => !!m);
+  // Has this item's buy (≤) or sell (≥) alert fired at the current price? Drives both the row state and the
+  // sort below — a fired alert is only useful if you SEE it (18l).
+  const isTriggered = (m: (typeof rows)[number]): boolean => {
+    const alert = alerts[m.itemId];
+    const sellAlert = sellAlerts[m.itemId];
+    return (
+      (alert !== undefined && alertHit(m.lastPrice, alert, 'below')) ||
+      (sellAlert !== undefined && alertHit(m.lastPrice, sellAlert, 'above'))
+    );
+  };
+  // Float triggered rows to the top so a fired alert is unmissable in a long list. Stable sort (ES2019):
+  // a row moves ONLY when its alert crosses (fires) or un-crosses (clears) — meaningful motion, not tick jitter.
+  const sorted = [...rows].sort((a, b) => Number(isTriggered(b)) - Number(isTriggered(a)));
   return (
     <section className="panel watchlist">
       <h2>Watchlist</h2>
@@ -48,13 +61,11 @@ export function WatchlistPanel({
         <p className="dim small">star an item to track it here — the ★ on a market row, the ticket star, or press w on the loaded item</p>
       ) : (
         <ul className="rows small">
-          {rows.map((m) => {
+          {sorted.map((m) => {
             const pct = m.ema > 0 ? (m.lastPrice - m.ema) / m.ema : 0;
             const alert = alerts[m.itemId];
             const sellAlert = sellAlerts[m.itemId];
-            const triggered =
-              (alert !== undefined && alertHit(m.lastPrice, alert, 'below')) ||
-              (sellAlert !== undefined && alertHit(m.lastPrice, sellAlert, 'above'));
+            const triggered = isTriggered(m);
             return (
               <li key={m.itemId} className={triggered ? 'mover alerted' : 'mover'}>
                 <span onClick={() => onSelect(m.itemId)} title="load in the ticket">

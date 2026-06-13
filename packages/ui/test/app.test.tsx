@@ -1098,6 +1098,25 @@ describe('UI shell', () => {
       expect(sig!.textContent).toContain('🟢'); // lastPrice 110 in band 100..200 → pos 0.1 → cheap
     });
 
+    it('WatchlistPanel floats a triggered alert to the top so it is unmissable (18l)', () => {
+      const items = [
+        { id: 'a', name: 'Aaa', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+        { id: 'b', name: 'Bbb', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+        { id: 'c', name: 'Ccc', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+      ] as unknown as ItemDef[];
+      const mk = (id: string, last: number) => ({ itemId: id, bestBid: 100, bestAsk: 110, lastPrice: last, ema: 110, volume: 1, bestBidIsMine: false, bestAskIsMine: false });
+      const v = { markets: [mk('a', 110), mk('b', 110), mk('c', 50)] } as unknown as PlayerView;
+      const { container } = render(
+        <WatchlistPanel view={v} items={items} watch={['a', 'b', 'c']} alerts={{ c: 100 }} sellAlerts={{}} bandAlerts={{}} richAlerts={{}} onSelect={() => {}} onRemove={() => {}} onSetAlert={() => {}} onSetSellAlert={() => {}} onToggleBandAlert={() => {}} onToggleRichAlert={() => {}} />,
+      );
+      const lis = container.querySelectorAll('li.mover');
+      expect(lis[0]!.textContent).toContain('Ccc'); // c's buy alert fired (50 ≤ 100) → floats above a, b
+      expect(lis[0]!.className).toContain('alerted');
+      expect(lis[0]!.textContent).toContain('🔔');
+      expect(lis[1]!.textContent).toContain('Aaa'); // untriggered keep insertion order
+      expect(lis[2]!.textContent).toContain('Bbb');
+    });
+
     it('WatchlistPanel arms a value-band buy-the-dip alert on a banded row', () => {
       const items = [{ id: 'gold_bar', name: 'Gold bar', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
       const v = {
