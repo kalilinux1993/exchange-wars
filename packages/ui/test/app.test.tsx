@@ -34,7 +34,7 @@ import { WealthPanel } from '../src/components/WealthPanel';
 import { UpgradeShop } from '../src/components/UpgradeShop';
 import { PlayerPanel } from '../src/components/PlayerPanel';
 import { depthSplit, TradeTicket } from '../src/components/TradeTicket';
-import { LeaderboardPanel, myRank, rankGap, provisionalRank } from '../src/components/LeaderboardPanel';
+import { LeaderboardPanel, myRank, rankGap, gapToTop, provisionalRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
 import { FirstSteps, firstSteps } from '../src/components/FirstSteps';
 import { ContractsBoard, contractPremium } from '../src/components/ContractsBoard';
@@ -4640,6 +4640,24 @@ describe('UI shell', () => {
     );
   });
 
+  it('shows the 👑 gap-to-#1 line for a top contender (#3) alongside the immediate climb (18a)', async () => {
+    localStorage.setItem('ew-handle', 'carol'); // matches the #3 row → meRank 3
+    fetchRoutes = (url) =>
+      url.includes('/rest/v1/leaderboard')
+        ? jsonResponse([
+            { handle: 'alice', worth: 9000 },
+            { handle: 'bob', worth: 5000 },
+            { handle: 'carol', worth: 2900 },
+          ])
+        : null;
+    const { container } = render(<LeaderboardPanel game={newGame(42)} session={null} onToast={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText('Sprint Board')).toBeTruthy());
+    const gaptop = container.querySelector('.gaptop');
+    expect(gaptop?.textContent).toContain('6,100'); // 9000 − 2900 to seize #1
+    expect(gaptop?.textContent).toContain('alice'); // the leader
+    expect(container.querySelector('.rankgap')?.textContent).toContain('2,100'); // bob (5000) − carol is still the next step — distinct
+  });
+
   describe('myRank', () => {
     const rows = [{ handle: 'alice' }, { handle: 'bob' }, { handle: 'carol' }];
     it('finds your 1-based rank by sanitized handle', () => {
@@ -4661,6 +4679,19 @@ describe('UI shell', () => {
       expect(rankGap(board, 3)).toEqual({ gap: 100, rank: 2, ahead: 'bob' }); // carol trails bob by 100
       expect(rankGap(board, 1)).toBeNull(); // already #1
       expect(rankGap(board, null)).toBeNull(); // unranked
+    });
+    it('gapToTop gives the worth gap + handle of #1, null at #1/unranked (18a)', () => {
+      const board = [
+        { handle: 'alice', worth: 5000 },
+        { handle: 'bob', worth: 3000 },
+        { handle: 'carol', worth: 2900 },
+        { handle: 'alice2', worth: 2900 }, // a tie at the bottom
+      ];
+      expect(gapToTop(board, 3)).toEqual({ gap: 2100, leader: 'alice' }); // carol trails the leader by 2100
+      expect(gapToTop(board, 2)).toEqual({ gap: 2000, leader: 'alice' }); // == rankGap at #2 (component hides it there)
+      expect(gapToTop(board, 1)).toBeNull(); // you ARE #1
+      expect(gapToTop(board, null)).toBeNull(); // unranked
+      expect(gapToTop([{ handle: 'lead', worth: 100 }, { handle: 'you', worth: 200 }], 2)!.gap).toBe(0); // ahead of "#1" → floored at 0
     });
     it('provisionalRank slots your current worth into the board (>= so ties sit below the incumbent)', () => {
       const board = [{ worth: 5000 }, { worth: 3000 }, { worth: 2900 }];

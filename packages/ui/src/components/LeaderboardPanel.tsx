@@ -5,6 +5,10 @@ import { dailySeed, playerWorth, type Game } from '../game';
 
 const HANDLE_KEY = 'ew-handle';
 
+/** Show the summit (gap-to-#1) line only for top contenders — below this rank the leader
+ *  isn't a realistic live target, so the rank-above gap (`rankGap`) stays the relevant lever. */
+const TOP_CONTENDER_RANK = 10;
+
 /**
  * Your 1-based rank on the board, matched by your sanitized handle, or null if
  * you haven't set a handle or aren't among the fetched rows. The anonymous
@@ -33,6 +37,23 @@ export function rankGap(
   const mine = rows[meRank - 1];
   if (!above || !mine) return null;
   return { gap: Math.max(0, above.worth - mine.worth), rank: meRank - 1, ahead: above.handle };
+}
+
+/**
+ * The summit gap: the worth needed to seize #1 + the leader's handle, for a top contender chasing the
+ * lead. null when you're unranked or already #1 (no one above). At #2 this equals `rankGap` (the rank
+ * above IS #1), so the component shows it only from #3 down, where it's a distinct, further target than
+ * the immediate climb. The gap floors at 0 for a tie, like `rankGap`. Pure.
+ */
+export function gapToTop(
+  rows: { handle: string; worth: number }[],
+  meRank: number | null,
+): { gap: number; leader: string } | null {
+  if (meRank === null || meRank <= 1) return null;
+  const top = rows[0];
+  const mine = rows[meRank - 1];
+  if (!top || !mine) return null;
+  return { gap: Math.max(0, top.worth - mine.worth), leader: top.handle };
 }
 
 /**
@@ -110,6 +131,18 @@ export function LeaderboardPanel({
         return (
           <p className="dim small rankgap" title="the fortune you'd need at the sprint mark to overtake the rank directly above — your next climb target">
             🎯 <b>{g.gap.toLocaleString('en-US')}</b> gp behind #{g.rank} <b>{g.ahead}</b>
+          </p>
+        );
+      })()}
+      {(() => {
+        // The summit, for top contenders: gap to #1, distinct from the rank-above climb. Gated to #3–#10 —
+        // at #2 the rank-above gap already IS the gap-to-#1, and below #10 the leader isn't a live target (18a).
+        if (meRank === null || meRank < 3 || meRank > TOP_CONTENDER_RANK) return null;
+        const t = gapToTop(rows, meRank);
+        if (!t) return null;
+        return (
+          <p className="dim small gaptop" title="the fortune you'd need at the sprint mark to seize #1 — the summit, beyond your immediate climb">
+            👑 <b>{t.gap.toLocaleString('en-US')}</b> gp behind #1 <b>{t.leader}</b>
           </p>
         );
       })()}
