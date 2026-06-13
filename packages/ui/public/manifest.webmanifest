@@ -6,12 +6,22 @@
   "display": "standalone",
   "background_color": "#14110d",
   "theme_color": "#d4a937",
+  "categories": ["games"],
   "icons": [
     {
       "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "og.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "The Grand Exchange trading terminal"
     }
   ]
 }

@@ -39,6 +39,20 @@ test('boots a fresh seed-42 world with the first-run guide, paused, full market'
   await expect(page.locator('.sprintboard')).toBeVisible();
 });
 
+test('the PWA manifest is valid and install-rich (19b)', async ({ page }) => {
+  // Fetch the SERVED manifest (resolving its href as the browser would) — a JSON typo here silently
+  // disables PWA install, so parse + assert the rich-install fields.
+  const href = await page.locator('link[rel="manifest"]').getAttribute('href');
+  const res = await page.request.get(new URL(href!, page.url()).href);
+  expect(res.ok()).toBeTruthy();
+  const m = await res.json(); // throws on malformed JSON
+  expect(m.name).toBe('Exchange Wars');
+  expect(m.display).toBe('standalone');
+  expect(m.categories).toContain('games');
+  expect(m.screenshots?.[0]?.src).toBe('og.png'); // the deployed 1200×630 card doubles as the install screenshot
+  expect(m.screenshots?.[0]?.sizes).toBe('1200x630');
+});
+
 test('the page serves social-card meta for shared links (18z)', async ({ page }) => {
   // The brag / challenge / duel loop shares this URL — verify the OG card meta is present.
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\.png$/);
