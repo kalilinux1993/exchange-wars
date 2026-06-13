@@ -1,6 +1,6 @@
 import { monsterById } from '@exchange-wars/engine';
 import type { PlayerCommand } from '@exchange-wars/engine';
-import type { Game } from '../game';
+import { monsterRegions, type Game } from '../game';
 
 /**
  * The bounty board: the realm posts kill orders on its own schedule and pays
@@ -25,6 +25,18 @@ export function BountyBoard({ game, onCommand }: { game: Game; onCommand: (cmd: 
               <span>
                 {m.elite ? '★ ' : ''}
                 {m.name} × {b.qty}
+                {(() => {
+                  // Where to hunt it (17x): the shallowest region the target spawns in, so the bounty is
+                  // actionable without cross-checking the Bestiary. The rest (if any) ride the tooltip.
+                  const regs = monsterRegions(b.monsterId);
+                  if (regs.length === 0) return null;
+                  return (
+                    <span className="dim small bountywhere" title={regs.length > 1 ? `also in ${regs.slice(1).join(', ')}` : undefined}>
+                      {' '}· {regs[0]}
+                      {regs.length > 1 ? ` +${regs.length - 1}` : ''}
+                    </span>
+                  );
+                })()}
               </span>
               <span className="dim small bountyinfo">
                 {Math.min(kills, b.qty)}/{b.qty} slain · {b.rewardGp.toLocaleString('en-US')} gp (≈

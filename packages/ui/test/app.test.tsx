@@ -120,6 +120,7 @@ import {
   dailyBestView,
   beatRecord,
   regionRoster,
+  monsterRegions,
   regionMastery,
   expectedHit,
   combatForecast,
@@ -3851,6 +3852,23 @@ describe('UI shell', () => {
     const fill = document.querySelector('.bountybar > span') as HTMLElement;
     expect(fill).toBeTruthy();
     expect(fill.style.width).toBe('50%'); // 2 of 4 slain
+  });
+
+  describe('monsterRegions', () => {
+    it('lists the regions a monster appears in (pool + elite), shallowest first', () => {
+      expect(monsterRegions('lava_dragon')).toEqual(['The Inferno Gate']); // pool member
+      expect(monsterRegions('goblin')).toEqual(['Lumbridge Plains', 'Varrock Sewers']); // two pools, shallow→deep
+      expect(monsterRegions('skarn')).toEqual(['Wilderness Ruins']); // a named elite counts
+      expect(monsterRegions('not_a_monster')).toEqual([]); // appears nowhere
+    });
+  });
+
+  it('BountyBoard tells you which region to hunt the target in (17x)', () => {
+    const game = newGame(42);
+    game.world.bounties = [{ id: 1, monsterId: 'lava_dragon', qty: 3, rewardGp: 1_800, baseline: 0, expiresTick: 5_000 }];
+    game.world.tick = 100;
+    render(<BountyBoard game={game} onCommand={() => {}} />);
+    expect(screen.getByText(/The Inferno Gate/)).toBeTruthy(); // where lava dragons spawn
   });
 
   describe('contractPremium', () => {

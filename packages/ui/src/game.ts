@@ -483,6 +483,12 @@ export function regionRoster(region: { monsters: string[]; elite?: string }): st
   return [...new Set(ids)];
 }
 
+/** Region NAMES where a monster appears — its encounter pool or as the named elite — shallowest first.
+ *  The inverse of `regionRoster`; tells a bounty hunter WHERE to go (17x). Pure. */
+export function monsterRegions(monsterId: string): string[] {
+  return REGIONS.filter((r) => r.monsters.includes(monsterId) || r.elite === monsterId).map((r) => r.name);
+}
+
 /** The named elites in encounter order — rare boss spawns outside the normal pools. */
 export const ELITES: { id: string; name: string }[] = MONSTERS.filter((m) => m.elite).map((m) => ({ id: m.id, name: m.name }));
 
