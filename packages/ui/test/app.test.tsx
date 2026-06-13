@@ -53,6 +53,7 @@ import {
   streakCelebration,
   checkMilestones,
   playerWorth,
+  eventEndingSoon,
   MILESTONES,
   CORRUPT_SAVE_KEY,
   dailySeed,
@@ -271,6 +272,32 @@ describe('UI shell', () => {
     expect(chip.querySelector('img.itemimg')).toBeTruthy(); // the event item's real icon
     fireEvent.click(chip);
     expect(screen.getByText(new RegExp(`Offer · ${ev.id.replace(/_/g, ' ')}`, 'i'))).toBeTruthy(); // the ticket loaded the event item
+  });
+
+  describe('eventEndingSoon', () => {
+    it('flags an event in its final stretch (≤150 ticks left), not mid-life or expired', () => {
+      expect(eventEndingSoon(151)).toBe(false); // plenty of runway
+      expect(eventEndingSoon(150)).toBe(true); // the threshold
+      expect(eventEndingSoon(1)).toBe(true); // last gasp
+      expect(eventEndingSoon(0)).toBe(false); // already over
+      expect(eventEndingSoon(-5)).toBe(false);
+    });
+  });
+
+  it('marks an event chip "ending soon" (amber + ⏳) in its final stretch (17e)', () => {
+    const game = newGame(42);
+    const ev = game.world.items.find((i) => i.wikiId !== undefined)!;
+    // 100 ticks left (≤150) → ending; a second event with a long runway stays normal.
+    const far = game.world.items.find((i) => i.wikiId !== undefined && i.id !== ev.id)!;
+    game.world.events = [
+      { id: 'soon', itemId: ev.id, kind: 'demand_surge', startTick: 0, endTick: 100 },
+      { id: 'far', itemId: far.id, kind: 'demand_surge', startTick: 0, endTick: 9999 },
+    ];
+    const { container } = render(<App initial={game} />);
+    const ending = container.querySelectorAll('.event-chip.ending');
+    expect(ending.length).toBe(1); // only the closing one
+    expect(ending[0]!.textContent).toContain('⏳');
+    expect(container.querySelectorAll('.event-chip').length).toBe(2); // both still shown
   });
 
   it('milestones latch once and persist on the save', () => {

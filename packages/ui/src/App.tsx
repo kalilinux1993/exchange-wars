@@ -40,6 +40,7 @@ import {
   markRooms,
   newElites,
   reconcileEvents,
+  eventEndingSoon,
   type CapturedEvent,
   bumpStreak,
   streakCelebration,
@@ -1062,20 +1063,26 @@ export function App({ initial }: { initial?: Game }) {
         const wikiOf = new Map(game.world.items.map((i) => [i.id, i.wikiId]));
         return (
           <div className="newsbar">
-            {active.map((e) => (
-              <button
-                key={e.id}
-                className={`event-chip ${e.kind}`}
-                title="trade this event — open the item in the ticket"
-                onClick={() => {
-                  setSelected(e.itemId);
-                  pickRoom('exchange');
-                }}
-              >
-                ⚡ <ItemIcon id={e.itemId} wikiId={wikiOf.get(e.itemId)} size={12} className="itemicon" /> {names.get(e.itemId) ?? e.itemId}{' '}
-                {EVENT_LABELS[e.kind]} · {(e.endTick - game.world.tick).toLocaleString('en-US')} left
-              </button>
-            ))}
+            {active.map((e) => {
+              const left = e.endTick - game.world.tick;
+              const ending = eventEndingSoon(left);
+              return (
+                <button
+                  key={e.id}
+                  className={`event-chip ${e.kind}${ending ? ' ending' : ''}`}
+                  title={ending
+                    ? 'ending soon — the price move is about to revert; act or close your position now'
+                    : 'trade this event — open the item in the ticket'}
+                  onClick={() => {
+                    setSelected(e.itemId);
+                    pickRoom('exchange');
+                  }}
+                >
+                  ⚡ <ItemIcon id={e.itemId} wikiId={wikiOf.get(e.itemId)} size={12} className="itemicon" /> {names.get(e.itemId) ?? e.itemId}{' '}
+                  {EVENT_LABELS[e.kind]} · {ending ? '⏳ ' : ''}{left.toLocaleString('en-US')} left
+                </button>
+              );
+            })}
           </div>
         );
       })()}

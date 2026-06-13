@@ -1328,6 +1328,16 @@ export function marketMood(
   return { up, down, cheap, rich };
 }
 
+/**
+ * A live event's final stretch — its price dislocation is about to revert, so the trading cue is "act or
+ * close your position now". Absolute threshold (not a fraction of duration) so "≈150 ticks to act" reads
+ * the same whether the event ran 800 or 2000 ticks. Pure (ticks-left injected). 0/negative = already over.
+ */
+export const EVENT_ENDING_SOON_TICKS = 150;
+export function eventEndingSoon(ticksLeft: number): boolean {
+  return ticksLeft > 0 && ticksLeft <= EVENT_ENDING_SOON_TICKS;
+}
+
 export function priceSwing(prices: number[]): PriceSwing | null {
   if (prices.length < 2) return null;
   let lo = prices[0]!;
