@@ -440,6 +440,25 @@ body {
   border-collapse: collapse;
   font-size: 0.88rem;
 }
+/* compact view (17r): hide the analysis columns for a clean price read. Column order is
+   1 item · 2 bid · 3 ask · 4 last · 5 mom · 6 margin · 7 band · 8 trend · 9 swing · 10 volume —
+   so 5–9 are the lenses (item/bid/ask/last + volume stay). nth-child is position-fragile; the
+   e2e (compact hides `mom`) guards these indices against a column-order change. */
+.market.compact thead th:nth-child(5),
+.market.compact thead th:nth-child(6),
+.market.compact thead th:nth-child(7),
+.market.compact thead th:nth-child(8),
+.market.compact thead th:nth-child(9),
+.market.compact tbody td:nth-child(5),
+.market.compact tbody td:nth-child(6),
+.market.compact tbody td:nth-child(7),
+.market.compact tbody td:nth-child(8),
+.market.compact tbody td:nth-child(9) {
+  display: none;
+}
+.market.compact table {
+  min-width: 0; /* fewer columns → let it shrink to the panel */
+}
 
 .market th {
   text-align: left;

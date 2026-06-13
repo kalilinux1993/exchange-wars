@@ -2,6 +2,7 @@ import { GEAR } from '@exchange-wars/engine';
 import type { ItemDef, ItemId, PlayerView, Trade } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
 import { bandPosition, flipMargin, marketMood, nextRowIndex, priceSwing, valueBand } from '../game';
+import { usePref } from '../usePref';
 
 const SPARK_POINTS = 20;
 
@@ -57,6 +58,7 @@ export function MarketTable({
   watched?: ReadonlySet<ItemId>;
 }) {
   const [filter, setFilter] = useState('');
+  const [compact, setCompact] = usePref<boolean>('ew-market-compact', false); // hide the analysis columns (17r)
   const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear' | 'flippable' | 'cheap' | 'watched' | 'steady'>('all');
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
   const toggleSort = (key: SortKey): void =>
@@ -164,7 +166,7 @@ export function MarketTable({
   }, [selected]);
   const arrow = (key: SortKey): string => (sort?.key === key ? (sort.dir === 1 ? ' ▲' : ' ▼') : '');
   return (
-    <section className="panel market">
+    <section className={compact ? 'panel market compact' : 'panel market'}>
       <h2>
         Grand Exchange{' '}
         <input
@@ -200,6 +202,14 @@ export function MarketTable({
             {t}
           </button>
         ))}{' '}
+        <button
+          className={compact ? 'chip active' : 'chip'}
+          title="compact view — hide the analysis columns (mom/margin/band/swing/trend) for a clean price read; click again to restore"
+          aria-pressed={compact}
+          onClick={() => setCompact(!compact)}
+        >
+          compact
+        </button>{' '}
         <span className="dim small">
           {shown.length}/{view.markets.length}
         </span>

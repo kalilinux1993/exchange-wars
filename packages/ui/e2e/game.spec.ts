@@ -132,6 +132,19 @@ test('expeditions: embark fists-first and meet whatever the dark sends', async (
   }
 });
 
+test('compact view hides the analysis columns, keeps the price essentials', async ({ page }) => {
+  await dismissHelp(page);
+  // analysis columns show by default; essentials always
+  await expect(page.getByRole('columnheader', { name: /mom/ })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'bid' })).toBeVisible();
+  await page.getByRole('button', { name: 'compact', exact: true }).click();
+  // the lens columns (mom/margin/band/swing) hide; bid/last/volume stay — verifies the nth-child indices
+  await expect(page.getByRole('columnheader', { name: /mom/ })).toBeHidden();
+  await expect(page.getByRole('columnheader', { name: /margin/ })).toBeHidden();
+  await expect(page.getByRole('columnheader', { name: 'bid' })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'volume' })).toBeVisible();
+});
+
 test('engine rejection reasons surface in the ticket', async ({ page }) => {
   await dismissHelp(page);
   await page.locator('.market tbody tr').first().click();

@@ -1370,6 +1370,19 @@ describe('UI shell', () => {
       expect(rows[1]!.textContent).toContain('Hot Co');
     });
 
+    it('the compact toggle applies a .compact class and persists it (17r)', () => {
+      localStorage.clear();
+      const items = [{ id: 'x', name: 'X', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
+      const v = { markets: [{ itemId: 'x', bestBid: 1, bestAsk: 2, lastPrice: 100, ema: 100, volume: 0, bestBidIsMine: false, bestAskIsMine: false }] } as unknown as PlayerView;
+      const { container } = render(<MarketTable view={v} items={items} trades={[]} selected="x" onSelect={() => {}} eventItems={new Set()} active />);
+      expect(container.querySelector('.market.compact')).toBeNull(); // full by default
+      fireEvent.click(screen.getByRole('button', { name: 'compact' }));
+      expect(container.querySelector('.market.compact')).toBeTruthy(); // class applied (CSS hides the analysis columns)
+      expect(JSON.parse(localStorage.getItem('ew-market-compact')!)).toBe(true); // persisted
+      fireEvent.click(screen.getByRole('button', { name: 'compact' }));
+      expect(container.querySelector('.market.compact')).toBeNull(); // toggled back
+    });
+
     it('the "flippable" track keeps only items with a positive after-tax margin', () => {
       const row = (itemId: string, bid: number, ask: number) => ({
         itemId, bestBid: bid, bestAsk: ask, lastPrice: bid, ema: bid, volume: 0, bestBidIsMine: false, bestAskIsMine: false,
