@@ -1,7 +1,7 @@
 import { GEAR } from '@exchange-wars/engine';
 import type { ItemDef, ItemId, PlayerView, Trade } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { bandPosition, flipMargin, marketMood, nextRowIndex, priceSwing, valueBand } from '../game';
+import { bandPosition, flipMargin, marketMood, momentum, nextRowIndex, priceSwing, valueBand } from '../game';
 import { usePref } from '../usePref';
 
 const SPARK_POINTS = 20;
@@ -31,6 +31,10 @@ function Spark({ prices }: { prices: number[] }) {
 /** The wiki generator pins exotic-track items at vol 0.13; staples top out at 0.10. */
 const EXOTIC_VOL = 0.13;
 
+/** A "mover" sits ≥5% off its EMA — the baseline anchors near EMA, so the track is empty
+ *  until an event dislocates a price (that's the point: it lights up when something's moving). */
+const MOVER_THRESHOLD = 0.05;
+
 export function MarketTable({
   view,
   items,
@@ -59,7 +63,7 @@ export function MarketTable({
 }) {
   const [filter, setFilter] = useState('');
   const [compact, setCompact] = usePref<boolean>('ew-market-compact', false); // hide the analysis columns (17r)
-  const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear' | 'flippable' | 'cheap' | 'watched' | 'steady'>('all');
+  const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear' | 'flippable' | 'cheap' | 'watched' | 'steady' | 'movers'>('all');
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
   const toggleSort = (key: SortKey): void =>
     setSort((s) => (s && s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 }));
@@ -75,7 +79,7 @@ export function MarketTable({
   const swings = new Map<ItemId, ReturnType<typeof priceSwing>>();
   for (const [id, arr] of sparks) swings.set(id, priceSwing(arr.slice(-SPARK_POINTS)));
   const needle = filter.trim().toLowerCase();
-  const inTrack = (m: { itemId: ItemId; bestBid: number | null; bestAsk: number | null; lastPrice: number }): boolean => {
+  const inTrack = (m: { itemId: ItemId; bestBid: number | null; bestAsk: number | null; lastPrice: number; ema: number }): boolean => {
     if (track === 'all') return true;
     if (track === 'gear') return GEAR[m.itemId] !== undefined; // the equippable items only
     if (track === 'watched') return watched?.has(m.itemId) ?? false; // your starred items only (17f)
@@ -85,6 +89,10 @@ export function MarketTable({
     }
     if (track === 'cheap') return valueBand(defs.get(m.itemId), m.lastPrice) === 'cheap'; // trading near its floor
     if (track === 'steady') return swings.get(m.itemId)?.read === 'steady'; // calm + liquid — the low-risk flips (17h)
+    if (track === 'movers') {
+      const mom = momentum(m.lastPrice, m.ema); // dislocated ≥5% from EMA — what's moving right now (17z)
+      return mom !== null && Math.abs(mom) >= MOVER_THRESHOLD;
+    }
     const exotic = (defs.get(m.itemId)?.volatility ?? 0) >= EXOTIC_VOL;
     return track === 'exotics' ? exotic : !exotic;
   };
@@ -101,7 +109,7 @@ export function MarketTable({
     if (sort.key === 'margin') return flipMargin(m);
     if (sort.key === 'band') return bandPosition(defs.get(m.itemId), m.lastPrice);
     if (sort.key === 'swing') return swings.get(m.itemId)?.swingPct ?? null;
-    if (sort.key === 'mom') return m.ema > 0 ? (m.lastPrice - m.ema) / m.ema : null; // % vs EMA — recent momentum (17o)
+    if (sort.key === 'mom') return momentum(m.lastPrice, m.ema); // % vs EMA — recent momentum (17o)
     return m.volume;
   };
   const sorted =
@@ -195,7 +203,7 @@ export function MarketTable({
             ✕
           </button>
         )}
-        {(['all', 'staples', 'exotics', 'gear', 'flippable', 'cheap', 'watched', 'steady'] as const).map((t) => (
+        {(['all', 'staples', 'exotics', 'gear', 'flippable', 'cheap', 'watched', 'steady', 'movers'] as const).map((t) => (
           <button
             key={t}
             className={track === t ? 'chip active' : 'chip'}
@@ -204,9 +212,11 @@ export function MarketTable({
                 ? 'items trading in the cheap third of their cost→value band — accumulation candidates'
                 : t === 'watched'
                   ? 'only the items on your watchlist (★ / press w to add)'
-                  : t === 'steady'
-                    ? 'only calm, actively-traded markets (low recent swing) — the spread holds while both legs fill'
-                    : t === 'flippable'
+                  : t === 'movers'
+                    ? "items dislocated ≥5% from their EMA — what's moving right now (events, crazes); empty in a calm market"
+                    : t === 'steady'
+                      ? 'only calm, actively-traded markets (low recent swing) — the spread holds while both legs fill'
+                      : t === 'flippable'
                       ? 'only items with a positive after-tax spread right now — a flip you could place this moment'
                       : t === 'gear'
                         ? 'only equippable gear among the commodities — find your combat upgrades'
@@ -341,8 +351,9 @@ export function MarketTable({
                 {m.lastPrice.toLocaleString('en-US')}
               </td>
               {(() => {
-                if (m.ema <= 0) return <td className="num dim">—</td>;
-                const mom = Math.round(((m.lastPrice - m.ema) / m.ema) * 100);
+                const mraw = momentum(m.lastPrice, m.ema);
+                if (mraw === null) return <td className="num dim">—</td>;
+                const mom = Math.round(mraw * 100);
                 return (
                   <td
                     className={`num ${mom > 0 ? 'up' : mom < 0 ? 'down' : 'dim'}`}

@@ -77,6 +77,7 @@ import {
   bandPosition,
   marketMood,
   flipMargin,
+  momentum,
   bookFromFills,
   emptyTradeBook,
   HUMAN_START_GP,
@@ -1149,11 +1150,38 @@ describe('UI shell', () => {
       expect(screen.queryByText('Untraded Co')).toBeNull(); // no swing data → excluded (steady = calm AND liquid)
     });
 
+    it('the "movers" track shows only items dislocated ≥5% from their EMA (17z)', () => {
+      const items = [
+        { id: 'hot', name: 'Hot Co', baseCost: 100, consumeValue: 300, volatility: 0.08 },
+        { id: 'cold', name: 'Cold Co', baseCost: 100, consumeValue: 300, volatility: 0.08 },
+        { id: 'flat', name: 'Flat Co', baseCost: 100, consumeValue: 300, volatility: 0.08 },
+        { id: 'noema', name: 'Noema Co', baseCost: 100, consumeValue: 300, volatility: 0.08 },
+      ] as unknown as ItemDef[];
+      const row = (itemId: string, lastPrice: number, ema: number) => ({
+        itemId, bestBid: 1, bestAsk: 2, lastPrice, ema, volume: 1, bestBidIsMine: false, bestAskIsMine: false,
+      });
+      const v = {
+        markets: [
+          row('hot', 120, 100), // +20% → mover
+          row('cold', 90, 100), // −10% → mover (abs ≥ 5%)
+          row('flat', 102, 100), // +2% → not a mover
+          row('noema', 100, 0), // no EMA → momentum null → excluded
+        ],
+      } as unknown as PlayerView;
+      render(<MarketTable view={v} items={items} trades={[]} selected="hot" onSelect={() => {}} eventItems={new Set()} active />);
+      expect(screen.getByText('Flat Co')).toBeTruthy(); // all shown under 'all'
+      fireEvent.click(screen.getByRole('button', { name: 'movers' }));
+      expect(screen.getByText('Hot Co')).toBeTruthy(); // +20% stays
+      expect(screen.getByText('Cold Co')).toBeTruthy(); // −10% stays (abs threshold)
+      expect(screen.queryByText('Flat Co')).toBeNull(); // +2% < 5% → filtered out
+      expect(screen.queryByText('Noema Co')).toBeNull(); // no EMA → null → excluded
+    });
+
     it('every market filter track chip carries an explanatory tooltip (17j)', () => {
       const items = [{ id: 'x', name: 'X', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
       const v = { markets: [{ itemId: 'x', bestBid: 1, bestAsk: 2, lastPrice: 100, ema: 100, volume: 0, bestBidIsMine: false, bestAskIsMine: false }] } as unknown as PlayerView;
       render(<MarketTable view={v} items={items} trades={[]} selected="x" onSelect={() => {}} eventItems={new Set()} active />);
-      for (const t of ['staples', 'exotics', 'gear', 'flippable', 'cheap', 'watched', 'steady']) {
+      for (const t of ['staples', 'exotics', 'gear', 'flippable', 'cheap', 'watched', 'steady', 'movers']) {
         expect(screen.getByRole('button', { name: t }).getAttribute('title')).toBeTruthy(); // each lens self-explains on hover
       }
     });
@@ -2260,6 +2288,13 @@ describe('UI shell', () => {
       expect(flipMargin({ bestBid: null, bestAsk: 110 })).toBeNull();
       expect(flipMargin({ bestBid: 100, bestAsk: null })).toBeNull();
       expect(flipMargin({ bestBid: 1, bestAsk: 1 })).toBeNull(); // sell = 0 → null
+    });
+    it('momentum reads last vs EMA as a signed fraction; null when there is no EMA (17z)', () => {
+      expect(momentum(120, 100)).toBeCloseTo(0.2); // +20% above EMA
+      expect(momentum(90, 100)).toBeCloseTo(-0.1); // −10% below EMA
+      expect(momentum(100, 100)).toBe(0); // anchored on EMA
+      expect(momentum(100, 0)).toBeNull(); // no EMA yet
+      expect(momentum(100, -5)).toBeNull(); // guard ema ≤ 0
     });
     it('worthBreakdown clamps an over-escrowed residual to 0 (torn-snapshot display guard)', () => {
       const view = { gp: 1000, openOrders: [{ side: 'buy', price: 100, remaining: 10 }] } as unknown as PlayerView;

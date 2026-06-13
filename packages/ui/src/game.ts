@@ -1300,6 +1300,16 @@ export function flipMargin(m: { bestBid: number | null; bestAsk: number | null }
   return sell - buy - Math.floor(sell * GE_TAX_RATE);
 }
 
+/**
+ * Recent momentum: how far the last price sits above (+) or below (−) its smoothed EMA,
+ * as a fraction. `null` when there's no EMA yet (`ema ≤ 0`). Pure — the single source for
+ * the market "mom" column, its sort key, and the "movers" track (17z). The economy anchors
+ * near EMA in the calm baseline, so this reads ≈0 until an event dislocates a price.
+ */
+export function momentum(lastPrice: number, ema: number): number | null {
+  return ema > 0 ? (lastPrice - ema) / ema : null;
+}
+
 /** A one-line macro read of the whole market — breadth + value distribution. */
 export interface MarketMood {
   up: number; // traded items trading above their EMA (momentum up)
