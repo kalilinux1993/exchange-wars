@@ -1,5 +1,5 @@
 import { REGIONS, SPRINT_TICKS } from '@exchange-wars/engine';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { HUMAN_START_GP } from '../game';
 
 export const HELP_SEEN_KEY = 'ew-help-seen';
@@ -8,16 +8,42 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
   // Modal focus management (WCAG 2.4.3 / the dialog pattern): move focus INTO the dialog on open — so a
   // keyboard/screen-reader user lands in it (and a SR announces "How to Play dialog") instead of on the
   // inert background behind the scrim — and RESTORE focus to wherever it was when the dialog closes. Escape
-  // already dismisses (17u). (A full Tab-trap is a follow-up; move-in + restore is the bulk of the value.)
+  // already dismisses (17u). 21o completes the pattern with a Tab TRAP (below) so focus can't leave the modal.
   const panelRef = useRef<HTMLElement>(null);
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     panelRef.current?.focus();
     return () => prev?.focus?.();
   }, []);
+  // Keep Tab inside the dialog (the deferred half of 20c): without this, Tab from the dialog's controls walks
+  // out to the inert background behind the scrim. Wrap at the boundaries (and enter from the moved-in panel).
+  const trapTab = (e: ReactKeyboardEvent): void => {
+    if (e.key !== 'Tab') return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const f = panel.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (f.length === 0) {
+      e.preventDefault();
+      panel.focus();
+      return;
+    }
+    const first = f[0]!;
+    const last = f[f.length - 1]!;
+    const active = document.activeElement;
+    if (active === panel) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    } else if (e.shiftKey && active === first) {
+      e.preventDefault();
+      last.focus();
+    }
+  };
   return (
     <div className="scrim" onClick={onClose}>
-      <section ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="How to Play" className="panel help" onClick={(e) => e.stopPropagation()}>
+      <section ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="How to Play" className="panel help" onClick={(e) => e.stopPropagation()} onKeyDown={trapTab}>
         <h2>How to Play</h2>
         <ul className="guide">
           <li>

@@ -1061,6 +1061,19 @@ describe('UI shell', () => {
     trigger.remove();
   });
 
+  it('the help dialog traps Tab focus within it — never escaping to the background (21o, WCAG 2.4.3)', () => {
+    render(<HelpOverlay onClose={() => {}} />);
+    const dialog = screen.getByRole('dialog', { name: 'How to Play' });
+    const btn = screen.getByText('start trading');
+    expect(document.activeElement).toBe(dialog); // 20c: focus starts on the moved-in panel
+    fireEvent.keyDown(dialog, { key: 'Tab' }); // Tab from the panel enters the focusables
+    expect(document.activeElement).toBe(btn);
+    fireEvent.keyDown(btn, { key: 'Tab' }); // Tab from the last (only) focusable wraps — stays inside
+    expect(document.activeElement).toBe(btn);
+    fireEvent.keyDown(btn, { key: 'Tab', shiftKey: true }); // Shift+Tab from the first also stays inside
+    expect(document.activeElement).toBe(btn);
+  });
+
   it('the help overlay covers the decision tools (watchlist/alerts/bands) and the duel (16u)', () => {
     const { container } = render(<HelpOverlay onClose={() => {}} />);
     expect(container.textContent).toMatch(/Watchlist/); // the decision-support tools
