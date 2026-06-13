@@ -1834,6 +1834,23 @@ describe('UI shell', () => {
     expect(container.querySelector('.goalinput')).toBeTruthy(); // back to the input
   });
 
+  it('WealthPanel fires a one-shot "goal reached" toast when worth crosses the target (17m)', () => {
+    localStorage.clear();
+    const onToast = vi.fn();
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    // set a 100k goal while below it
+    const { container, rerender } = render(<WealthPanel game={game} view={view} worth={50_000} onToast={onToast} />);
+    fireEvent.change(container.querySelector('.goalinput') as HTMLInputElement, { target: { value: '100000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'set' }));
+    expect(onToast).not.toHaveBeenCalled(); // 50k < 100k — not yet
+    rerender(<WealthPanel game={game} view={view} worth={120_000} onToast={onToast} />); // cross it
+    expect(onToast).toHaveBeenCalledTimes(1);
+    expect(onToast.mock.calls[0]![0]).toMatch(/reached/i);
+    rerender(<WealthPanel game={game} view={view} worth={130_000} onToast={onToast} />); // still over → no re-fire
+    expect(onToast).toHaveBeenCalledTimes(1); // goalHit guards it
+  });
+
   it('UpgradeShop shows the purse and how far short you are of an upgrade', () => {
     const view = {
       gp: 100, // way short of any upgrade

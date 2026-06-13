@@ -1350,7 +1350,7 @@ export function App({ initial }: { initial?: Game }) {
               sessionBaseWorth.current = w;
               sessionBaseGame.current = game;
             }
-            return <WealthPanel game={game} view={view} worth={w} sessionStartWorth={sessionBaseWorth.current} />;
+            return <WealthPanel game={game} view={view} worth={w} sessionStartWorth={sessionBaseWorth.current} onToast={(name, flavor) => setToast({ id: 'goal', name, flavor, achieved: () => false })} />;
           })()}
           <TradeFeed
             trades={game.world.trades}

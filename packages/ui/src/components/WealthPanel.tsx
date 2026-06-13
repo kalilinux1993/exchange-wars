@@ -1,5 +1,5 @@
 import type { PlayerView } from '@exchange-wars/engine';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Game } from '../game';
 import { bidWalk, fmtCompact, fmtDuration, goalView, returnOnStake, sessionPnL, worthBreakdown, worthRate } from '../game';
 import { usePref } from '../usePref';
@@ -23,12 +23,15 @@ export function WealthPanel({
   view,
   worth,
   sessionStartWorth,
+  onToast,
 }: {
   game: Game;
   view: PlayerView;
   worth: number;
   /** Net worth when this session began (App-owned baseline) — drives the "this session" P&L. */
   sessionStartWorth?: number;
+  /** Fire a transient toast — used to celebrate crossing a self-set worth goal (17m). */
+  onToast?: (name: string, flavor: string) => void;
 }) {
   const b = worthBreakdown(view, worth);
   const atRisk = game.world.agents[game.playerId]?.expedition?.packGp ?? 0;
@@ -42,15 +45,28 @@ export function WealthPanel({
   const ret = returnOnStake(game.startGp, worth);
   // A player-set net-worth target (17l): your own finish line, with progress + an ETA at the recent rate.
   const [goal, setGoal] = usePref<number>('ew-worth-goal', 0);
+  // The goal value already celebrated — guards the "reached" toast against re-firing on every tick AND
+  // across reloads (the goal persists, so without this a returning over-goal save would re-toast). 17m.
+  const [goalHit, setGoalHit] = usePref<number>('ew-goal-hit', 0);
   const [goalInput, setGoalInput] = useState('');
   const gv = goalView(goal, worth, worthRate(game.worthHistory)?.perMin ?? 0);
   const commitGoal = (): void => {
     const n = Math.floor(Number(goalInput));
     if (Number.isFinite(n) && n > 0) {
       setGoal(n);
+      setGoalHit(worth >= n ? n : 0); // setting an already-met goal records it as hit (no celebration)
       setGoalInput('');
     }
   };
+  // One-shot "goal reached" toast: fire when worth crosses the target, once per goal. WealthPanel
+  // re-renders every tick (App force()), so this catches a live crossing AND the first post-offline render.
+  useEffect(() => {
+    if (gv?.reached && goal > 0 && goalHit !== goal) {
+      onToast?.('🎯 Goal reached!', `${fmtCompact(goal)} gp — set your next target`);
+      setGoalHit(goal);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gv?.reached, goal, goalHit]);
   return (
     <section className="panel wealth">
       <h2>
