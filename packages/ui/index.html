@@ -35,7 +35,14 @@
     <meta name="theme-color" content="#d4a937" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Branded first-paint fallback (19a): shown until the bundle loads + React mounts (createRoot
+           replaces #root's children). INLINE styles only — the CSS bundle isn't applied yet. -->
+      <div style="position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: #14110d; color: #d4a937; font-family: Georgia, 'Times New Roman', serif">
+        <div style="font-size: 2rem; font-weight: bold; letter-spacing: 0.08em">Exchange Wars</div>
+        <div style="color: #8a6d1f; font-size: 0.85rem; font-family: ui-monospace, 'Courier New', monospace">opening the exchange…</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
