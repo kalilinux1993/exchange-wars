@@ -1,5 +1,7 @@
 import {
   CONSUMABLES,
+  DEATH_KEEP_BASE,
+  DEATH_KEEP_WARDED,
   GEAR,
   MONSTERS,
   REGION_CLEAR_KILLS,
@@ -119,6 +121,9 @@ export function ExpeditionPanel({
   const lvls = levelsOf(agent?.combatXp);
   const trainedMax = maxHpFor(lvls.hp);
   const itemNames = new Map(game.world.items.map((i) => [i.id, i.name])); // for the in-combat foe-drops read (17w)
+  // How many carried units death keeps — 3, or 5 with a Death Ward — MUST track the engine's
+  // expeditionDeath (commands.ts) so the death toast + the in-dive death-stakes read match the arbiter (18g).
+  const deathKeepN = (view.upgrades['deathWard'] ?? 0) > 0 ? DEATH_KEEP_WARDED : DEATH_KEEP_BASE;
 
   // Death detection: an expedition that vanishes mid-combat wasn't extracted.
   // The last-render snapshot lets the toast tell the SPECIFIC story — the
@@ -155,7 +160,7 @@ export function ExpeditionPanel({
       const died = prev.inCombat;
       const where = REGIONS[regionIndex(prev.snapshot.regionId)]?.name ?? 'the depths';
       if (died) {
-        const r = deathRecap(game.world.items, prev.snapshot.pack, prev.snapshot.packGp);
+        const r = deathRecap(game.world.items, prev.snapshot.pack, prev.snapshot.packGp, deathKeepN);
         const keptLine = r.kept.length > 0 ? `kept: ${r.kept.join(', ')}` : 'you carried nothing worth keeping';
         const lostLine =
           r.lostUnits > 0 || r.lostGp > 0
@@ -485,17 +490,21 @@ export function ExpeditionPanel({
               </p>
             );
           })()}
-          {exp.packGp > 0 && (() => {
-            // The CONSEQUENCE half of the push-vs-bank call (the push-read above is the ODDS): if the
-            // next push kills you, deathRecap keeps your 3 most valuable carried items and burns the rest
-            // + ALL loot gp. The same recap the death toast uses, shown BEFORE death so "risky?" carries
-            // a price tag. Reassuring (your best kit survives) + sobering (the haul is 100% gone) (18e).
-            const recap = deathRecap(game.world.items, exp.pack, exp.packGp);
+          {(() => {
+            // The CONSEQUENCE half of the push-vs-bank call (the push-read above is the ODDS): if the next
+            // push kills you, deathRecap keeps your `deathKeepN` most valuable carried items (3, or 5 with a
+            // Death Ward) and burns the rest + ALL loot gp. The same recap the death toast uses, shown BEFORE
+            // death so "risky?" carries a price tag (18e). Gate on actual LOSS, not packGp: carried gear/food
+            // is at risk from the first step (in exp.pack, burned on death) before any kill mints loot gp (18g).
+            const recap = deathRecap(game.world.items, exp.pack, exp.packGp, deathKeepN);
+            if (recap.lostGp <= 0 && recap.lostUnits <= 0) return null; // nothing actually at stake yet
             return (
-              <p className="dim small deathstakes" title="if you die before extracting: you keep only your 3 most valuable carried items — everything else carried, plus all gathered loot gp, is lost">
+              <p className="dim small deathstakes" title={`if you die before extracting: you keep only your ${deathKeepN} most valuable carried items — everything else carried, plus all gathered loot gp, is lost`}>
                 ⚰ if you fall here:{' '}
-                <b className="down">lose {recap.lostGp.toLocaleString('en-US')} loot gp</b>
-                {recap.lostUnits > 0 ? ` + ${recap.lostUnits} item${recap.lostUnits === 1 ? '' : 's'}` : ''}
+                <b className="down">
+                  lose{recap.lostGp > 0 ? ` ${recap.lostGp.toLocaleString('en-US')} loot gp` : ''}
+                  {recap.lostUnits > 0 ? `${recap.lostGp > 0 ? ' +' : ''} ${recap.lostUnits} item${recap.lostUnits === 1 ? '' : 's'}` : ''}
+                </b>
                 {recap.kept.length > 0 ? (
                   <>
                     {' '}· <span className="up">keep {recap.kept.join(', ')}</span>

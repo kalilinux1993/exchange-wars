@@ -4386,15 +4386,43 @@ describe('UI shell', () => {
     expect(stakes?.textContent).toMatch(/keep Shark/); // your 3 most valuable survive
   });
 
-  it('hides the death-stakes line when there is no haul at risk (18e)', () => {
+  it('hides the death-stakes line only when nothing is actually at stake (18g)', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;
+    // ≤ keep-3 carried units AND no loot gp → death loses nothing → the line is hidden.
     agent.expedition = {
-      regionId: 'lumbridge_plains', rngState: 1, hp: 50, pack: { shark: 5 }, packGp: 0, cleared: 0, combat: null,
+      regionId: 'lumbridge_plains', rngState: 1, hp: 50, pack: { shark: 2 }, packGp: 0, cleared: 0, combat: null,
     };
     render(<App initial={game} />);
     fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
-    expect(document.querySelector('p.deathstakes')).toBeNull(); // no loot gathered → nothing at stake → hidden
+    expect(document.querySelector('p.deathstakes')).toBeNull(); // 2 units, all kept, 0 gp → nothing lost → hidden
+  });
+
+  it('shows the death-stakes for packed gear at risk BEFORE any kill (packGp=0) (18g)', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    // 4 carried units, no loot gp yet: death still burns 1 (4 − keep-3) — a real stake the old packGp>0 gate hid.
+    agent.expedition = {
+      regionId: 'lumbridge_plains', rngState: 1, hp: 50, pack: { shark: 4 }, packGp: 0, cleared: 0, combat: null,
+    };
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const stakes = document.querySelector('p.deathstakes');
+    expect(stakes?.textContent).toMatch(/if you fall here/);
+    expect(stakes?.textContent).toMatch(/lose 1 item/); // 4 units − 3 kept, even with no loot gp (no leading "+" when gp=0)
+    expect(stakes?.textContent).not.toMatch(/loot gp/); // no gp gathered → don't claim a gp loss
+    expect(stakes?.textContent).toMatch(/keep Shark/);
+  });
+
+  it('deathRecap honors the Death Ward keepN — keeps 5 instead of 3 (18g)', () => {
+    const items = [
+      { id: 'a', name: 'A', baseCost: 100 },
+      { id: 'b', name: 'B', baseCost: 50 },
+    ];
+    const pack = { a: 3, b: 3 }; // 6 carried units, A's more valuable
+    expect(deathRecap(items, pack, 1000)).toMatchObject({ lostUnits: 3, lostGp: 1000 }); // default keep-3 → lose 3
+    expect(deathRecap(items, pack, 1000, 5)).toMatchObject({ lostUnits: 1, lostGp: 1000 }); // Death Ward keep-5 → lose 1
+    expect(deathRecap(items, pack, 0, 5).kept).toEqual(['A', 'A', 'A', 'B', 'B']); // most valuable first
   });
 
   it('the dive shows an hp-aware "push read" that turns risky when wounded', () => {

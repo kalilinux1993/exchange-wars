@@ -1,6 +1,6 @@
 // Game bootstrap + persistence. The human is an idle-policy player agent:
 // engine-inert unless automation is purchased, acting only via UI commands.
-import { addAgent, combatLevel, CONSUMABLES, createWorld, EVENT_LABELS, GE_TAX_RATE, GEAR, levelsOf, MONSTERS, netWorth, playerView, REGIONS, runTicks } from '@exchange-wars/engine';
+import { addAgent, combatLevel, CONSUMABLES, createWorld, DEATH_KEEP_BASE, EVENT_LABELS, GE_TAX_RATE, GEAR, levelsOf, MONSTERS, netWorth, playerView, REGIONS, runTicks } from '@exchange-wars/engine';
 import type { GearSlot, PlayerView, RunLogEntry, WorldEvent, WorldState } from '@exchange-wars/engine';
 
 export interface Game {
@@ -1786,13 +1786,16 @@ export function playerWorth(game: Game): number {
   return agent ? netWorth(game.world, agent) : 0;
 }
 
-/** What death keeps and what it takes — mirrors the engine's keep-3 rule
- * (units sorted by baseCost desc, ties by item id) so the recap toast tells
- * the truth. Display only; the engine already did the bookkeeping. */
+/** What death keeps and what it takes — mirrors the engine's keep-N rule
+ * (units sorted by baseCost desc, ties by item id; keep `keepN` — 3 by default,
+ * 5 with a Death Ward) so the recap toast and the in-dive preview tell the truth.
+ * `keepN` MUST match the engine's `expeditionDeath` (commands.ts) for the player's
+ * deathWard state, or display and arbiter disagree. Display only. */
 export function deathRecap(
   items: { id: string; name: string; baseCost: number }[],
   pack: Record<string, number>,
   packGp: number,
+  keepN: number = DEATH_KEEP_BASE,
 ): { kept: string[]; lostUnits: number; lostGp: number } {
   const cost = new Map(items.map((i) => [i.id, i.baseCost]));
   const name = new Map(items.map((i) => [i.id, i.name]));
@@ -1801,8 +1804,8 @@ export function deathRecap(
     for (let i = 0; i < qty; i++) units.push({ itemId, cost: cost.get(itemId) ?? 0 });
   }
   units.sort((a, b) => b.cost - a.cost || (a.itemId < b.itemId ? -1 : 1));
-  const kept = units.slice(0, 3).map((u) => name.get(u.itemId) ?? u.itemId);
-  return { kept, lostUnits: Math.max(0, units.length - 3), lostGp: packGp };
+  const kept = units.slice(0, keepN).map((u) => name.get(u.itemId) ?? u.itemId);
+  return { kept, lostUnits: Math.max(0, units.length - keepN), lostGp: packGp };
 }
 
 /** What the resting bids (excluding the player's own) would pay for `qty` of
