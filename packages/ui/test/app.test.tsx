@@ -1100,6 +1100,20 @@ describe('UI shell', () => {
     expect(stop!.getAttribute('stop-color')).toBe(arenaTheme('the_abyss').from); // themed by the region
   });
 
+  it('CombatScene gives a named elite a boss aura, an ordinary foe none (19s)', () => {
+    const kit = { weapon: false, helm: false, body: false, legs: false, shield: false };
+    const boss = render(
+      <CombatScene monsterId="skarn" monsterHp={130} playerHp={50} playerMaxHp={50} logLen={1} kit={kit} regionId="wilderness_ruins" />,
+    );
+    expect(boss.container.querySelector('.elite-aura')).toBeTruthy(); // Skarn is an elite → gold aura
+    expect(boss.container.querySelector('#elite-glow')).toBeTruthy(); // and its gradient def
+    boss.unmount();
+    const mook = render(
+      <CombatScene monsterId="goblin" monsterHp={12} playerHp={50} playerMaxHp={50} logLen={1} kit={kit} regionId="lumbridge_plains" />,
+    );
+    expect(mook.container.querySelector('.elite-aura')).toBeNull(); // a goblin gets none
+  });
+
   it('RegionMap pulses the node when the selection changes, but not on first mount', () => {
     const a = REGIONS[0]!.id;
     const b = REGIONS[1]!.id;

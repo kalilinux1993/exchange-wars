@@ -85,6 +85,14 @@ export function CombatScene({
           <stop offset="0%" stopColor={theme.from} />
           <stop offset="100%" stopColor={theme.to} />
         </linearGradient>
+        {m.elite && (
+          // A named elite gets a gold "boss" aura — gold core fading to transparent, pulsed by CSS.
+          <radialGradient id="elite-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#ffe08a" stopOpacity={0.5} />
+            <stop offset="55%" stopColor="#d4a937" stopOpacity={0.22} />
+            <stop offset="100%" stopColor="#d4a937" stopOpacity={0} />
+          </radialGradient>
+        )}
       </defs>
       <rect className="arena-bg" x={0} y={0} width={200} height={104} fill="url(#arena-sky)" />
 
@@ -116,6 +124,9 @@ export function CombatScene({
           on the INNER <g> — a CSS transform would otherwise CLOBBER the
           attribute transform and snap the monster to (0,0). */}
       <g transform={`translate(150 ${70 - (big - 1) * 6}) scale(${big})`}>
+        {/* boss aura behind a named elite — centred on the body (MonsterBody is at 0,0, crown at y=-30),
+            so it scales and tracks with the monster. Combat-only: MonsterBody/Bestiary stay clean. */}
+        {m.elite && <ellipse className="elite-aura" cx={0} cy={-2} rx={30} ry={34} fill="url(#elite-glow)" />}
         <g className="monster">
           <MonsterBody monsterId={monsterId} />
         </g>

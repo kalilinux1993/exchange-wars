@@ -1598,6 +1598,14 @@ span.stale {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-2px); }
 }
+/* Named-elite boss aura — opacity-only pulse (no transform, so it can't clobber the monster <g> transform). */
+.combatscene .elite-aura {
+  animation: elite-pulse 2.6s ease-in-out infinite;
+}
+@keyframes elite-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
 .splat {
   font-size: 13px;
   font-weight: 700;
