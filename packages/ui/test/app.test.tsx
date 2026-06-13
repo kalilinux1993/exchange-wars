@@ -934,6 +934,14 @@ describe('UI shell', () => {
     expect(container.textContent).toMatch(/momentum/); // momentum sort now documented (18d)
     expect(container.textContent).toMatch(/filters.*to flippable, cheap, steady/); // and its filter tracks (17j)
     expect(container.textContent).toMatch(/movers/); // the movers filter now documented (18d)
+    // 19o: the death-keep drift is fixed and the 19-series instruments are taught
+    expect(container.textContent).toMatch(/5 with\s+a Death Ward/); // not the stale bare "3" (cf. 19c README fix)
+    expect(container.textContent).toMatch(/kills you'd survive\s+before falling/); // survivability ladder (19f/19g)
+    expect(container.textContent).toMatch(/when a single hit could down you/); // lethality warning (19m)
+    expect(container.textContent).toMatch(/queue position/); // order-book queue (19h)
+    expect(container.textContent).toMatch(/reprice/); // jump-the-queue action (19i)
+    expect(container.textContent).toMatch(/cash out/); // honest liquidation value (19j)
+    expect(container.textContent).toMatch(/welcome-back digest/); // away-fills (19l)
   });
 
   it('MilestonesPanel shows a progress bar on the closest unearned deeds', () => {
@@ -4936,14 +4944,17 @@ describe('UI shell', () => {
       return game;
     };
     // fresh player def 2 → a goblin's (atk 4) worst hit is maxHit(4,2)=4. At 50 hp that's no threat.
+    // (Assert on the warning's own .lethal node, not loose text — the help overlay also says "could down you".)
     const healthy = render(<App initial={make(50)} />);
     fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
-    expect(screen.queryByText(/could down you/)).toBeNull();
+    expect(document.querySelector('p.lethal')).toBeNull();
     healthy.unmount();
     // at 4 hp, the goblin's worst hit (4) ≥ your hp → one bad roll ends it → the warning fires
     render(<App initial={make(4)} />);
     fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
-    expect(screen.getByText(/could down you/)).toBeTruthy();
+    const warn = document.querySelector('p.lethal');
+    expect(warn).toBeTruthy();
+    expect(warn!.textContent).toMatch(/could down you/);
   });
 
   it('f swings a combat round, gated to an active fight (18q)', () => {

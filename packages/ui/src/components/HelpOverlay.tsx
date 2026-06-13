@@ -20,12 +20,16 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
           </li>
           <li>
             Click a market row to load it, then click prices in the <b>Depth</b> ladder: lift an ask to buy,
-            hit a bid to sell. Offers rest on the books until someone takes them. The <b>sell @ bid</b>{' '}
-            chips in your Ledger dump a stack into the resting bids instantly — loot to gp, one click.
+            hit a bid to sell. Offers rest on the books until someone takes them — each resting offer shows its{' '}
+            <b>queue position</b> (top of book, or N ahead), and a <b>reprice</b> chip jumps it to the front.
+            The <b>sell @ bid</b> chips in your Ledger dump a stack into the resting bids instantly — loot to gp,
+            one click — and <b>Open Positions</b> shows what you'd truly <b>cash out</b> now (walking the bids),
+            not just the paper mark.
           </li>
           <li>
             Press <b>1×/5×/20×</b> to run the world, or jump with <b>+1k/+10k</b>. Closing the tab keeps the
-            world running — about a tick per second while you're away (wounds mend too).
+            world running — about a tick per second while you're away: wounds mend and your resting offers
+            fill, and the <b>welcome-back digest</b> tallies what you missed.
           </li>
           <li>
             Hire the <b>clerk</b> in the shop to flip automatically, then give it orders: risk, capital,
@@ -50,8 +54,10 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
           <li>
             <b>Expeditions</b>: delve {REGIONS.length} regions, plains to {REGIONS[REGIONS.length - 1]!.name}.
             Every step and every combat round costs a market tick — time raiding is time not trading. Loot
-            mints straight into the economy; death keeps only your 3 most valuable carried items, and{' '}
-            <b>wounds persist</b> — you mend slowly at home, or eat food in the field. The{' '}
+            mints straight into the economy; death keeps only your <b>3 most valuable carried items</b> (5 with
+            a Death Ward), and <b>wounds persist</b> — you mend slowly at home, or eat food in the field. The{' '}
+            <b>forecast</b> reads each fight before and during it — your odds, ≈how many <b>kills you'd survive
+            before falling</b> (more with packed food), and a <b>⚠ when a single hit could down you</b>. The{' '}
             <b>Bounty Board</b> posts kill orders that pay in fresh coin.
           </li>
           <li>
