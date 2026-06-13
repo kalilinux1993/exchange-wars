@@ -1469,6 +1469,26 @@ describe('UI shell', () => {
       expect(onDelveEnd).toHaveBeenCalledTimes(1);
       expect(onToast).toHaveBeenCalled(); // "You died in …"
     });
+    it('the combat readout shows the foe drops — the reward half of fight/flee (17w)', () => {
+      const game = newGame(42);
+      const agent = game.world.agents[game.playerId]!;
+      (agent as { expedition?: unknown }).expedition = {
+        regionId: REGIONS[0]!.id,
+        rngState: 1,
+        hp: 40,
+        pack: {},
+        packGp: 0,
+        cleared: 0,
+        // an ACTIVE goblin fight (drops adamant_dart @ 0.15 per quest.ts)
+        combat: { monsterId: 'goblin', monsterHp: 8, playerHp: 40, maxHp: 50, antifire: false, outcome: null, lootGp: 0, lootItems: [], log: ['a Goblin blocks the path'] },
+        journal: [],
+      };
+      const view = playerView(game.world, game.playerId)!;
+      const { container } = render(<ExpeditionPanel game={game} view={view} onCommand={() => {}} onToast={() => {}} />);
+      const drops = container.querySelector('.foedrops');
+      expect(drops).toBeTruthy();
+      expect(drops!.textContent).toMatch(/adamant dart 15%/i); // the foe's loot, weighed against the survival read
+    });
     it('a PLAYER dive that ends OUT of combat (extract) toasts a return recap', () => {
       const game = newGame(42);
       const agent = game.world.agents[game.playerId]!;

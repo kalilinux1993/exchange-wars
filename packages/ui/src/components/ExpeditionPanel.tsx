@@ -118,6 +118,7 @@ export function ExpeditionPanel({
   const progress = agent?.questProgress ?? 0;
   const lvls = levelsOf(agent?.combatXp);
   const trainedMax = maxHpFor(lvls.hp);
+  const itemNames = new Map(game.world.items.map((i) => [i.id, i.name])); // for the in-combat foe-drops read (17w)
 
   // Death detection: an expedition that vanishes mid-combat wasn't extracted.
   // The last-render snapshot lets the toast tell the SPECIFIC story — the
@@ -352,6 +353,22 @@ export function ExpeditionPanel({
                     <p className="dim small forecast" title="live read at the current hp — expected rounds either way (an estimate; rolls vary). dragonfire is counted when no antifire holds.">
                       ≈<b>{f.roundsToKill}</b> hit{f.roundsToKill === 1 ? '' : 's'} to finish it · it downs you in ≈
                       <b>{f.roundsToFall}</b> · <b className={f.favored ? 'up' : 'down'}>{f.favored ? 'winning the race' : 'flee?'}</b>
+                    </p>
+                  );
+                })()}
+                {m.drops.length > 0 && (() => {
+                  // The reward half of the fight/flee call (17w): what this kill can drop, likeliest first —
+                  // weigh it against the survival forecast above. Reuses the foe's drop table (same data the
+                  // Bestiary + embark loot read show), shown for the SPECIFIC foe you're facing.
+                  const top = [...m.drops].sort((a, b) => b.chance - a.chance);
+                  return (
+                    <p className="dim small foedrops" title="what this kill can drop — weigh the loot against the survival read above">
+                      drops{' '}
+                      {top
+                        .slice(0, 3)
+                        .map((d) => `${(itemNames.get(d.itemId) ?? d.itemId).toLowerCase()} ${Math.round(d.chance * 100)}%`)
+                        .join(' · ')}
+                      {top.length > 3 ? ` +${top.length - 3} more` : ''}
                     </p>
                   );
                 })()}
