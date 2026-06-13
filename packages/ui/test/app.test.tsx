@@ -4658,6 +4658,22 @@ describe('UI shell', () => {
     expect(container.querySelector('.rankgap')?.textContent).toContain('2,100'); // bob (5000) − carol is still the next step — distinct
   });
 
+  it('suppresses the 👑 gap-to-#1 line at #2 (it would duplicate the rank-above gap) (18b)', async () => {
+    localStorage.setItem('ew-handle', 'bob'); // matches the #2 row → meRank 2
+    fetchRoutes = (url) =>
+      url.includes('/rest/v1/leaderboard')
+        ? jsonResponse([
+            { handle: 'alice', worth: 9000 },
+            { handle: 'bob', worth: 5000 },
+            { handle: 'carol', worth: 2900 },
+          ])
+        : null;
+    const { container } = render(<LeaderboardPanel game={newGame(42)} session={null} onToast={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText('Sprint Board')).toBeTruthy());
+    expect(container.querySelector('.gaptop')).toBeNull(); // at #2 the summit IS the rank-above gap → gate hides it (locks meRank>=3)
+    expect(container.querySelector('.rankgap')?.textContent).toContain('4,000'); // alice (9000) − bob (5000) — the one climb that's shown
+  });
+
   describe('myRank', () => {
     const rows = [{ handle: 'alice' }, { handle: 'bob' }, { handle: 'carol' }];
     it('finds your 1-based rank by sanitized handle', () => {
