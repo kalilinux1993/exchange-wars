@@ -1,7 +1,7 @@
 import { CONSUMABLES, deriveStats, GEAR, levelsOf, maxHpFor, monsterById, REGIONS, REST_REGEN_TICKS, regionIndex } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { combatForecast, embarkPrep, healEta, loadoutShort, regionLoot, type Game } from '../game';
+import { combatForecast, embarkPrep, healEta, healFromPack, loadoutShort, regionLoot, survivableKills, type Game } from '../game';
 import { usePref } from '../usePref';
 import { arenaTheme } from './CombatScene';
 import { ItemIcon } from './Icon';
@@ -223,6 +223,28 @@ export function EmbarkPanel({
               forecast: ≈<b>{f.roundsToKill}</b> round{f.roundsToKill === 1 ? '' : 's'} to down it · it downs you in ≈
               <b>{f.roundsToFall}</b> · <b className={f.favored ? 'up' : 'down'}>{f.favored ? 'favored' : 'risky'}</b>
             </p>
+            {(() => {
+              const packHeal = healFromPack(draft);
+              const base = survivableKills(f, trainedMax);
+              const withFood = survivableKills(f, trainedMax, packHeal);
+              const fmt = (n: number): string => (n >= 20 ? '20+' : String(n));
+              return (
+                <p
+                  className="dim small"
+                  title="≈how many of this region's foes you could down in one dive before falling — roundsToFall ÷ roundsToKill, since hp carries between kills (no mid-dive regen). Packed food scales it. An estimate, not a promise."
+                >
+                  ≈<b>{fmt(base)}</b> kill{base === 1 ? '' : 's'} before you'd fall
+                  {withFood > base ? (
+                    <>
+                      {' '}
+                      · ≈<b className="up">{fmt(withFood)}</b> with packed food
+                    </>
+                  ) : (
+                    base < 5 && <span className="warn"> · 🍖 pack food to go deeper</span>
+                  )}
+                </p>
+              );
+            })()}
             {warnings.map((w) => {
               const fix = fixFor(w.kind);
               return (

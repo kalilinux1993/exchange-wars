@@ -130,6 +130,7 @@ import {
   regionMastery,
   expectedHit,
   combatForecast,
+  survivableKills,
   hitChance,
   healFromPack,
   embarkPrep,
@@ -1751,6 +1752,30 @@ describe('UI shell', () => {
       const perHitOnly = Math.ceil(100 / expectedHit(10, 60)); // the old (no-accuracy) estimate
       expect(f.roundsToFall).toBeGreaterThan(perHitOnly * 3); // ~1/0.15 ≈ 6.7× longer once misses count
       expect(f.favored).toBe(true); // you crush a foe that can't hit you
+    });
+  });
+
+  describe('survivableKills (how many foes before you fall) (19f)', () => {
+    it('is roundsToFall ÷ roundsToKill — kills you can chain before falling, no food', () => {
+      expect(survivableKills({ roundsToKill: 2, roundsToFall: 10 }, 50)).toBe(5); // floor(10/2)
+      expect(survivableKills({ roundsToKill: 3, roundsToFall: 10 }, 50)).toBe(3); // floor(10/3)
+    });
+    it('a favored forecast clears at least one kill; a risky one clears zero', () => {
+      expect(survivableKills({ roundsToKill: 4, roundsToFall: 4 }, 50)).toBe(1); // favored tie → 1
+      expect(survivableKills({ roundsToKill: 5, roundsToFall: 4 }, 50)).toBe(0); // you fall before the first kill
+    });
+    it('packed food scales the HP pool, so it can only raise the count', () => {
+      const f = { roundsToKill: 2, roundsToFall: 10 };
+      const dry = survivableKills(f, 50);
+      const fed = survivableKills(f, 50, 50); // +50 hp doubles the effective pool
+      expect(fed).toBe(10); // floor(5 · (50+50)/50)
+      expect(fed).toBeGreaterThan(dry);
+      expect(survivableKills(f, 50, 0)).toBe(dry); // zero food = no change
+    });
+    it('guards degenerate inputs (dead, no kill path, negative food)', () => {
+      expect(survivableKills({ roundsToKill: 2, roundsToFall: 10 }, 0)).toBe(0); // hp 0
+      expect(survivableKills({ roundsToKill: 0, roundsToFall: 10 }, 50)).toBe(0); // no kill path
+      expect(survivableKills({ roundsToKill: 2, roundsToFall: 10 }, 50, -999)).toBe(5); // negative food clamps to 0
     });
   });
 
@@ -3558,6 +3583,9 @@ describe('UI shell', () => {
     // lumbridge goblin atk 4 > your def 2 → red; def 1 < your atk 5 → green
     expect(screen.getByText('⚔4').className).toContain('down');
     expect(screen.getByText('🛡1').className).toContain('up');
+    // 19f: the survivability synthesis line (kills before you'd fall); no food packed → the nudge
+    expect(screen.getByText(/before you.?d fall/)).toBeTruthy();
+    expect(screen.getByText(/pack food to go deeper/)).toBeTruthy();
   });
 
   it('RecordsPanel renders the adventurer record in the hall', () => {

@@ -600,6 +600,26 @@ export function combatForecast(
 }
 
 /**
+ * How many foes of this kind you can down in ONE sustained dive before you'd fall — the
+ * embark planning read that turns the forecast's two round counts into the number players
+ * actually weigh. You kill one foe every `roundsToKill` rounds and fall after `roundsToFall`
+ * rounds of incoming damage, and HP carries between foes (the engine doesn't regen mid-dive —
+ * only food/rest does), so kills ≈ `roundsToFall / roundsToKill`. Packed food adds a flat HP
+ * cushion, which scales `roundsToFall` linearly (≈ hp/foeDpr), hence the `(hp + packHeal)/hp`
+ * factor. Floor — a partial kill doesn't count; consistent with `combatForecast` (favored ⟺
+ * ratio ≥ 1 ⟺ ≥1 kill). An estimate (real fights roll with variance), not a promise. Pure.
+ */
+export function survivableKills(
+  forecast: { roundsToKill: number; roundsToFall: number },
+  hp: number,
+  packHeal = 0,
+): number {
+  if (hp <= 0 || forecast.roundsToKill <= 0) return 0;
+  const hpFactor = (hp + Math.max(0, packHeal)) / hp;
+  return Math.floor((forecast.roundsToFall / forecast.roundsToKill) * hpFactor);
+}
+
+/**
  * Total hp the consumables in a dive pack could restore — the raw sum of every
  * `heal` × qty. Used to show how much survival your PACKED food buys in the
  * push-read (14o). Deliberately OPTIMISTIC: it ignores overheal (eating a 20-heal
