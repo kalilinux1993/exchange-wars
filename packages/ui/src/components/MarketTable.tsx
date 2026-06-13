@@ -120,6 +120,7 @@ export function MarketTable({
   // Keyboard nav (j/k or ↑/↓ walk the selection through the *displayed* order, so
   // it always matches the on-screen sort/filter). Refs keep the once-bound window
   // listener reading current state without re-binding every render.
+  const filterRef = useRef<HTMLInputElement>(null);
   const navRef = useRef({ sorted, selected, onSelect, active, onToggleWatch });
   navRef.current = { sorted, selected, onSelect, active, onToggleWatch };
   useEffect(() => {
@@ -128,6 +129,12 @@ export function MarketTable({
       if (!on || e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(t.tagName) || t.isContentEditable)) return;
+      // `/` jumps to the filter — the web-wide "focus search" key, so you can find an item by name fast (17n).
+      if (e.key === '/') {
+        e.preventDefault();
+        filterRef.current?.focus();
+        return;
+      }
       // `w` toggles the watchlist on the selected item — the watch verb of the keyboard trade loop (17c).
       if ((e.key === 'w' || e.key === 'W') && watch) {
         e.preventDefault();
@@ -160,8 +167,9 @@ export function MarketTable({
       <h2>
         Grand Exchange{' '}
         <input
+          ref={filterRef}
           className="filter"
-          placeholder="filter items…"
+          placeholder="filter items…  /"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />

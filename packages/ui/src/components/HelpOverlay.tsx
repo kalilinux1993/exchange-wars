@@ -79,7 +79,8 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             <b>Keyboard</b>: <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> jump between rooms, <kbd>p</kbd> pauses or
             resumes the world, <kbd>?</kbd> toggles this guide. In the Exchange,{' '}
             <kbd>j</kbd>/<kbd>k</kbd> (or <kbd>↑</kbd>/<kbd>↓</kbd>) walk the market, <kbd>b</kbd>/<kbd>s</kbd>{' '}
-            pick buy or sell, and <kbd>w</kbd> stars the loaded item to your watchlist.
+            pick buy or sell, <kbd>w</kbd> stars the loaded item to your watchlist, and <kbd>/</kbd> jumps to
+            the filter to search by name.
           </li>
         </ul>
         <button className="submit buy" onClick={onClose}>

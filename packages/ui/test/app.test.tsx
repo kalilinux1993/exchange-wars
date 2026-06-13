@@ -1207,6 +1207,24 @@ describe('UI shell', () => {
       expect(onToggleWatch).not.toHaveBeenCalled();
     });
 
+    it('/ focuses the market filter input — active-gated (17n)', () => {
+      const { unmount } = render(
+        <MarketTable view={view} items={DEFAULT_ITEMS} trades={[]} selected={ids[0]!} onSelect={() => {}} eventItems={new Set()} active />,
+      );
+      const filter = screen.getByPlaceholderText(/filter items/i);
+      expect(document.activeElement).not.toBe(filter);
+      fireEvent.keyDown(document.body, { key: '/' });
+      expect(document.activeElement).toBe(filter); // jumped to search
+      unmount();
+      // inactive Exchange → / does nothing
+      render(
+        <MarketTable view={view} items={DEFAULT_ITEMS} trades={[]} selected={ids[0]!} onSelect={() => {}} eventItems={new Set()} active={false} />,
+      );
+      const f2 = screen.getByPlaceholderText(/filter items/i);
+      fireEvent.keyDown(document.body, { key: '/' });
+      expect(document.activeElement).not.toBe(f2);
+    });
+
     it('shows a per-row watch ★ and toggles on star-click without selecting the row (17d)', () => {
       const onToggleWatch = vi.fn();
       const onSelect = vi.fn();
