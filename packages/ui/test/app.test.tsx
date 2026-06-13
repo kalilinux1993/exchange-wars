@@ -482,9 +482,8 @@ describe('UI shell', () => {
 
   it('surfaces a deed the offline accrual CROSSED in the away-bar — not deeds earned before the gap (17a)', () => {
     const game = newGame(42);
-    // A played-in, returning save: warm the world so the economy's deeds (dragon-slayer fires off
-    // producer-minted bones) are already achievable, then latch everything so far — as a real returning
-    // player's prior live checkMilestones would have. THEN hire the clerk and go away.
+    // A played-in, returning save: warm the world, latch everything achievable so far (as a real
+    // returning player's prior live checkMilestones would have), THEN hire the clerk and go away.
     runTicks(game.world, 150);
     checkMilestones(game, playerView(game.world, game.playerId)!, playerWorth(game)); // prior-play latch
     applyCommand(game.world, game.playerId, { type: 'buyUpgrade', upgradeId: 'autoFlip' }); // hire BEFORE leaving
@@ -494,7 +493,6 @@ describe('UI shell', () => {
     expect(deeds).toBeTruthy();
     expect(deeds!.textContent).toMatch(/earned while away/);
     expect(deeds!.textContent).toMatch(/Open for Business|Goods in the Satchel/); // CROSSED during the gap (clerk)
-    expect(deeds!.textContent).not.toMatch(/Dragon Slayer/); // achievable before the gap (warm-up) → latched, not "away"
     expect(deeds!.textContent).not.toMatch(/Hired Help/); // hired BEFORE leaving → pre-accrual latch excludes it
   });
 
@@ -3431,7 +3429,7 @@ describe('UI shell', () => {
     expect(latched).toContain('slayer-25');
     expect(latched).toContain('pioneer');
     expect(latched).not.toContain('dragon-slayer');
-    game.world.ledger.itemsMinted['superior_dragon_bones'] = 1;
+    game.world.stats.killsByMonster = { green_dragon: 1 }; // a dragon kill latches Dragon Slayer (17b — not mere bones)
     expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('dragon-slayer');
     // Stat deeds latch from trained levels (8v): xp for level 10 = 4 * 9².
     game.world.agents[game.playerId]!.combatXp = { atk: 324, def: 324, hp: 323 };
@@ -3439,6 +3437,16 @@ describe('UI shell', () => {
     expect(statDeeds).toContain('swordhand');
     expect(statDeeds).toContain('bulwark');
     expect(statDeeds).not.toContain('iron-constitution'); // one xp short
+  });
+
+  it('Dragon Slayer needs an actual dragon kill, not just bones in the economy (17b)', () => {
+    const game = newGame(42);
+    runTicks(game.world, 200); // producers mint superior_dragon_bones — but nobody slew a dragon
+    const view = playerView(game.world, game.playerId)!;
+    expect(game.world.ledger.itemsMinted['superior_dragon_bones'] ?? 0).toBeGreaterThan(0); // bones exist…
+    expect(checkMilestones(game, view, 0).map((m) => m.id)).not.toContain('dragon-slayer'); // …but no kill → no deed
+    game.world.stats.killsByMonster = { lava_dragon: 1 }; // now a dragon actually falls
+    expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('dragon-slayer');
   });
 
   it('checkMilestones stamps the tick a deed was earned', () => {

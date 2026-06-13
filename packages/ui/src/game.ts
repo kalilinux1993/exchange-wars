@@ -486,6 +486,11 @@ export function regionRoster(region: { monsters: string[]; elite?: string }): st
 /** The named elites in encounter order — rare boss spawns outside the normal pools. */
 export const ELITES: { id: string; name: string }[] = MONSTERS.filter((m) => m.elite).map((m) => ({ id: m.id, name: m.name }));
 
+/** The dragon monsters — for the Dragon Slayer deed (17b). Self-maintaining: any `*_dragon` monster
+ *  counts. (Vorkanth, the dragon-elite of the Maw, is intentionally not listed — reaching him means
+ *  green dragons already fell.) */
+export const DRAGON_IDS: string[] = MONSTERS.filter((m) => m.id.endsWith('_dragon')).map((m) => m.id);
+
 /**
  * Which elites have a fresh first-kill: present in `kills` (>=1) but not yet in the
  * `slain` baseline. Pure — the caller owns the baseline Set (booted from the save so an
@@ -1615,8 +1620,11 @@ export const MILESTONES: Milestone[] = [
     id: 'dragon-slayer',
     name: 'Dragon Slayer',
     flavor: 'The Maw is quieter now.',
-    // Only dragons mint superior dragon bones — the kill is in the ledger.
-    achieved: (g) => (g.world.ledger.itemsMinted['superior_dragon_bones'] ?? 0) > 0,
+    // A dragon must actually FALL to you. (17b) The old proxy — `itemsMinted['superior_dragon_bones'] > 0`
+    // — fired off the producer economy, which mints bones within ticks of world creation (0→64 by tick 100),
+    // so the deed auto-completed with no kill. Re-keyed on your dragon kills; latched saves are unaffected
+    // (checkMilestones only evaluates UNlatched deeds).
+    achieved: (g) => DRAGON_IDS.some((id) => (g.world.stats.killsByMonster?.[id] ?? 0) > 0),
   },
   {
     id: 'elder-slayer',
