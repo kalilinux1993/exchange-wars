@@ -32,10 +32,12 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
           <li>
             Click a market row to load it, then click prices in the <b>Depth</b> ladder: lift an ask to buy,
             hit a bid to sell. Offers rest on the books until someone takes them — each resting offer shows its{' '}
-            <b>queue position</b> (top of book, or N ahead), and a <b>reprice</b> chip jumps it to the front.
+            <b>queue position</b> (top of book, or N ahead), and a <b>reprice</b> chip jumps it to the front; offers
+            that rest too long flag <b>stale</b> (dead capital), and <b>abort stale</b> frees it in one click.
             The <b>sell @ bid</b> chips in your Ledger dump a stack into the resting bids instantly — loot to gp,
             one click — and <b>Open Positions</b> shows what you'd truly <b>cash out</b> now (walking the bids),
-            not just the paper mark.
+            not just the paper mark, with <b>✓ take</b> to lock a winner's gain or <b>✂ cut</b> to dump a loser,
+            both at the bid.
           </li>
           <li>
             Press <b>1×/5×/20×</b> to run the world, or jump with <b>+1k/+10k</b>. Closing the tab keeps the
@@ -45,7 +47,8 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
           <li>
             Hire the <b>clerk</b> in the shop to flip automatically, then give it orders: risk, capital,
             focus. Cheap staples are everyone's; <b>big staples</b> (5k+) need senior clerks; <b>exotics</b>{' '}
-            are yours alone. Buy more slots to scale.
+            are yours alone. Buy more slots to scale — each upgrade shows how far short your cash is and ≈when
+            you'll afford it at your current rate, or that you could <b>sell goods to afford it now</b>.
           </li>
           <li>
             Watch the <b>⚡ news</b>: shortages and crazes move prices; crashes are buying opportunities.
@@ -68,8 +71,9 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             mints straight into the economy; death keeps only your <b>3 most valuable carried items</b> (5 with
             a Death Ward), and <b>wounds persist</b> — you mend slowly at home, or eat food in the field. The{' '}
             <b>forecast</b> reads each fight before and during it — your odds, ≈how many <b>kills you'd survive
-            before falling</b> (more with packed food), and a <b>⚠ when a single hit could down you</b>. The{' '}
-            <b>Bounty Board</b> posts kill orders that pay in fresh coin.
+            before falling</b> (more with packed food), and a <b>⚠ when a single hit could down you</b>. When
+            your safe depth grows past the region you keep farming, you're nudged to push <b>deeper</b> for
+            better loot. The <b>Bounty Board</b> posts kill orders that pay in fresh coin.
           </li>
           <li>
             <b>Train as you fight</b>: Attack grows from damage dealt (unlocks weapons), Defence from damage
@@ -88,7 +92,8 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             <b>run brag</b>) that <b>dares a friend to beat your fortune</b> on your exact market — accept one
             and you'll race a visible target, with a <b>🏆 when you pass it</b>. Sign in and submit a{' '}
             <b>{SPRINT_TICKS.toLocaleString('en-US')}-tick sprint</b> to the board — every entry is verified
-            by replaying your actual run, depth badge included.
+            by replaying your actual run, depth badge included. Set your <b>handle</b> in the Hall so your
+            brags, challenges, and board entries carry your name.
           </li>
           <li>
             <b>Sign in</b> with your email to sync your save across devices.

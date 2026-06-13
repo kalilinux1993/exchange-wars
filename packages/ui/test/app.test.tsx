@@ -1056,6 +1056,12 @@ describe('UI shell', () => {
     expect(container.textContent).toMatch(/reprice/); // jump-the-queue action (19i)
     expect(container.textContent).toMatch(/cash out/); // honest liquidation value (19j)
     expect(container.textContent).toMatch(/welcome-back digest/); // away-fills (19l)
+    // 21h: the session's decision tools are now taught, paired with their docs (the 18d pattern)
+    expect(container.textContent).toMatch(/lock a winner's gain/); // take-profit one-click (21d)
+    expect(container.textContent).toMatch(/abort stale/); // stale dead-capital action (21e)
+    expect(container.textContent).toMatch(/sell goods to afford it now/); // upgrade afford lens (21a)
+    expect(container.textContent).toMatch(/Set your handle/); // handle setter (21b) — closes the social discoverability gap
+    expect(container.textContent).toMatch(/push.{0,6}deeper/); // outgrown-farm nudge (21c)
   });
 
   it('MilestonesPanel shows a progress bar on the closest unearned deeds', () => {
