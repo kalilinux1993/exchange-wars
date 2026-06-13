@@ -1912,6 +1912,26 @@ export function restingQueue(
   return { ahead: idx, gap };
 }
 
+/** The price that would jump a resting offer to the FRONT of its side's queue: outbid the best
+ *  competing buy by 1, or undercut the best competing sell by 1. `null` when there's nothing to
+ *  do — the order is off the book, already leads its side (index 0), or a sell would have to drop
+ *  below 1. Reads the same engine-sorted book as `restingQueue` (types.ts:92-95): when you're not
+ *  at index 0, `sells/buys[0]` IS the best competitor to beat. The reprice action cancels + places
+ *  at this price; the target is shown on the button so the click is informed. Pure (display read). */
+export function repriceTarget(
+  world: { books: Record<string, { buys: { id: number; price: number }[]; sells: { id: number; price: number }[] }> },
+  order: { id: number; itemId: string; side: 'buy' | 'sell' },
+): number | null {
+  const book = world.books[order.itemId];
+  if (!book) return null;
+  const sameSide = order.side === 'buy' ? book.buys : book.sells;
+  const idx = sameSide.findIndex((o) => o.id === order.id);
+  if (idx <= 0) return null; // off-book (−1) or already at the front (0)
+  const front = sameSide[0]!.price; // the best competitor — you're behind it, so beat it by 1
+  const target = order.side === 'buy' ? front + 1 : front - 1;
+  return target >= 1 ? target : null; // a sell can't undercut below 1 gp
+}
+
 /** What the resting bids (excluding the player's own) would pay for `qty` of
  * an item right now: the walkable quantity, the FLOOR price of that walk, the
  * gross take (`gp`), and `net` — what the SELLER actually receives after the 2%

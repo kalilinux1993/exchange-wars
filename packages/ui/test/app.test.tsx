@@ -87,6 +87,7 @@ import {
   loadoutShort,
   orderAge,
   restingQueue,
+  repriceTarget,
   newGame,
   nextRoundTarget,
   normalizeGame,
@@ -270,6 +271,49 @@ describe('UI shell', () => {
     // marketable: a sell at/below the best bid → gap floors at 0 (at the touch)
     const crossed = { books: { x: { buys: [{ id: 1, price: 100 }], sells: [{ id: 2, price: 100 }] } } };
     expect(restingQueue(crossed, { id: 2, itemId: 'x', side: 'sell' })).toEqual({ ahead: 0, gap: 0 });
+  });
+
+  it('repriceTarget returns the price that jumps a queued offer to the front, else null (19i)', () => {
+    const world = {
+      books: {
+        shark: {
+          buys: [{ id: 5, price: 100 }, { id: 6, price: 95 }], // best bid 100
+          sells: [{ id: 2, price: 105 }, { id: 3, price: 110 }], // best ask 105
+        },
+      },
+    };
+    // a SELL at 110 (behind 105) → undercut the best competing ask by 1 → 104
+    expect(repriceTarget(world, { id: 3, itemId: 'shark', side: 'sell' })).toBe(104);
+    // a BUY at 95 (behind 100) → outbid the best competing bid by 1 → 101
+    expect(repriceTarget(world, { id: 6, itemId: 'shark', side: 'buy' })).toBe(101);
+    // already leading (index 0) → nothing to do
+    expect(repriceTarget(world, { id: 2, itemId: 'shark', side: 'sell' })).toBeNull();
+    expect(repriceTarget(world, { id: 5, itemId: 'shark', side: 'buy' })).toBeNull();
+    // off-book / no such book → null
+    expect(repriceTarget(world, { id: 99, itemId: 'shark', side: 'sell' })).toBeNull();
+    expect(repriceTarget(world, { id: 3, itemId: 'nope', side: 'sell' })).toBeNull();
+    // a sell can't undercut below 1: best competing ask is 1 → target 0 → null
+    const floored = { books: { x: { buys: [], sells: [{ id: 1, price: 1 }, { id: 2, price: 2 }] } } };
+    expect(repriceTarget(floored, { id: 2, itemId: 'x', side: 'sell' })).toBeNull();
+  });
+
+  it('a queued offer shows a one-click reprice that fires cancel then place at the lead price (19i)', () => {
+    const game = newGame(42);
+    const item = game.world.items[0]!.id;
+    const agent = game.world.agents[game.playerId]!;
+    agent.inventory[item] = 5;
+    applyCommand(game.world, game.playerId, { type: 'place', itemId: item, side: 'sell', price: 200, qty: 1 }); // rests at 200
+    // inject a cheaper competing sell so the player's offer sits BEHIND it in the queue
+    const book = game.world.books[item]!;
+    book.sells.push({ id: 999, tick: 0, agentId: 1, itemId: item, side: 'sell', price: 150, qty: 1, remaining: 1, escrowGp: 0 });
+    book.sells.sort((a, b) => a.price - b.price || a.tick - b.tick || a.id - b.id);
+    const view = playerView(game.world, game.playerId)!;
+    const onCommand = vi.fn();
+    render(<PlayerPanel game={game} view={view} items={game.world.items} onCommand={onCommand} />);
+    const reprice = screen.getByRole('button', { name: /reprice 149/ }); // undercut the 150 competitor by 1
+    fireEvent.click(reprice);
+    expect(onCommand).toHaveBeenNthCalledWith(1, { type: 'cancel', itemId: item, side: 'sell' });
+    expect(onCommand).toHaveBeenNthCalledWith(2, { type: 'place', itemId: item, side: 'sell', price: 149, qty: 1 });
   });
 
   it('PlayerPanel shows an open offer rested age and flags a stale one (18i)', () => {

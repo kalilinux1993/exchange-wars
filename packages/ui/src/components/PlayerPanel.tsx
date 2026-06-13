@@ -1,6 +1,6 @@
 import { GEAR, levelsOf } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
-import { bidWalk, gearDelta, lootSpoils, orderAge, restingQueue, STALE_ORDER_TICKS, type Game } from '../game';
+import { bidWalk, gearDelta, lootSpoils, orderAge, repriceTarget, restingQueue, STALE_ORDER_TICKS, type Game } from '../game';
 import { ItemIcon } from './Icon';
 
 export function PlayerPanel({
@@ -202,6 +202,27 @@ export function PlayerPanel({
                   );
                 })()}
               </span>
+              {(() => {
+                const target = repriceTarget(game.world, o);
+                if (target === null) return null;
+                // A BUY re-places at a HIGHER price → needs more escrow than the cancel refunds; skip
+                // when unaffordable so we never cancel and then fail to re-place (dropping the offer).
+                // A SELL re-escrows the same item qty, so it's always safe.
+                const extraNeeded = o.side === 'buy' ? (target - o.price) * o.remaining : 0;
+                if (extraNeeded > view.gp) return null;
+                return (
+                  <button
+                    className="chip"
+                    title={`jump to the front of the queue — cancel and re-place at ${target.toLocaleString('en-US')} gp (${o.side === 'buy' ? 'outbids' : 'undercuts'} the best competing offer by 1). Escrow is refunded and re-locked at the new price.`}
+                    onClick={() => {
+                      onCommand({ type: 'cancel', itemId: o.itemId, side: o.side });
+                      onCommand({ type: 'place', itemId: o.itemId, side: o.side, price: target, qty: o.remaining });
+                    }}
+                  >
+                    reprice {target.toLocaleString('en-US')}
+                  </button>
+                );
+              })()}
               <button className="chip danger" onClick={() => onCommand({ type: 'cancel', itemId: o.itemId, side: o.side })}>
                 abort
               </button>
