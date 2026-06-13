@@ -184,9 +184,10 @@ export function ExpeditionPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exp !== undefined, exp?.combat != null, exp?.packGp, JSON.stringify(exp?.pack ?? null)]);
 
-  // `f` swings one combat round — completes keyboard-playable adventure (trade loop + embark already are, 14w).
-  // Refs keep the once-bound window listener reading current state; gated to the visible Adventure tab + an
-  // active fight + not-typing, so it never fires off-tab, during embark, or while a field has focus (18q).
+  // `f` swings one combat round, `r` flees — the two combat verbs on the keyboard, completing keyboard-playable
+  // adventure (trade loop + embark already are, 14w/18q). Refs keep the once-bound window listener reading current
+  // state; gated to the visible Adventure tab + an active fight + not-typing, so neither fires off-tab, during
+  // embark, or while a field has focus (18q/18u). Eat stays a click — food choice is too consequential for a key.
   const fightRef = useRef({ inCombat: false, active, onCommand });
   fightRef.current = { inCombat: exp?.combat != null, active, onCommand };
   useEffect(() => {
@@ -198,6 +199,9 @@ export function ExpeditionPanel({
       if (e.key === 'f' || e.key === 'F') {
         e.preventDefault();
         cmd({ type: 'fight' });
+      } else if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        cmd({ type: 'fleeCombat' });
       }
     };
     window.addEventListener('keydown', onKey);

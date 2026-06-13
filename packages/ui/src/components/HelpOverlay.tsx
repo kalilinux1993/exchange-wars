@@ -83,7 +83,7 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             <kbd>j</kbd>/<kbd>k</kbd> (or <kbd>↑</kbd>/<kbd>↓</kbd>) walk the market, <kbd>b</kbd>/<kbd>s</kbd>{' '}
             pick buy or sell, <kbd>w</kbd> stars the loaded item to your watchlist, <kbd>/</kbd> jumps to the
             filter to search by name, and <kbd>Esc</kbd> clears it. In <b>Adventure</b>, <kbd>←</kbd>/<kbd>→</kbd>{' '}
-            pick a region and <kbd>Enter</kbd> embarks; in a fight, <kbd>f</kbd> swings a round.
+            pick a region and <kbd>Enter</kbd> embarks; in a fight, <kbd>f</kbd> swings and <kbd>r</kbd> flees.
           </li>
         </ul>
         <button className="submit buy" onClick={onClose}>

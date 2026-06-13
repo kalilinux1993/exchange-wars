@@ -4645,11 +4645,15 @@ describe('UI shell', () => {
     const { rerender } = render(<ExpeditionPanel game={game} view={view} active onCommand={onCommand} onToast={() => {}} />);
     fireEvent.keyDown(window, { key: 'f' });
     expect(onCommand).toHaveBeenCalledWith({ type: 'fight' }); // f swings
+    onCommand.mockClear();
+    fireEvent.keyDown(window, { key: 'r' });
+    expect(onCommand).toHaveBeenCalledWith({ type: 'fleeCombat' }); // r flees (18u)
 
     onCommand.mockClear();
     rerender(<ExpeditionPanel game={game} view={view} active={false} onCommand={onCommand} onToast={() => {}} />);
     fireEvent.keyDown(window, { key: 'f' });
-    expect(onCommand).not.toHaveBeenCalled(); // off-tab ignores the key
+    fireEvent.keyDown(window, { key: 'r' });
+    expect(onCommand).not.toHaveBeenCalled(); // off-tab ignores both keys
   });
 
   it('f does nothing out of combat (18q)', () => {
