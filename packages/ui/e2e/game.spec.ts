@@ -39,6 +39,13 @@ test('boots a fresh seed-42 world with the first-run guide, paused, full market'
   await expect(page.locator('.sprintboard')).toBeVisible();
 });
 
+test('the page serves social-card meta for shared links (18z)', async ({ page }) => {
+  // The brag / challenge / duel loop shares this URL — verify the OG card meta is present.
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\.png$/);
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /Exchange Wars/);
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+});
+
 test('the active room survives a reload', async ({ page }) => {
   await dismissHelp(page);
   await page.getByRole('tab', { name: /Adventure/ }).click();
@@ -108,6 +115,10 @@ test('capture README screenshot (on demand)', async ({ page }) => {
     path: fileURLToPath(new URL('../../../docs/screenshot.png', import.meta.url)),
     fullPage: true,
   });
+  // The social-share card (og:image): a 1200×630 viewport of the top-of-Exchange (masthead title +
+  // the market) — the standard OG ratio, so challenge/brag links preview as a branded card (18z).
+  await page.setViewportSize({ width: 1200, height: 630 });
+  await page.screenshot({ path: fileURLToPath(new URL('../public/og.png', import.meta.url)), fullPage: false });
 });
 
 test('a #seed challenge link boots that exact world for fresh visitors', async ({ page }) => {
