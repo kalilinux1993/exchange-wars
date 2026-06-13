@@ -1,9 +1,31 @@
 # Dev Guide
 
-> **Consolidated record: complete (Phase 1 → 16b).** The whole autonomous build loop is now folded into the
+> **Consolidated record: complete (Phase 1 → 17v).** The whole autonomous build loop is now folded into the
 > sections below (newest-first); per-brick detail lives in `.phases/` + FINDINGS. The former 10h–13c gap was
 > closed in 16h. Engine-redeploy obligation still open: the `verify-score` batch `12b+13d+13e+13f+13r+14j`
 > (Jesse-gated on `SUPABASE_ACCESS_TOKEN`).
+
+## Phases 16w–17v consolidated — elite arc, dive-readiness, the four decision axes, watchlist + goal systems, keyboard loop, 3 reviews (2026-06-12)
+
+Per-brick detail in `.phases/` and FINDINGS #258–#284; 26 bricks. **UI-only, ALL of it** — no engine change, so the `verify-score` batch is unchanged. Suite grew 359→420 unit + 10 e2e (a compact-columns e2e added 17r). Two whole-tab VISUAL assessments (#278: Exchange; 17v-era: Adventure) confirmed no layout regression — the check a green suite can't run. Three adversarial reviews (17i 16w–17h, 17p 17i–17o, 17v 17q–17u) all **SOUND**; each closed a tiny finding (a hoisted compute gated below an early return 17i; an orphaned `ew-goal-hit` reset 17p; Escape gated on help-open 17v).
+
+### Elite arc (16w · 16z · 17b)
+`ELITES` (the named-boss roster from MONSTERS) + `newElites(slain, kills)` (pure — elites with a kill not yet in a baseline Set) drive a "☠ {elite} falls!" first-kill salute, baselined on boot/swap so prior/offline kills stay silent (16w). `apex-predator` MILESTONE (`ELITES.every(kills>0)`) + a gold-bordered "☠ Named Elites N/4" ConquestPanel strip collect the four scattered bosses (16z). `dragon-slayer` re-keyed from `itemsMinted['superior_dragon_bones']` (a PRODUCER mints those within ticks → the deed auto-fired) to `DRAGON_IDS.some(killsByMonster>0)` (17b) — found by forcing 17a through real ticked state. FINDINGS #258/#261/#263.
+
+### Dive readiness, text → map (16x · 17g · 17i)
+`diveReadiness(you, frontier)` (ExpeditionPanel, pure — the deepest unlocked region you're favored to farm vs its `regionTypical` foe; unlock ≠ ready) → a "✓ ready / 📍 safe depth is {region} / ⚠ outmatched" embark line (16x), with the recommended node ringed green on the RegionMap (17g, computed once + shared). 17i hoisted that compute BELOW the EmbarkPanel early-return so it's free while diving. FINDINGS #259/#268/#270.
+
+### The four trading decision axes — sortable columns, by construction
+Each a sortable MarketTable column + (mostly) a filter track, all over data already in the view: **margin** (profit, 14d) · **band** (value, 15q) · **swing** (risk, `priceSwing` column 16y + a "steady" track 17h) · **mom** (direction, `(last−ema)/ema` 17o). Plus filter tracks `watched` (17f) and a CSS-`nth-child` `compact` toggle (17r) hiding the four lens columns; `/` focuses + `Esc`/✕ clear the filter (17n/17s); help + chip tooltips teach them all (17j). FINDINGS #260/#267/#269/#276/#280/#281.
+
+### Watchlist arc: add → see → focus (17c · 17d · 17f)
+`w` toggles the watchlist on the selected item (MarketTable keydown, navRef-fresh) (17c); a per-row gold ★ shows the state inline (17d); a `watched` filter track collapses the market to it (17f). The `watched` Set threaded in 17d unlocked the track for one predicate line.
+
+### Goal system on three surfaces (17k · 17l · 17m · 17p · 17t)
+`deedEta(progress, worth, perMin)` recovers a worth deed's threshold from its raw progress → an ETA beside the bar (gated by a `paceMetric:'worth'` tag, 17k). `goalView(goal, worth, perMin)` + a settable/clearable WealthPanel target (`usePref('ew-worth-goal')`, 17l), a one-shot "🎯 Goal reached!" toast guarded by a persisted `goalHit` (17m; reset on clear 17p), and a teal dashed target LINE on the Fortune chart (WorthChart reads the goal live from localStorage, range-folded when `goal ≤ dataMax*3`, 17t). The same worth-rate projection (11w) now feeds round-number, deed, and custom-goal ETAs. FINDINGS #272/#273/#274/#277/#282.
+
+### Retention, events, keyboard, pacing
+`awayDeeds` surfaces deeds crossed during offline accrual in the away-bar (17a, pre-accrual latch so pre-gap deeds aren't miscredited — the same find that exposed dragon-slayer). `eventEndingSoon(ticksLeft)` (≤150) marks a closing event chip amber+⏳, completing the lifecycle begin(15l)→ending(17e)→end(15z). Keyboard: the trade loop is `/` find → j/k walk → b/s side → Enter submit → w watch; `,`/`.` step world speed via `stepSpeed` (17q); `Esc` clears a focused filter (17s) else dismisses the help modal (17u/17v) — the App input-guard routes the same key by focus context. FINDINGS #262/#266/#275/#279/#283/#284.
 
 ## Phases 13z–16b consolidated — value-band suite, adventure risk⟷reward, atmosphere, lifecycle recaps, leaderboard (2026-06-12)
 
