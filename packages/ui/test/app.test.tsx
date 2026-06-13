@@ -4339,6 +4339,38 @@ describe('UI shell', () => {
     expect(extract.className).toContain('hasloot'); // emphasised as the payoff action
   });
 
+  it('shows the death stakes in-dive: what a death here would cost vs keep (18e)', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.expedition = {
+      regionId: 'lumbridge_plains',
+      rngState: 1,
+      hp: 50,
+      pack: { shark: 5 }, // 5 carried units → death keeps the 3 best, loses 2
+      packGp: 5000, // loot gp — fully lost on death
+      cleared: 3,
+      combat: null, // between fights → the readout shows
+    };
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const stakes = document.querySelector('p.deathstakes');
+    expect(stakes?.textContent).toMatch(/if you fall here/);
+    expect(stakes?.textContent).toMatch(/lose 5,000 loot gp/); // all loot gp is gone
+    expect(stakes?.textContent).toMatch(/\+ 2 items/); // 5 units − 3 kept
+    expect(stakes?.textContent).toMatch(/keep Shark/); // your 3 most valuable survive
+  });
+
+  it('hides the death-stakes line when there is no haul at risk (18e)', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.expedition = {
+      regionId: 'lumbridge_plains', rngState: 1, hp: 50, pack: { shark: 5 }, packGp: 0, cleared: 0, combat: null,
+    };
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    expect(document.querySelector('p.deathstakes')).toBeNull(); // no loot gathered → nothing at stake → hidden
+  });
+
   it('the dive shows an hp-aware "push read" that turns risky when wounded', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;

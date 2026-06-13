@@ -485,6 +485,25 @@ export function ExpeditionPanel({
               </p>
             );
           })()}
+          {exp.packGp > 0 && (() => {
+            // The CONSEQUENCE half of the push-vs-bank call (the push-read above is the ODDS): if the
+            // next push kills you, deathRecap keeps your 3 most valuable carried items and burns the rest
+            // + ALL loot gp. The same recap the death toast uses, shown BEFORE death so "risky?" carries
+            // a price tag. Reassuring (your best kit survives) + sobering (the haul is 100% gone) (18e).
+            const recap = deathRecap(game.world.items, exp.pack, exp.packGp);
+            return (
+              <p className="dim small deathstakes" title="if you die before extracting: you keep only your 3 most valuable carried items — everything else carried, plus all gathered loot gp, is lost">
+                ⚰ if you fall here:{' '}
+                <b className="down">lose {recap.lostGp.toLocaleString('en-US')} loot gp</b>
+                {recap.lostUnits > 0 ? ` + ${recap.lostUnits} item${recap.lostUnits === 1 ? '' : 's'}` : ''}
+                {recap.kept.length > 0 ? (
+                  <>
+                    {' '}· <span className="up">keep {recap.kept.join(', ')}</span>
+                  </>
+                ) : null}
+              </p>
+            );
+          })()}
           <div className="controls">
           <button className="chip" title="each step takes time — the market moves one tick" onClick={() => onCommand({ type: 'advance' })}>
             venture deeper (+1 tick)
