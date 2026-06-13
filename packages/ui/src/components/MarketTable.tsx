@@ -57,7 +57,7 @@ export function MarketTable({
   watched?: ReadonlySet<ItemId>;
 }) {
   const [filter, setFilter] = useState('');
-  const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear' | 'flippable' | 'cheap' | 'watched'>('all');
+  const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear' | 'flippable' | 'cheap' | 'watched' | 'steady'>('all');
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
   const toggleSort = (key: SortKey): void =>
     setSort((s) => (s && s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 }));
@@ -82,6 +82,7 @@ export function MarketTable({
       return mg !== null && mg > 0; // a positive after-tax spread right now
     }
     if (track === 'cheap') return valueBand(defs.get(m.itemId), m.lastPrice) === 'cheap'; // trading near its floor
+    if (track === 'steady') return swings.get(m.itemId)?.read === 'steady'; // calm + liquid — the low-risk flips (17h)
     const exotic = (defs.get(m.itemId)?.volatility ?? 0) >= EXOTIC_VOL;
     return track === 'exotics' ? exotic : !exotic;
   };
@@ -164,7 +165,7 @@ export function MarketTable({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-        {(['all', 'staples', 'exotics', 'gear', 'flippable', 'cheap', 'watched'] as const).map((t) => (
+        {(['all', 'staples', 'exotics', 'gear', 'flippable', 'cheap', 'watched', 'steady'] as const).map((t) => (
           <button
             key={t}
             className={track === t ? 'chip active' : 'chip'}
@@ -173,7 +174,9 @@ export function MarketTable({
                 ? 'items trading in the cheap third of their cost→value band — accumulation candidates'
                 : t === 'watched'
                   ? 'only the items on your watchlist (★ / press w to add)'
-                  : undefined
+                  : t === 'steady'
+                    ? 'only calm, actively-traded markets (low recent swing) — the spread holds while both legs fill'
+                    : undefined
             }
             onClick={() => setTrack(t)}
           >

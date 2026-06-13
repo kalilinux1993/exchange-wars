@@ -1096,6 +1096,29 @@ describe('UI shell', () => {
       expect(screen.queryByText('Ignore Me')).toBeNull(); // the rest filtered out
     });
 
+    it('the "steady" track shows only calm, actively-traded markets (17h)', () => {
+      const items = [
+        { id: 'calm', name: 'Calm Co', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+        { id: 'wild', name: 'Wild Co', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+        { id: 'untraded', name: 'Untraded Co', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+      ] as unknown as ItemDef[];
+      const row = (itemId: string) => ({
+        itemId, bestBid: 1, bestAsk: 2, lastPrice: 100, ema: 100, volume: 0, bestBidIsMine: false, bestAskIsMine: false,
+      });
+      const v = { markets: [row('calm'), row('wild'), row('untraded')] } as unknown as PlayerView;
+      const trades = [
+        { itemId: 'calm', price: 100 }, { itemId: 'calm', price: 101 }, // +1% → steady
+        { itemId: 'wild', price: 100 }, { itemId: 'wild', price: 200 }, // +100% → wild
+        // 'untraded' has no trades → no swing read → excluded
+      ] as unknown as Trade[];
+      render(<MarketTable view={v} items={items} trades={trades} selected="calm" onSelect={() => {}} eventItems={new Set()} active />);
+      expect(screen.getByText('Wild Co')).toBeTruthy(); // all shown under 'all'
+      fireEvent.click(screen.getByRole('button', { name: 'steady' }));
+      expect(screen.getByText('Calm Co')).toBeTruthy(); // the calm one stays
+      expect(screen.queryByText('Wild Co')).toBeNull(); // wild filtered out
+      expect(screen.queryByText('Untraded Co')).toBeNull(); // no swing data → excluded (steady = calm AND liquid)
+    });
+
     it('renders a market-mood breadth line', () => {
       const items = [{ id: 'x', name: 'X', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
       const v = {
