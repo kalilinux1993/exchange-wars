@@ -1205,7 +1205,8 @@ export function App({ initial }: { initial?: Game }) {
           const delta = o.worthAfter - o.worthBefore;
           const perMin = offlineRatePerMin(delta, o.ticks);
           return (
-            <div className="awaybar">
+            // role="status": a screen reader announces the returning-player summary (it appears with no focus change).
+            <div className="awaybar" role="status">
               while you were away: <b>{o.ticks.toLocaleString('en-US')}</b> ticks (~{fmtDuration(o.ticks)}) passed ·
               net worth{' '}
               <b className={delta >= 0 ? 'up' : 'down'} title={`${delta.toLocaleString('en-US')} gp`}>
@@ -1484,7 +1485,9 @@ export function App({ initial }: { initial?: Game }) {
       </main>
       {helpOpen && <HelpOverlay onClose={closeHelp} />}
       {toast && (
-        <div className="toast" onClick={() => setToast(null)}>
+        // role="status" (polite live region) so a screen reader announces the deed/fill/levelup/streak/record
+        // celebration — it appears with no focus change, so it's otherwise silent for SR users (WCAG 4.1.3).
+        <div className="toast" role="status" onClick={() => setToast(null)}>
           <span className="mine">◆</span> <b>{toast.name}</b>
           <span className="dim"> — {toast.flavor}</span>
         </div>

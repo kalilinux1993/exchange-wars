@@ -480,14 +480,19 @@ export function TradeTicket({
           place {side} offer
         </button>
       </form>
-      {lastResult && !lastResult.result.ok && <p className="reject">rejected: {lastResult.result.reason}</p>}
-      {lastResult && lastResult.result.ok && lastResult.result.trades.length > 0 && (
-        <p className="filled">filled {lastResult.result.trades.reduce((a, t) => a + t.qty, 0)} instantly</p>
-      )}
-      {lastResult && lastResult.result.ok && lastResult.result.trades.length === 0 && lastResult.cmd.type === 'place' && (
-        // The third outcome: the offer succeeded but didn't cross — it's resting on the book now (18h).
-        <p className="resting">✓ placed — resting on the book</p>
-      )}
+      {/* A PERSISTENT polite live region (present before its content changes — the reliable pattern across
+          NVDA/JAWS/VoiceOver) so a screen-reader user hears the trade outcome they just triggered: a
+          rejection reason, an instant fill, or a resting confirmation — none of which moves focus. (WCAG 4.1.3) */}
+      <div role="status" aria-live="polite">
+        {lastResult && !lastResult.result.ok && <p className="reject">rejected: {lastResult.result.reason}</p>}
+        {lastResult && lastResult.result.ok && lastResult.result.trades.length > 0 && (
+          <p className="filled">filled {lastResult.result.trades.reduce((a, t) => a + t.qty, 0)} instantly</p>
+        )}
+        {lastResult && lastResult.result.ok && lastResult.result.trades.length === 0 && lastResult.cmd.type === 'place' && (
+          // The third outcome: the offer succeeded but didn't cross — it's resting on the book now (18h).
+          <p className="resting">✓ placed — resting on the book</p>
+        )}
+      </div>
       <p className="dim small">
         {view.openOrders.length}/{view.slots} offer slots used
       </p>

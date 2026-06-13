@@ -389,6 +389,8 @@ describe('UI shell', () => {
     game.world.agents[game.playerId]!.combatXp = { atk: xpForLevel(2), def: 0, hp: 0 }; // Attack 1 → 2 (combat level still 1, no deed crosses)
     fireEvent.click(screen.getByText('+1k')); // trigger #2: detects the jump (human is inert → no stray milestone)
     expect(screen.getByText(/Attack up/)).toBeTruthy();
+    // 20b: the toast is a polite live region so a screen reader announces the celebration (WCAG 4.1.3)
+    expect(screen.getByText(/Attack up/).closest('.toast')!.getAttribute('role')).toBe('status');
   });
 
   it('unlocking a new region pops a "New frontier unlocked" toast', () => {
@@ -671,6 +673,8 @@ describe('UI shell', () => {
     game.lastSeenMs = Date.now() - 600_000;
     render(<App initial={game} />);
     expect(screen.getByText(/while you were away/i)).toBeTruthy();
+    // 20b: the returning-player digest is a polite live region (announced to a screen reader on return)
+    expect(screen.getByText(/while you were away/i).closest('.awaybar')!.getAttribute('role')).toBe('status');
     expect(game.world.tick).toBeGreaterThanOrEqual(600);
   });
 
@@ -3239,6 +3243,9 @@ describe('UI shell', () => {
     expect(preview).toBeTruthy();
     expect(preview!.textContent).toMatch(/fills ≈3 now/);
     expect(preview!.textContent).toMatch(/300 gp/); // 3 @ 100, untaxed
+    // 20b: the trade-result block is a PERSISTENT polite live region (present even before a result), so a
+    // screen reader announces the rejected/filled/resting outcome the user just triggered (WCAG 4.1.3).
+    expect(document.querySelector('[role="status"][aria-live="polite"]')).toBeTruthy();
   });
 
   it('the sell ticket previews the immediate bid-walk fill (net) when the order crosses (19q)', () => {
