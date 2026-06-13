@@ -778,6 +778,26 @@ describe('UI shell', () => {
     expect(bar!.textContent).toContain('99,999'); // the target to beat
   });
 
+  it('shows a ghost-race banner when replaying a seed you have a best run on (21n)', () => {
+    const game = { ...newGame(42), ghost: { seed: 42, history: [{ tick: 0, worth: 55_000 }, { tick: 5000, worth: 200_000 }] } };
+    render(<App initial={game} />);
+    const bar = screen.getByText(/racing your/).closest('.ghostrace');
+    expect(bar).toBeTruthy();
+    expect(bar!.textContent).toContain('best run'); // the solo race, surfaced like the duel
+    expect(bar!.textContent).toContain('you:'); // your live position vs your past pace
+  });
+
+  it('the ghost-race banner yields to an active duel — no double race banner (21n)', () => {
+    const game = {
+      ...newGame(42),
+      ghost: { seed: 42, history: [{ tick: 0, worth: 55_000 }, { tick: 5000, worth: 200_000 }] },
+      duelTarget: { worth: 9_999_999, handle: 'rival' }, // unbeaten on boot → duel banner persists
+    };
+    render(<App initial={game} />);
+    expect(screen.getByText(/dueling/)).toBeTruthy(); // the duel banner shows…
+    expect(screen.queryByText(/racing your/)).toBeNull(); // …and the ghost banner steps aside
+  });
+
   it('settles a duel already beaten on boot — fires the win, drops the banner (16v offline win)', () => {
     // a tiny target your starting worth already clears (as an offline-grown run would) → settled at
     // boot, not left silent with a stale banner.

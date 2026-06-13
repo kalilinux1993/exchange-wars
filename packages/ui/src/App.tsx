@@ -32,7 +32,7 @@ import { WealthPanel } from './components/WealthPanel';
 import { TradeFeed } from './components/TradeFeed';
 import { TradeTicket } from './components/TradeTicket';
 import { UpgradeShop } from './components/UpgradeShop';
-import { WorthChart } from './components/WorthChart';
+import { WorthChart, ghostWorthAt } from './components/WorthChart';
 import { HandleField } from './components/HandleField';
 import {
   alertHit,
@@ -1222,6 +1222,27 @@ export function App({ initial }: { initial?: Game }) {
           </button>
         </div>
       )}
+      {/* The SOLO race, surfaced like the duel (16t): when replaying a seed you have a best run on, your past
+          self's pace at THIS tick is an always-visible target — the masthead presence the Hall chart's quiet
+          "vs ghost" stat (17t) lacks. Yields to an active duel so the two race banners never stack. */}
+      {!game.duelTarget &&
+        game.ghost &&
+        game.ghost.seed === game.world.seed &&
+        game.ghost.history.length >= 2 &&
+        (() => {
+          const ghostNow = ghostWorthAt(game.ghost.history, game.world.tick);
+          const now = playerWorth(game);
+          const delta = now - ghostNow;
+          return (
+            <div className="awaybar ghostrace">
+              🏁 racing your <b>best run</b> — beat <b className="up">{ghostNow.toLocaleString('en-US')} gp</b>{' '}
+              <span className={delta >= 0 ? 'up' : 'down'}>
+                (you: {now.toLocaleString('en-US')}, {delta >= 0 ? '+' : ''}
+                {delta.toLocaleString('en-US')})
+              </span>
+            </div>
+          );
+        })()}
       {offlineRef.current &&
         !awayDismissed &&
         (() => {
