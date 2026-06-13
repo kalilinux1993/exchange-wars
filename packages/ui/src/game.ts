@@ -561,6 +561,18 @@ export function expectedHit(atk: number, def: number): number {
 }
 
 /**
+ * The engine's WORST-CASE single landed hit: the top of the damage roll, `max(2, atk)`
+ * (quest.ts:414), less `floor(def/4)` armour, floored at 1 (quest.ts:415). Used for the
+ * lethality read — "could the foe's NEXT hit down me?". Dragonfire's flat `ceil(atk/2)`
+ * (quest.ts:481) is added by the CALLER outside this, because it sits outside the per-roll
+ * floor. Worst case (the high roll lands) — the honest "it's POSSIBLE to die" trigger, not
+ * a probability. Pure.
+ */
+export function maxHit(atk: number, def: number): number {
+  return Math.max(1, Math.max(2, atk) - Math.floor(def / 4));
+}
+
+/**
  * Chance a swing LANDS — mirrors the engine's `hitChance` (quest.ts:410) EXACTLY:
  * `0.55 + (atk − def)·0.02`, clamped to [0.15, 0.95]. Keep in sync with quest.ts if
  * that formula moves. Pure. The engine rolls this before every `damage()`, so a

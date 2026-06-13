@@ -14,7 +14,7 @@ import {
 } from '@exchange-wars/engine';
 import type { PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef } from 'react';
-import { combatForecast, deathRecap, healFromPack, MILESTONES, summarizeDelve, survivableKills, type DelveRecord, type Game } from '../game';
+import { combatForecast, deathRecap, healFromPack, maxHit, MILESTONES, summarizeDelve, survivableKills, type DelveRecord, type Game } from '../game';
 import { CharacterPanel } from './CharacterPanel';
 import { GearManager } from './GearManager';
 import { CombatScene } from './CombatScene';
@@ -381,11 +381,22 @@ export function ExpeditionPanel({
                     { atk: m.atk, def: m.def, hp: exp.combat!.monsterHp },
                     dragonBonus,
                   );
+                  // Worst-case lethality: the foe's TOP roll (maxHit + dragonfire) vs your current hp.
+                  // When it could land lethal THIS round, eat/flee isn't optional — say so.
+                  const foeMax = maxHit(m.atk, youDef) + dragonBonus;
+                  const lethal = exp.combat!.playerHp <= foeMax;
                   return (
-                    <p className="dim small forecast" title="live read at the current hp — expected rounds either way (an estimate; rolls vary). dragonfire is counted when no antifire holds.">
-                      ≈<b>{f.roundsToKill}</b> hit{f.roundsToKill === 1 ? '' : 's'} to finish it · it downs you in ≈
-                      <b>{f.roundsToFall}</b> · <b className={f.favored ? 'up' : 'down'}>{f.favored ? 'winning the race' : 'flee?'}</b>
-                    </p>
+                    <>
+                      <p className="dim small forecast" title="live read at the current hp — expected rounds either way (an estimate; rolls vary). dragonfire is counted when no antifire holds.">
+                        ≈<b>{f.roundsToKill}</b> hit{f.roundsToKill === 1 ? '' : 's'} to finish it · it downs you in ≈
+                        <b>{f.roundsToFall}</b> · <b className={f.favored ? 'up' : 'down'}>{f.favored ? 'winning the race' : 'flee?'}</b>
+                      </p>
+                      {lethal && (
+                        <p className="warn small lethal" title={`the foe's hardest possible hit (${foeMax.toLocaleString('en-US')}) is at or above your ${exp.combat!.playerHp.toLocaleString('en-US')} hp — one bad roll ends the dive. Eat or flee.`}>
+                          ⚠ a hit could down you (≤<b>{foeMax.toLocaleString('en-US')}</b> vs {exp.combat!.playerHp.toLocaleString('en-US')} hp) — eat or flee
+                        </p>
+                      )}
+                    </>
                   );
                 })()}
                 {m.drops.length > 0 && (() => {

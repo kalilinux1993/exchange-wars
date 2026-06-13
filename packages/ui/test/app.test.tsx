@@ -133,6 +133,7 @@ import {
   huntRegionId,
   regionMastery,
   expectedHit,
+  maxHit,
   combatForecast,
   survivableKills,
   hitChance,
@@ -1811,6 +1812,12 @@ describe('UI shell', () => {
     it('expectedHit is unchanged where no roll clamps or every roll clamps (no regression)', () => {
       expect(expectedHit(30, 20)).toBe(15); // rolls 10..30, k=5 — none clamp → (10+30)/2 − 5
       expect(expectedHit(10, 40)).toBe(1); // rolls 4..10, k=10 — every roll clamps to 1
+    });
+    it('maxHit is the engine damage roll TOP, less armour, floored at 1 (19m)', () => {
+      expect(maxHit(24, 11)).toBe(22); // roll top max(2,24)=24, − floor(11/4)=2
+      expect(maxHit(2, 0)).toBe(2); // tiny atk → max(2,atk)=2, no armour
+      expect(maxHit(10, 80)).toBe(1); // heavy armour floors the worst case at 1 (floor(80/4)=20 > 10)
+      expect(maxHit(40, 22)).toBe(35); // a Vessith-class swing: 40 − floor(22/4)=5
     });
     it('an armoured forecast counts the damage the engine actually deals — fewer rounds to fall (19e)', () => {
       // def 60 vs a fire-giant-class foe (atk 19): per-roll floor → ≈1.46 dmg/landed hit, not the
@@ -4917,6 +4924,26 @@ describe('UI shell', () => {
     // goblin atk 4 > your def 2 → red (.down); goblin def 1 < your atk 5 → green (.up)
     expect(foeStats.querySelector('.down')?.textContent).toBe('4');
     expect(foeStats.querySelector('.up')?.textContent).toBe('1');
+  });
+
+  it('combat warns when a hit could down you, and stays quiet when healthy (19m)', () => {
+    const make = (playerHp: number) => {
+      const game = newGame(42);
+      game.world.agents[game.playerId]!.expedition = {
+        regionId: 'lumbridge_plains', rngState: 1, hp: playerHp, pack: {}, packGp: 0, cleared: 0,
+        combat: { monsterId: 'goblin', monsterHp: 12, playerHp, antifire: false, maxHp: 50, outcome: 'fighting', lootGp: 0, lootItems: [], log: ['a goblin blocks the path'] },
+      };
+      return game;
+    };
+    // fresh player def 2 → a goblin's (atk 4) worst hit is maxHit(4,2)=4. At 50 hp that's no threat.
+    const healthy = render(<App initial={make(50)} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    expect(screen.queryByText(/could down you/)).toBeNull();
+    healthy.unmount();
+    // at 4 hp, the goblin's worst hit (4) ≥ your hp → one bad roll ends it → the warning fires
+    render(<App initial={make(4)} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    expect(screen.getByText(/could down you/)).toBeTruthy();
   });
 
   it('f swings a combat round, gated to an active fight (18q)', () => {
