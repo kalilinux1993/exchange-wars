@@ -38,6 +38,7 @@ import {
   bandAlertHit,
   richAlertHit,
   markRooms,
+  newElites,
   reconcileEvents,
   type CapturedEvent,
   bumpStreak,
@@ -441,6 +442,11 @@ export function App({ initial }: { initial?: Game }) {
   // game swap (cloud-adopt / restart) — same identity guard as the level baseline above.
   const sessionBaseWorth = useRef<number | null>(null);
   const sessionBaseGame = useRef<typeof game | null>(null);
+  // Elite first-kill celebration (16w): the elites already in your Bestiary at boot, so a boss
+  // felled in a PRIOR session (or offline) is adopted silently — only a kill landed THIS session
+  // fires "☠ … falls!". Re-baselines on a game swap with the level baseline, same identity guard.
+  const eliteFired = useRef<Set<string> | null>(null);
+  const eliteBaselineGame = useRef<typeof game | null>(null);
   // Settle an accepted duel the moment worth clears the target — at ANY worth-update site (live ticks,
   // boot-after-offline, the chunked catch-up finalize), because the clerk grows worth OFFLINE too (16v).
   // Idempotent: deletes + saves the target, so a second call (or a reload) can't re-fire.
@@ -592,6 +598,21 @@ export function App({ initial }: { initial?: Game }) {
         setToast({ id: 'region-unlock', name: '🗺 New frontier unlocked!', flavor: `${where} lies open — embark when you're ready`, achieved: () => false });
       }
       prevProgress.current = prog;
+    }
+    // Elite first-kill (16w): salute the first time each named boss falls. Baseline on boot/swap to
+    // the elites already in the Bestiary, so a kill from a PRIOR session is adopted silently (same
+    // offline-silent rule as the level baseline). A LIVE kill — a delve command runs refreshProgress
+    // right after — fires once and latches. Below level/region (those fire often); a coincident deed
+    // or duel-win, both rarer/meta, still win the single toast slot.
+    const kills = game.world.stats.killsByMonster;
+    if (eliteFired.current === null || eliteBaselineGame.current !== game) {
+      eliteFired.current = new Set(newElites(new Set(), kills).map((e) => e.id));
+      eliteBaselineGame.current = game;
+    } else {
+      for (const e of newElites(eliteFired.current, kills)) {
+        eliteFired.current.add(e.id);
+        setToast({ id: `elite-${e.id}`, name: `☠ ${e.name} falls!`, flavor: 'a named elite slain for the first time — the Bestiary remembers', achieved: () => false });
+      }
     }
     const newly = checkMilestones(game, v, w); // a deed = highest priority, fires last of all
     if (newly.length > 0) {

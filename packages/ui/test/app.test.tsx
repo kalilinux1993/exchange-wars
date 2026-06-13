@@ -100,6 +100,8 @@ import {
   parseChallengeTarget,
   challengeLink,
   duelWon,
+  newElites,
+  ELITES,
   realizedFromBook,
   tradeRecord,
   recordFills,
@@ -495,6 +497,20 @@ describe('UI shell', () => {
     expect(screen.queryByText(/dueling/)).toBeNull(); // duelTarget cleared → no banner
   });
 
+  it('salutes only a LIVE elite first-kill — bosses already in the Bestiary at boot stay silent (16w)', () => {
+    const game = newGame(42);
+    game.world.stats.killsByMonster = { skarn: 1, goblin: 40 }; // Skarn felled in a PRIOR session
+    render(<App initial={game} />);
+    // First refresh baselines the slain set to {skarn}, adopting the prior kill SILENTLY (no false salute).
+    fireEvent.click(screen.getByRole('button', { name: '+1k' }));
+    expect(screen.queryByText(/falls!/)).toBeNull();
+    // Now fell Vorkanth for the FIRST time this session → the salute fires; the adopted Skarn never re-fires.
+    game.world.stats.killsByMonster!.vorkanth = 1;
+    fireEvent.click(screen.getByRole('button', { name: '+1k' }));
+    expect(screen.getByText(/Vorkanth, Elder of the Maw falls!/)).toBeTruthy();
+    expect(screen.queryByText(/Skarn.*falls!/)).toBeNull();
+  });
+
   it('parseChallengeSeed accepts only #seed=<digits>', () => {
     expect(parseChallengeSeed('#seed=777')).toBe(777);
     expect(parseChallengeSeed('#seed=0')).toBe(0);
@@ -524,6 +540,24 @@ describe('UI shell', () => {
     expect(duelWon({ worth: 5000, handle: 'jesse' }, 5000)).toBe(true); // tie = beaten (you reached it)
     expect(duelWon({ worth: 5000, handle: null }, 6000)).toBe(true); // past it
     expect(duelWon(undefined, 9_999_999)).toBe(false); // no duel → never
+  });
+
+  describe('newElites (first-kill salute)', () => {
+    it('lists the four named elites in encounter order', () => {
+      expect(ELITES.map((e) => e.id)).toEqual(['skarn', 'vorkanth', 'zukrath', 'vessith']);
+    });
+    it('returns the elites with a kill that are not yet in the slain baseline', () => {
+      const fresh = newElites(new Set(), { skarn: 1, vorkanth: 2, goblin: 50 });
+      expect(fresh.map((e) => e.id)).toEqual(['skarn', 'vorkanth']); // goblin isn't an elite; order preserved
+    });
+    it('suppresses elites already in the baseline (a prior-session / offline kill is silent)', () => {
+      expect(newElites(new Set(['skarn']), { skarn: 3, vorkanth: 1 }).map((e) => e.id)).toEqual(['vorkanth']);
+    });
+    it('is empty with no kills, no elite kills, or an undefined tally', () => {
+      expect(newElites(new Set(), undefined)).toEqual([]);
+      expect(newElites(new Set(), {})).toEqual([]);
+      expect(newElites(new Set(), { goblin: 9, green_dragon: 4 })).toEqual([]); // non-elites never count
+    });
   });
 
   it('dailySeed derives a shared YYYYMMDD seed from the UTC date', () => {

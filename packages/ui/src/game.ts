@@ -483,6 +483,19 @@ export function regionRoster(region: { monsters: string[]; elite?: string }): st
   return [...new Set(ids)];
 }
 
+/** The named elites in encounter order — rare boss spawns outside the normal pools. */
+export const ELITES: { id: string; name: string }[] = MONSTERS.filter((m) => m.elite).map((m) => ({ id: m.id, name: m.name }));
+
+/**
+ * Which elites have a fresh first-kill: present in `kills` (>=1) but not yet in the
+ * `slain` baseline. Pure — the caller owns the baseline Set (booted from the save so an
+ * elite felled in a PRIOR session is adopted silently, like the level baseline). Order
+ * follows ELITES (encounter order), so a multi-elite catch-up reads shallow→deep. */
+export function newElites(slain: ReadonlySet<string>, kills: Record<string, number> | undefined): { id: string; name: string }[] {
+  if (!kills) return [];
+  return ELITES.filter((e) => (kills[e.id] ?? 0) >= 1 && !slain.has(e.id));
+}
+
 /** Per-region monster-mastery completion — the row of the Region Conquest codex. */
 export interface RegionMastery {
   slain: number; // distinct roster monsters you've killed at least once
