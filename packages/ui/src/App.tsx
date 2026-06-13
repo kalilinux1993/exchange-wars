@@ -1124,7 +1124,8 @@ export function App({ initial }: { initial?: Game }) {
                       game.seenEvents.find((s) => s.id === e.id)?.startPrice,
                       game.world.books[e.itemId]?.ema,
                     );
-                    return move !== null ? ` · ${move >= 0 ? '+' : ''}${move}%` : '';
+                    // Suppress 0% — at event start (capture == current EMA) there's no move worth showing yet.
+                    return move !== null && move !== 0 ? ` · ${move >= 0 ? '+' : ''}${move}%` : '';
                   })()}
                   {' · '}{ending ? '⏳ ' : ''}{left.toLocaleString('en-US')} left
                 </button>
@@ -1390,9 +1391,12 @@ export function App({ initial }: { initial?: Game }) {
               const e = (game.world.events ?? []).find(
                 (ev) => ev.itemId === selected && ev.startTick <= game.world.tick && ev.endTick > game.world.tick,
               );
-              return e
-                ? `⚡ ${EVENT_LABELS[e.kind]} active — ends in ~${(e.endTick - game.world.tick).toLocaleString('en-US')} ticks`
-                : null;
+              if (!e) return null;
+              // Same live move as the newsbar chip (21i), here at the trade DECISION point. Suppressed at 0%
+              // (no move yet), which also keeps the note unchanged the instant an event begins.
+              const move = eventMove(game.seenEvents.find((s) => s.id === e.id)?.startPrice, game.world.books[e.itemId]?.ema);
+              const moveStr = move !== null && move !== 0 ? ` · ${move >= 0 ? '+' : ''}${move}%` : '';
+              return `⚡ ${EVENT_LABELS[e.kind]} active${moveStr} — ends in ~${(e.endTick - game.world.tick).toLocaleString('en-US')} ticks`;
             })()}
           />
           <BookLadder book={game.world.books[selected]} playerId={game.playerId} onLevel={onLevel} />

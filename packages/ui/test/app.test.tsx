@@ -4685,6 +4685,18 @@ describe('UI shell', () => {
     expect(chip.textContent).toMatch(/450 left/); // countdown still present
   });
 
+  it('the ticket event note shows the live price move at the decision point (21l)', () => {
+    const game = newGame(42);
+    game.world.events!.push({ id: 'ev1', itemId: FIRST.id, kind: 'demand_surge', startTick: 0, endTick: 450 });
+    game.seenEvents = [{ id: 'ev1', itemId: FIRST.id, kind: 'demand_surge', startPrice: 100 }];
+    game.world.books[FIRST.id]!.ema = 150; // +50% since start
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByText('start trading'));
+    const ticket = document.querySelector('.ticket') as HTMLElement; // FIRST is selected by default
+    expect(ticket.textContent).toMatch(/craze active/);
+    expect(ticket.textContent).toMatch(/\+50%/); // the magnitude, right where you decide to trade
+  });
+
   it('the hunter tally renders once there is something to tell', () => {
     const game = newGame(42);
     game.world.stats.monstersSlain = 7;
