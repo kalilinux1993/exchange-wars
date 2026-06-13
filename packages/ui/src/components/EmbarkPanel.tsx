@@ -1,7 +1,7 @@
 import { CONSUMABLES, deriveStats, GEAR, levelsOf, maxHpFor, monsterById, REGIONS, REST_REGEN_TICKS, regionIndex } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { combatForecast, embarkPrep, healEta, healFromPack, loadoutShort, regionLoot, survivableKills, type Game } from '../game';
+import { combatForecast, embarkPrep, healEta, healFromPack, loadoutShort, outgrownFarm, recentDelves, regionLoot, survivableKills, type Game } from '../game';
 import { usePref } from '../usePref';
 import { arenaTheme } from './CombatScene';
 import { ItemIcon } from './Icon';
@@ -142,6 +142,24 @@ export function EmbarkPanel({
         return (
           <p className="dim small ready" title={title}>
             <b className="down">⚠ outmatched</b> — even {REGIONS[0]!.name}’s usual foe out-trades you; pack food and fight cautiously
+          </p>
+        );
+      })()}
+      {(() => {
+        // "You've outgrown your farm" (the flagged 16x/17g follow-up): your safe depth (readiness, stat-based)
+        // has advanced past the region your RECENT dives cluster on — deeper regions pay better loot and you're
+        // favored there. Off until there's real dive history clustering on one region (empty delves → null), so
+        // it never fires on a fresh account or in the prop-less EmbarkPanel tests.
+        const out = outgrownFarm(recentDelves(game.delves, 6).map((d) => regionIndex(d.regionId)), readiness.ready);
+        if (!out) return null;
+        return (
+          <p
+            className="dim small outgrown"
+            title="your safe dive depth has advanced past where you keep farming — deeper regions pay better loot and you're favored there"
+          >
+            🎯 you keep farming <b>{REGIONS[out.farm]!.name}</b> — you’re ready for{' '}
+            <b className="up">{REGIONS[out.deeper]!.name}</b>
+            {out.deeper < readiness.ready ? ' and deeper' : ''}
           </p>
         );
       })()}

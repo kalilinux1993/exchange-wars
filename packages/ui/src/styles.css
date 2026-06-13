@@ -1831,6 +1831,11 @@ input.belowbe {
   box-sizing: border-box;
   margin: 0.3rem 0;
 }
+/* The "you've outgrown your farm" progression nudge (21c) — an actionable push-deeper prompt, so it reads
+   gold (over the dim readiness lines around it) rather than as muted commentary. */
+.region-readout .outgrown {
+  color: var(--gold);
+}
 /* "GE" tag on a flip you can afford but the buy limit (not your gp) caps. */
 .gecap {
   color: var(--parchment-dim);

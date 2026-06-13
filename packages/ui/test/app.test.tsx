@@ -144,6 +144,7 @@ import {
   nextRowIndex,
   summarizeDelve,
   recentDelves,
+  outgrownFarm,
   raidTotals,
   raidTotalsByRegion,
   regionLoot,
@@ -1236,6 +1237,55 @@ describe('UI shell', () => {
     expect(readout.style.background).toMatch(/linear-gradient/); // a per-region gradient backdrop
     expect(readout.textContent).toMatch(/danger:/); // the wrapped reads still render inside it
     expect(readout.textContent).toMatch(/loot:/);
+  });
+
+  describe('outgrownFarm (push-deeper nudge — 21c)', () => {
+    it('fires when your safe depth is past a real recent-farm cluster', () => {
+      // 3 of the last 4 dives in region 0, safe depth 2 → outgrown; deeper = the next step (1)
+      expect(outgrownFarm([0, 0, 0, 1], 2)).toEqual({ farm: 0, deeper: 1 });
+    });
+    it('is silent when you have too few dives to show a cluster', () => {
+      expect(outgrownFarm([0, 0], 3)).toBeNull(); // < minDives
+      expect(outgrownFarm([0, 1, 2], 3)).toBeNull(); // 3 dives but no region reaches the min count
+    });
+    it('is silent when your safe depth is not actually deeper than your farm', () => {
+      expect(outgrownFarm([2, 2, 2], 2)).toBeNull(); // farming at your ceiling
+      expect(outgrownFarm([1, 1, 1], 0)).toBeNull(); // safe depth shallower than farm
+      expect(outgrownFarm([0, 0, 0], -1)).toBeNull(); // outmatched everywhere (readiness -1)
+    });
+    it('breaks a cluster tie toward the SHALLOWER region (the "stuck low" signal)', () => {
+      // both regions reach the min (3 each); the tie resolves to the shallower (0), nudging toward 1
+      expect(outgrownFarm([0, 0, 0, 1, 1, 1], 3)).toEqual({ farm: 0, deeper: 1 });
+    });
+  });
+
+  it('EmbarkPanel nudges you to dive deeper when your safe depth outgrows your recent farm (21c)', () => {
+    const game = newGame(42);
+    const a = game.world.agents[game.playerId]!;
+    a.combatXp = { atk: 14_000_000, def: 14_000_000, hp: 14_000_000 }; // maxed → favored at shallow depths
+    a.questProgress = 1; // region 1 unlocked → safe depth can reach 1
+    // four recent dives all in region 0 → a clear farm cluster you've outgrown
+    game.delves = [0, 1, 2, 3].map((t) => ({ tick: t, regionId: REGIONS[0]!.id, kills: 1, lootGp: 100, died: false }));
+    const view = playerView(game.world, game.playerId)!;
+    const { container } = render(
+      <EmbarkPanel game={game} view={view} items={game.world.items} onCommand={() => {}} active />,
+    );
+    const nudge = container.querySelector('.outgrown') as HTMLElement | null;
+    expect(nudge).toBeTruthy();
+    expect(nudge!.textContent).toContain(REGIONS[0]!.name); // names the farm…
+    expect(nudge!.textContent).toContain(REGIONS[1]!.name); // …and the deeper region you're ready for
+  });
+
+  it('EmbarkPanel shows no push-deeper nudge without dive history (21c)', () => {
+    const game = newGame(42);
+    const a = game.world.agents[game.playerId]!;
+    a.combatXp = { atk: 14_000_000, def: 14_000_000, hp: 14_000_000 };
+    a.questProgress = 1;
+    const view = playerView(game.world, game.playerId)!; // game.delves defaults empty
+    const { container } = render(
+      <EmbarkPanel game={game} view={view} items={game.world.items} onCommand={() => {}} active />,
+    );
+    expect(container.querySelector('.outgrown')).toBeNull();
   });
 
   describe('nextRowIndex (market keyboard nav)', () => {

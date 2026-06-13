@@ -264,6 +264,36 @@ export function recentDelves(delves: DelveRecord[] | undefined, n: number): Delv
   return (delves ?? []).slice(-n).reverse();
 }
 
+/**
+ * Have you outgrown the region you keep farming? Given the REGION INDICES of your recent dives and your
+ * safe dive depth (`diveReadiness.ready` — the deepest region you're favored to farm at full hp), returns
+ * the region you mostly dive + the next step up — but ONLY when that safe depth is genuinely DEEPER than
+ * your farm cluster AND you've actually been diving there (≥`minDives` of the recent dives). null = no
+ * nudge. The deeper target is `farm + 1` (the immediate step you're ready for; ≤ safeDepth by the guard).
+ * Ties resolve to the SHALLOWER region (the more surprising "you're stuck low" signal). Pure.
+ */
+export function outgrownFarm(
+  recentRegionIdxs: number[],
+  safeDepth: number,
+  minDives = 3,
+): { farm: number; deeper: number } | null {
+  if (recentRegionIdxs.length < minDives || safeDepth < 1) return null;
+  const counts = new Map<number, number>();
+  for (const i of recentRegionIdxs) counts.set(i, (counts.get(i) ?? 0) + 1);
+  let farm = -1;
+  let best = 0;
+  // ascending index so a tie keeps the shallower region (strict > keeps the first/lowest max)
+  for (const [idx, c] of [...counts.entries()].sort((a, b) => a[0] - b[0])) {
+    if (c > best) {
+      best = c;
+      farm = idx;
+    }
+  }
+  if (farm < 0 || best < minDives) return null; // no real cluster — you're not "farming" one region
+  if (safeDepth <= farm) return null; // your safe depth isn't past where you farm — nothing to nudge
+  return { farm, deeper: farm + 1 };
+}
+
 /** Lifetime raid risk/reward from the Delve Log — the raiding counterpart to trading P&L. */
 export interface RaidTotals {
   runs: number;
