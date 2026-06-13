@@ -13,7 +13,7 @@ import { MoversPanel } from '../src/components/MoversPanel';
 import { CharacterPanel, equipped, lockedUpgrades } from '../src/components/CharacterPanel';
 import { TopFlips, rankFlips, flipAffordability } from '../src/components/TopFlips';
 import { RecordsPanel, recordRows } from '../src/components/RecordsPanel';
-import { regionDanger, regionTypical } from '../src/components/ExpeditionPanel';
+import { regionDanger, regionTypical, diveReadiness } from '../src/components/ExpeditionPanel';
 import { resolveShortcut } from '../src/keyboard';
 import { ProfitPanel } from '../src/components/ProfitPanel';
 import { PositionsPanel } from '../src/components/PositionsPanel';
@@ -1340,8 +1340,8 @@ describe('UI shell', () => {
 
   it('the embark screen forecasts the exchange vs the hardest foe', () => {
     freshApp(); // adventure room mounted (tabhidden but in the DOM); fresh player, no active dive
-    expect(screen.getByText(/forecast:/)).toBeTruthy();
-    expect(screen.getByText(/favored|risky/)).toBeTruthy();
+    const fc = screen.getByText(/forecast:/); // the per-region forecast line (16x readiness line also says "favored")
+    expect(fc.textContent).toMatch(/favored|risky/);
   });
 
   describe('embarkPrep', () => {
@@ -2917,6 +2917,35 @@ describe('UI shell', () => {
     });
   });
 
+  describe('diveReadiness (how deep can I farm?)', () => {
+    it('a strong fighter is favored to the frontier', () => {
+      const r = diveReadiness({ atk: 100, def: 100, hp: 200 }, REGIONS.length - 1);
+      expect(r).toEqual({ ready: REGIONS.length - 1, frontier: REGIONS.length - 1 });
+    });
+    it('returns -1 when even region 0 outmatches you', () => {
+      expect(diveReadiness({ atk: 1, def: 0, hp: 1 }, REGIONS.length - 1).ready).toBe(-1);
+    });
+    it('clamps the frontier to the last region', () => {
+      expect(diveReadiness({ atk: 100, def: 100, hp: 200 }, 999).frontier).toBe(REGIONS.length - 1);
+    });
+    it('a base fighter farms the shallows but not the depths — and the boundary is exact', () => {
+      const base = { atk: 5, def: 2, hp: 50 }; // a fresh, ungeared adventurer
+      const r = diveReadiness(base, REGIONS.length - 1);
+      expect(r.ready).toBeGreaterThanOrEqual(0); // favored in region 0
+      expect(r.ready).toBeLessThan(r.frontier); // not all the way to the Abyss
+      expect(combatForecast(base, regionTypical(REGIONS[r.ready]!)).favored).toBe(true); // favored at the ready depth
+      expect(combatForecast(base, regionTypical(REGIONS[r.ready + 1]!)).favored).toBe(false); // not one deeper
+    });
+  });
+
+  it('the embark readiness line reads "ready" for a fresh player (favored in region 0)', () => {
+    render(<App initial={newGame(42)} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const line = document.querySelector('p.ready');
+    expect(line).toBeTruthy();
+    expect(line!.textContent).toMatch(/favored across every region/); // frontier = region 0, and you're favored there
+  });
+
   it('the push read omits the "usually" tag when typical and hardest verdicts agree', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;
@@ -4028,8 +4057,9 @@ describe('UI shell', () => {
     const game = freshApp();
     const panel = document.querySelector('.embark') as HTMLElement;
     expect(panel).toBeTruthy();
-    expect(within(panel).getByText('Lumbridge Plains')).toBeTruthy();
-    expect(within(panel).getByText("The Dragon's Maw")).toBeTruthy(); // visible but locked
+    // scope to the map labels — the 16x readiness line also names the frontier region (e.g. "clear Lumbridge Plains")
+    expect(within(panel).getByText('Lumbridge Plains', { selector: '.maplabel' })).toBeTruthy();
+    expect(within(panel).getByText("The Dragon's Maw", { selector: '.maplabel' })).toBeTruthy(); // visible but locked
     fireEvent.click(within(panel).getByText('embark'));
     const agent = game.world.agents[game.playerId]!;
     expect(agent.expedition).toBeTruthy();

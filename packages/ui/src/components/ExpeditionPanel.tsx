@@ -64,6 +64,30 @@ export function regionTypical(region: { monsters: string[] }): { atk: number; de
   return { atk: Math.round(atk / pool.length), def: Math.round(def / pool.length), hp: Math.round(hp / pool.length) };
 }
 
+export interface DiveReadiness {
+  /** Deepest unlocked region index you're favored vs its TYPICAL foe (full hp). -1 if even region 0 outmatches you. */
+  ready: number;
+  /** The deepest unlocked region index (= questProgress, clamped to the last region). */
+  frontier: number;
+}
+
+/**
+ * How deep you can reliably FARM: the deepest unlocked region whose TYPICAL foe (regionTypical, the pool
+ * average — not the rare elite) you're favored against at full hp. Unlock ≠ ready — you unlock a region by
+ * clearing the one before it, but foe power jumps each tier, so a freshly-unlocked region can outmatch you.
+ * This is the "where should I dive?" complement to the per-region forecast (which reads the HARDEST foe of a
+ * SELECTED region). Region difficulty is monotonic with depth by design, so the deepest favored index is a
+ * clean ready-depth. Pure (reuses combatForecast + regionTypical).
+ */
+export function diveReadiness(you: { atk: number; def: number; hp: number }, frontier: number): DiveReadiness {
+  const top = Math.min(frontier, REGIONS.length - 1);
+  let ready = -1;
+  for (let i = 0; i <= top; i++) {
+    if (combatForecast(you, regionTypical(REGIONS[i]!)).favored) ready = i;
+  }
+  return { ready, frontier: top };
+}
+
 /**
  * The Expeditions panel: outfit an adventurer from your REAL inventory,
  * delve the node graph, fight one round per click. Reads world state for

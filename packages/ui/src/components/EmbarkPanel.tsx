@@ -6,7 +6,7 @@ import { usePref } from '../usePref';
 import { arenaTheme } from './CombatScene';
 import { ItemIcon } from './Icon';
 import { RegionMap } from './RegionMap';
-import { regionDanger } from './ExpeditionPanel';
+import { regionDanger, diveReadiness } from './ExpeditionPanel';
 
 /**
  * The "plan a dive" flow (Jesse asked to move it off the tall left column to the
@@ -112,6 +112,35 @@ export function EmbarkPanel({
         style={{ background: `linear-gradient(155deg, ${arenaTheme(regionId).from}33, ${arenaTheme(regionId).to}11)` }}
       >
       <p className="dim small">{REGIONS[regionIndex(regionId)]?.flavor}</p>
+      {(() => {
+        // Dive readiness (16x): the deepest region you're favored to FARM (vs its typical foe, full hp) —
+        // a global "where should I dive?" read, since unlocking a region (clear the one before) doesn't mean
+        // you can survive it. Complements the per-region forecast below (which reads the SELECTED region's
+        // HARDEST foe). The eff/trainedMax here mirror the danger forecast's own full-hp inputs.
+        const eff = deriveStats(view.inventory, lvls, agent?.worn);
+        const r = diveReadiness({ atk: eff.atk, def: eff.def, hp: trainedMax }, progress);
+        const title = 'how deep you can reliably farm — favored against a region’s USUAL foe at full hp (the per-region read below covers the worst case)';
+        if (r.ready >= r.frontier) {
+          return (
+            <p className="dim small ready" title={title}>
+              <b className="up">✓ ready</b> — favored across every region you’ve unlocked
+              {r.frontier < REGIONS.length - 1 ? <> · clear <b>{REGIONS[r.frontier]!.name}</b> to open the next</> : <> · the deepest reaches are yours</>}
+            </p>
+          );
+        }
+        if (r.ready >= 0) {
+          return (
+            <p className="dim small ready" title={title}>
+              📍 your safe depth is <b className="up">{REGIONS[r.ready]!.name}</b> — <b className="down">{REGIONS[r.ready + 1]!.name}</b> and deeper still outmatch you; train up to push on
+            </p>
+          );
+        }
+        return (
+          <p className="dim small ready" title={title}>
+            <b className="down">⚠ outmatched</b> — even {REGIONS[0]!.name}’s usual foe out-trades you; pack food and fight cautiously
+          </p>
+        );
+      })()}
       {(() => {
         const d = regionDanger(REGIONS[regionIndex(regionId)]!);
         const eff = deriveStats(view.inventory, lvls, agent?.worn);
