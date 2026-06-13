@@ -1,9 +1,27 @@
 # Dev Guide
 
-> **Consolidated record: complete (Phase 1 → 18x).** The whole autonomous build loop is now folded into the
+> **Consolidated record: complete (Phase 1 → 19m).** The whole autonomous build loop is now folded into the
 > sections below (newest-first); per-brick detail lives in `.phases/` + FINDINGS. The former 10h–13c gap was
 > closed in 16h. Engine-redeploy obligation still open: the `verify-score` batch `12b+13d+13e+13f+13r+14j`
 > (Jesse-gated on `SUPABASE_ACCESS_TOKEN`).
+
+## Phases 18y–19m consolidated — distribution + data-safety polish, then a survivability LADDER on the verified combat math and a full trading-instrument suite (2026-06-13)
+
+Per-brick detail in `.phases/` and FINDINGS #312–#325; 14 bricks. **UI-only, ALL of it** — no engine change, so the `verify-score` batch is unchanged. Suite grew 454→475 unit + 13 e2e. Two veins: (1) finished the DISTRIBUTION surface (a shared link previews as a card and installs as a PWA) and made cloud-sync state HONEST; (2) with features saturated, mined two seams hard — the engine-mirror audit (a 4th real bug) and "instrument the decision" — building a combat-survivability LADDER and a complete trading-instrument suite. Three through-lines crystallised as named lessons (below). Brick 300 (this consolidation) lands on the round-number-brick law (FINDINGS #67).
+
+### Distribution + data-safety (18y · 18z · 19a · 19b · 19c · 19d)
+18y consolidated 18n–18x. Then the share/install surface: social-card `og:image` meta + a captured `public/og.png` 1200×630 (18z) so challenge/brag links preview as a branded card; a branded inline loading fallback in `#root` — no blank flash on first paint (19a); a rich install manifest (`categories`, `screenshots`) + an e2e that fetches the SERVED manifest, validating it where it's served not in the unit harness (19b); README corrected to 8 regions / 4 elites / 450+ tests (19c — the public doc drifts like the internal ones). Data-safety: a failed cloud push left a stale "✓ synced" badge → added `syncFailed` so it reads "⚠ unsynced" on failure and clears on the next success (19d — a success-only state update is a half-update). FINDINGS #312–#316.
+
+### The combat-math fix + the survivability LADDER (19e · 19f · 19g · 19m) — one damage model, four reads
+**19e — the 4th engine-mirror bug, dangerous direction.** `expectedHit` floored the MEAN roll (`max(1,(lo+hi)/2−floor(def/4))`) but the engine floors EACH roll (quest.ts:415); when some-but-not-all rolls clamp to 1, the per-roll floor lifts the true mean above the per-mean one. Since `floor(def/4) ≥ ceil(foe.atk/3)` for basically any armoured player, `foeDpr` was under-counted up to 3× → the forecast read SAFER than reality. Fixed by averaging `max(1, raw−k)` over the inclusive roll range (rng.ts:7 confirms `rng.int` is inclusive). With the math trustworthy, three survivability tiers built ON it: **embark** — `survivableKills(forecast, hp, packHeal)` = `floor((roundsToFall/roundsToKill)·(hp+packHeal)/hp)` → "≈N kills before you'd fall · ≈M with food" at full hp (19f); **live push** — the same read at CURRENT hp mid-dive, between push-read and death-stakes (19g); **in-fight** — `maxHit(atk,def)` = `max(1, max(2,atk)−floor(def/4))` (the roll's TOP) → "⚠ a hit could down you" when the foe's worst hit (+dragonfire) ≥ current hp (19m). Mean (forecast) + max (lethality) + two survivability tiers, all one formula. FINDINGS #317/#318/#319/#325.
+
+### The trading-instrument suite (19h · 19i · 19j · 19k · 19l)
+**Order-book hygiene → action:** `restingQueue(world, order)` = `{ahead, gap}` where `ahead` is the order's INDEX in the engine-sorted book (types.ts:92-95 — index = orders that fill before yours, authoritative by construction) → "top of book"/"N ahead" (19h); `repriceTarget` = `sameSide[0].price ± 1` powers a one-click "reprice {target}" firing `cancel` then `place` (both logged → replay-consistent), the BUY gated on re-escrow affordability so it never cancels-then-fails (19i). **Honest value:** `liquidateNow(game, positions)` sums each holding's `bidWalk` net → "cash out now ≈X" (the mark overstates the exit — you can't sell N units AT last price) (19j); `askWalk(game, itemId, qty, maxPrice)` is the buy-side mirror (walks asks UP to the limit, untaxed, capped) → "fills ≈X now · ≈C gp" (19k). **Idle loop:** "N offers filled while away" from `OfflinePlan.openOrderIds0` set-diffed against the book — free because the offline-idle invariant means a vanished order = a filled one (19l). FINDINGS #320–#324.
+
+### The three lessons this chapter earned
+1. **Displayed value flatters reality.** When the UI prices a quantity at a single reference (mark/last/limit), ask what the WHOLE quantity actually clears — it walks the book and is always lower (19e forecast under-count, 19j liquidation slippage, the buy-side ceiling 19k; 18w earlier). Surface both: paper vs cashable.
+2. **Derive from the engine's own structure; don't re-derive it.** The sorted book gives queue rank as an index (19h/19i); `rng.int` inclusivity gives the exact roll mean (19e); the offline-idle invariant gives the away-fill count as a set-diff (19l). Each avoided a comparator/event-tracker that could silently disagree with the engine.
+3. **Expected-value and worst-case are different instruments — ship both where stakes are asymmetric.** A dive death burns the haul, so the mean race (forecast) AND the worst-case lethality (`maxHit`) both matter (19m); the symmetric buy/sell walks (19j/19k) are the same instinct applied to a mechanic's two sides.
 
 ## Phases 18n–18x consolidated — the AUDIT-SEAM chapter: reference-verify money/combat (4 real bug fixes), visual-QA layout, a11y, keyboard completion, 2 reviews (2026-06-13)
 
