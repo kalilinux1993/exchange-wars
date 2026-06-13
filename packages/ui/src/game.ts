@@ -489,6 +489,14 @@ export function monsterRegions(monsterId: string): string[] {
   return REGIONS.filter((r) => r.monsters.includes(monsterId) || r.elite === monsterId).map((r) => r.name);
 }
 
+/** The id of the shallowest region a monster spawns in (encounter pool or elite), or null if it appears
+ *  nowhere — the jump target for the bounty "hunt" action (18f). The id-returning sibling of
+ *  `monsterRegions` (which returns names for display); both walk REGIONS depth-order, so this is the id of
+ *  `monsterRegions(id)[0]`. Pure. */
+export function huntRegionId(monsterId: string): string | null {
+  return REGIONS.find((r) => r.monsters.includes(monsterId) || r.elite === monsterId)?.id ?? null;
+}
+
 /** The named elites in encounter order — rare boss spawns outside the normal pools. */
 export const ELITES: { id: string; name: string }[] = MONSTERS.filter((m) => m.elite).map((m) => ({ id: m.id, name: m.name }));
 

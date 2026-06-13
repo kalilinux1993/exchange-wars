@@ -123,6 +123,7 @@ import {
   beatRecord,
   regionRoster,
   monsterRegions,
+  huntRegionId,
   regionMastery,
   expectedHit,
   combatForecast,
@@ -3901,6 +3902,10 @@ describe('UI shell', () => {
       expect(monsterRegions('skarn')).toEqual(['Wilderness Ruins']); // a named elite counts
       expect(monsterRegions('not_a_monster')).toEqual([]); // appears nowhere
     });
+    it('huntRegionId returns the shallowest region id (the jump target), null if nowhere (18f)', () => {
+      expect(huntRegionId('goblin')).toBe('lumbridge_plains'); // shallowest of goblin's two pools
+      expect(huntRegionId('not_a_monster')).toBeNull();
+    });
   });
 
   it('BountyBoard tells you which region to hunt the target in (17x)', () => {
@@ -3909,6 +3914,27 @@ describe('UI shell', () => {
     game.world.tick = 100;
     render(<BountyBoard game={game} onCommand={() => {}} />);
     expect(screen.getByText(/The Inferno Gate/)).toBeTruthy(); // where lava dragons spawn
+  });
+
+  it('BountyBoard makes a not-done bounty actionable: hunt jumps to the target region (18f)', () => {
+    const game = newGame(42);
+    game.world.bounties = [{ id: 1, monsterId: 'goblin', qty: 4, rewardGp: 2_000, baseline: 0, expiresTick: 5_000 }];
+    game.world.stats.killsByMonster = { goblin: 1 }; // 1/4 → not done
+    game.world.tick = 100;
+    const onHunt = vi.fn();
+    render(<BountyBoard game={game} onCommand={() => {}} onHunt={onHunt} />);
+    fireEvent.click(screen.getByText('hunt'));
+    expect(onHunt).toHaveBeenCalledWith('lumbridge_plains'); // the target's shallowest region
+  });
+
+  it('BountyBoard falls back to "hunting…" without an onHunt jump (18f)', () => {
+    const game = newGame(42);
+    game.world.bounties = [{ id: 1, monsterId: 'goblin', qty: 4, rewardGp: 2_000, baseline: 0, expiresTick: 5_000 }];
+    game.world.stats.killsByMonster = { goblin: 1 };
+    game.world.tick = 100;
+    render(<BountyBoard game={game} onCommand={() => {}} />);
+    expect(screen.getByText('hunting…')).toBeTruthy();
+    expect(screen.queryByText('hunt')).toBeNull();
   });
 
   describe('contractPremium', () => {

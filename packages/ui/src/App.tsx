@@ -1424,7 +1424,7 @@ export function App({ initial }: { initial?: Game }) {
         </section>
         <section className="middle">
           <EmbarkPanel game={game} view={view} items={game.world.items} onCommand={command} onRest={fastForward} regionPick={regionPick} active={room === 'adventure'} />
-          <BountyBoard game={game} onCommand={command} />
+          <BountyBoard game={game} onCommand={command} onHunt={jumpToRegion} />
           <MilestonesPanel unlocked={game.milestones} game={game} view={view} worth={playerWorth(game)} />
         </section>
       </main>
