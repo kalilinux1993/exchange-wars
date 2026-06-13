@@ -2177,6 +2177,24 @@ export function worthRate(
   return { perMin: Math.round(((last.worth - start.worth) / dt) * 60), spanTicks: dt };
 }
 
+/** What to tell the player about a cash-priced upgrade they can't afford yet. Upgrades cost CASH (gp)
+ * but cash is fungible with goods — you can liquidate — so the honest time-to-afford keys on NET WORTH
+ * growth, not noisy cash flow:
+ *  - 'liquidate': worth already covers the cost; the cash is just tied up in goods — sell to afford NOW.
+ *  - 'eta': worth < cost and wealth is growing — minutes until worth reaches the cost at `worthPerMin`.
+ *  - 'slow': worth < cost and wealth is flat/falling — no honest ETA (don't invent one).
+ * Callers gate on `gp < cost` before calling, so the already-affordable case isn't represented here.
+ * (Keying the gap on worth — not gp — is what makes the worth-rate the right divisor: units match.) */
+export function affordEta(
+  cost: number,
+  worth: number,
+  worthPerMin: number | null,
+): { kind: 'liquidate' } | { kind: 'eta'; etaMin: number } | { kind: 'slow' } {
+  if (worth >= cost) return { kind: 'liquidate' };
+  if (worthPerMin != null && worthPerMin > 0) return { kind: 'eta', etaMin: (cost - worth) / worthPerMin };
+  return { kind: 'slow' };
+}
+
 export const SAVE_KEY = 'exchange-wars-save-v1';
 export const HUMAN_START_GP = 55_000;
 

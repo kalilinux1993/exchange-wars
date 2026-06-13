@@ -157,6 +157,7 @@ import {
   totalUnrealized,
   updateNews,
   worthRate,
+  affordEta,
   type Fill,
   type Game,
 } from '../src/game';
@@ -2355,6 +2356,39 @@ describe('UI shell', () => {
     expect(screen.getByText(/need \+4,900/)).toBeTruthy(); // slot shortfall (5,000 − 100)
   });
 
+  // The other upgrades are maxed (tier 99 → costs[99] is undefined → those rows render no shortfall),
+  // so only the Offer-slot row drives a hint and the assertions stay unambiguous.
+  const maxedExceptSlot = { autoFlip: 99, sellsword: 99, deathWard: 99 };
+
+  it('UpgradeShop hints "sell to afford" when your wealth covers an upgrade your cash does not (21a)', () => {
+    const view = {
+      gp: 100, // cash is short of the 5,000 slot
+      slots: 1,
+      nextSlotCost: 5000,
+      upgrades: maxedExceptSlot,
+      botConfig: { maxVolatility: null, capitalFraction: null, focusItemId: null },
+    } as unknown as PlayerView;
+    // worth 9,000 ≥ 5,000 cost → liquidate hint, no ETA
+    render(<UpgradeShop view={view} items={[]} onCommand={() => {}} worth={9000} worthPerMin={600} />);
+    expect(screen.getByText(/need \+4,900/)).toBeTruthy();
+    expect(screen.getByText(/sell to afford/)).toBeTruthy();
+  });
+
+  it('UpgradeShop shows an ETA-to-afford when wealth is below the cost but growing (21a)', () => {
+    const view = {
+      gp: 100,
+      slots: 1,
+      nextSlotCost: 5000,
+      upgrades: maxedExceptSlot,
+      botConfig: { maxVolatility: null, capitalFraction: null, focusItemId: null },
+    } as unknown as PlayerView;
+    // worth 2,000 < 5,000; gap 3,000 at +600/min → 5 min
+    render(<UpgradeShop view={view} items={[]} onCommand={() => {}} worth={2000} worthPerMin={600} />);
+    expect(screen.getByText(/need \+4,900/)).toBeTruthy();
+    expect(screen.getByText(/≈5m/)).toBeTruthy();
+    expect(screen.queryByText(/sell to afford/)).toBeNull(); // not affordable by liquidating yet
+  });
+
   describe('lootSpoils', () => {
     it('keeps gear out of the bulk dump', () => {
       const isGear = (id: string) => id === 'rune_2h_sword' || id === 'rune_platebody';
@@ -3028,6 +3062,27 @@ describe('UI shell', () => {
         { tick: 1_000, worth: 56_000 },
       ];
       expect(worthRate(h, 600)).toEqual({ perMin: 720, spanTicks: 500 }); // +6000 over 500 ticks
+    });
+  });
+
+  describe('affordEta (time-to-afford an upgrade — 21a)', () => {
+    it('says liquidate when net worth already covers the cost (cash is just tied up in goods)', () => {
+      // gp < cost is the caller's gate; here worth ≥ cost, so you can sell to afford now
+      expect(affordEta(10_000, 12_000, 0)).toEqual({ kind: 'liquidate' });
+      expect(affordEta(10_000, 10_000, null)).toEqual({ kind: 'liquidate' }); // exactly enough wealth
+    });
+    it('gives an ETA from the worth gap and the worth rate when wealth is growing', () => {
+      // need (cost − worth) = 6,000 more wealth; at +600 gp/min → 10 min
+      expect(affordEta(10_000, 4_000, 600)).toEqual({ kind: 'eta', etaMin: 10 });
+    });
+    it('keys the ETA on the WORTH gap, not the cash gap (units match the worth rate)', () => {
+      // worth 9,000 vs cost 10,000 → only 1,000 of wealth to go, not the larger cash shortfall
+      expect(affordEta(10_000, 9_000, 500)).toEqual({ kind: 'eta', etaMin: 2 });
+    });
+    it('gives no ETA when wealth is flat or falling (no invented number)', () => {
+      expect(affordEta(10_000, 4_000, 0)).toEqual({ kind: 'slow' });
+      expect(affordEta(10_000, 4_000, -300)).toEqual({ kind: 'slow' });
+      expect(affordEta(10_000, 4_000, null)).toEqual({ kind: 'slow' });
     });
   });
 

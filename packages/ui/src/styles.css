@@ -1812,6 +1812,18 @@ input.belowbe {
   font-size: 0.72rem;
   white-space: nowrap;
 }
+/* Time-to-afford hints beside a shortfall (21a). "sell to afford" is GOOD news (you have the wealth,
+   just not in cash) so it reads gold/positive, not the amber warning tint; the ETA stays dim. */
+.afford-now {
+  color: var(--gold);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.afford-eta {
+  color: var(--dim, #8a8a8a);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
 /* "GE" tag on a flip you can afford but the buy limit (not your gp) caps. */
 .gecap {
   color: var(--parchment-dim);

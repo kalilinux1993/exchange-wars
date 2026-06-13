@@ -1,5 +1,6 @@
 import { PROGRESSION, TUNING } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
+import { affordEta, fmtDuration } from '../game';
 
 /** A representative cheap-rune price for the clerk-reach example — just a
  * concrete number to make the unit cap legible (the clerk's actual fills
@@ -10,23 +11,48 @@ export function UpgradeShop({
   view,
   items,
   onCommand,
+  worth,
+  worthPerMin,
 }: {
   view: PlayerView;
   items: ItemDef[];
   onCommand: (cmd: PlayerCommand) => void;
+  /** Liquidation net worth — drives the time-to-afford hint. Optional so callers/tests can omit it. */
+  worth?: number;
+  /** Recent net-worth growth (gp/min, from `worthRate`) — the ETA divisor. */
+  worthPerMin?: number | null;
 }) {
   const tier = view.upgrades['autoFlip'] ?? 0;
   const nextTierCost = PROGRESSION.upgrades.autoFlip.costs[tier];
   const conf = tier > 0 ? TUNING.automation.autoFlip[tier - 1] : undefined;
   // How far short the purse is of an upgrade — makes the saving goal concrete
   // instead of just greying the button out (the spend lens, like 13l flips).
-  const need = (cost: number | null | undefined) =>
-    cost != null && Number.isFinite(cost) && view.gp < cost ? (
-      <span className="shortfall" title={`save ${(cost - view.gp).toLocaleString('en-US')} more gp to afford this`}>
-        {' '}
-        need +{(cost - view.gp).toLocaleString('en-US')}
-      </span>
-    ) : null;
+  // When net worth is known, append an honest time-to-afford hint (affordEta): you may already
+  // hold enough wealth to afford it now by selling, or be N minutes away at your recent worth rate.
+  const need = (cost: number | null | undefined) => {
+    if (cost == null || !Number.isFinite(cost) || view.gp >= cost) return null;
+    const hint = worth != null ? affordEta(cost, worth, worthPerMin ?? null) : null;
+    return (
+      <>
+        <span className="shortfall" title={`save ${(cost - view.gp).toLocaleString('en-US')} more gp to afford this`}>
+          {' '}
+          need +{(cost - view.gp).toLocaleString('en-US')}
+        </span>
+        {hint?.kind === 'liquidate' && (
+          <span className="afford-now" title="you already hold enough wealth — sell some goods to afford this now">
+            {' '}
+            · 💰 sell to afford
+          </span>
+        )}
+        {hint?.kind === 'eta' && (
+          <span className="afford-eta" title="at your recent net-worth growth rate, when your wealth would reach this cost">
+            {' '}
+            · ≈{fmtDuration(Math.round(hint.etaMin * 60))}
+          </span>
+        )}
+      </>
+    );
+  };
   return (
     <section className="panel shop">
       <h2>

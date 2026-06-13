@@ -1459,7 +1459,13 @@ export function App({ initial }: { initial?: Game }) {
             Was 6/1/1 (all the tall panels in col 1), which left a large void below the short cols 2-3. */}
         <section className="middle">
           <BragCard game={game} worth={playerWorth(game)} handle={localStorage.getItem('ew-handle') ?? ''} />
-          <UpgradeShop view={view} items={game.world.items} onCommand={command} />
+          <UpgradeShop
+            view={view}
+            items={game.world.items}
+            onCommand={command}
+            worth={playerWorth(game)}
+            worthPerMin={worthRate(game.worthHistory)?.perMin ?? null}
+          />
           <RecordsPanel game={game} />
         </section>
         <section className="middle">
