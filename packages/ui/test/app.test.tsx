@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Catalog-agnostic: everything derives from DEFAULT_ITEMS so `npm run
 // gen:catalog` regens never break these tests.
-import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, placeOrder, playerView, REGIONS, runTicks, SPRINT_TICKS, tickWorld, xpForLevel } from '@exchange-wars/engine';
+import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, MONSTERS, placeOrder, playerView, REGIONS, runTicks, SPRINT_TICKS, tickWorld, xpForLevel } from '@exchange-wars/engine';
 import type { AgentState, SimStats } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -2876,6 +2876,26 @@ describe('UI shell', () => {
     drop.unmount();
     const staple = render(<TradeTicket {...props} selected="shark" />); // food — not dropped
     expect(staple.container.querySelector('.huntable')).toBeNull();
+  });
+
+  it('TradeTicket farm line is actionable: hunt jumps to the source region (18m)', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    const onHunt = vi.fn();
+    const props = {
+      view, items: game.world.items, lvls: { atk: 99, def: 99 }, prefill: null,
+      onCommand: () => {}, lastResult: null, eventNote: null, recentPrices: [] as number[],
+      position: null, watched: false, onToggleWatch: () => {},
+    };
+    const expectedRegion = itemSources('nature_rune', MONSTERS, REGIONS)[0]!.regionId;
+    const { container } = render(<TradeTicket {...props} selected="nature_rune" onHunt={onHunt} />);
+    const hunt = within(container.querySelector('.huntable') as HTMLElement).getByText('hunt');
+    fireEvent.click(hunt);
+    expect(onHunt).toHaveBeenCalledWith(expectedRegion); // jumps to where nature runes drop
+    expect(typeof expectedRegion).toBe('string'); // the source resolved a real region
+
+    const noJump = render(<TradeTicket {...props} selected="nature_rune" />); // no onHunt → read-only
+    expect(within(noJump.container.querySelector('.huntable') as HTMLElement).queryByText('hunt')).toBeNull();
   });
 
   it('TradeTicket shows the realized price-swing readout when recent trades exist', () => {

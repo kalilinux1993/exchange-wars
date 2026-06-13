@@ -1340,6 +1340,7 @@ export function App({ initial }: { initial?: Game }) {
             position={openFromBook(game.tradeBook, selected)}
             watched={watch.includes(selected)}
             onToggleWatch={() => toggleWatch(selected)}
+            onHunt={jumpToRegion}
             eventNote={(() => {
               const e = (game.world.events ?? []).find(
                 (ev) => ev.itemId === selected && ev.startTick <= game.world.tick && ev.endTick > game.world.tick,

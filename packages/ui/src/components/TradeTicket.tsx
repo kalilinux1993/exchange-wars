@@ -36,6 +36,7 @@ export function TradeTicket({
   position,
   watched,
   onToggleWatch,
+  onHunt,
   active = true,
 }: {
   view: PlayerView;
@@ -57,6 +58,8 @@ export function TradeTicket({
   position: { units: number; avgCost: number } | null;
   watched: boolean;
   onToggleWatch: () => void;
+  /** Jump to the Adventure tab with a region pre-selected — powers the farm line's "hunt" action (18m). */
+  onHunt?: (regionId: string) => void;
   /** Whether the Exchange tab is the visible room — gates the b/s side hotkeys. */
   active?: boolean;
 }) {
@@ -172,6 +175,13 @@ export function TradeTicket({
             🗡 farm: <b>{top.monsterName}</b> {Math.round(top.chance * 100)}%
             {top.regionName && <span className="dim"> · {top.regionName}</span>}
             {sources.length > 1 && <span className="dim"> +{sources.length - 1} more</span>}
+            {onHunt && top.regionId && (
+              // Make the farm hint actionable: jump to the Adventure tab with that region pre-picked —
+              // "farm it instead of buying it" (18m, the trade→farm sibling of the bounty hunt 18f).
+              <button className="chip" title={`hunt ${top.monsterName}${top.regionName ? ` in ${top.regionName}` : ''} — farm it instead of buying`} onClick={() => onHunt(top.regionId!)}>
+                {' '}hunt
+              </button>
+            )}
           </p>
         );
       })()}
