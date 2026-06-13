@@ -33,6 +33,7 @@ import { HelpOverlay, HELP_SEEN_KEY } from '../src/components/HelpOverlay';
 import { WealthPanel } from '../src/components/WealthPanel';
 import { UpgradeShop } from '../src/components/UpgradeShop';
 import { PlayerPanel } from '../src/components/PlayerPanel';
+import { AccountBar } from '../src/components/AccountBar';
 import { depthSplit, TradeTicket } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank, rankGap, gapToTop, provisionalRank } from '../src/components/LeaderboardPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
@@ -4928,6 +4929,16 @@ describe('UI shell', () => {
     expect(sanitizeHandle('  @weird ')).toBe('anonymous trader');
     expect(sanitizeHandle('')).toBe('anonymous trader');
     expect(sanitizeHandle('a'.repeat(40))).toBe('a'.repeat(24));
+  });
+
+  it('AccountBar surfaces a failed cloud sync instead of a stale "✓ synced" (19d)', () => {
+    const session = { user: { email: 'jesse@example.com' } } as unknown as Session;
+    const ok = render(<AccountBar session={session} lastSync={1_000} syncFailed={false} />);
+    expect(ok.getByText(/✓ synced/)).toBeTruthy();
+    ok.unmount();
+    const failed = render(<AccountBar session={session} lastSync={1_000} syncFailed />);
+    expect(failed.getByText(/⚠ unsynced/)).toBeTruthy(); // the failure is shown…
+    expect(failed.queryByText(/✓ synced/)).toBeNull(); // …not the stale ✓ from a prior success
   });
 
   it('the Sprint Board stays hidden while the leaderboard backend is absent', () => {

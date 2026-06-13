@@ -137,6 +137,7 @@ export function App({ initial }: { initial?: Game }) {
   // once so the player can rescue it instead of losing the run silently.
   const [corruptSave, setCorruptSave] = useState<string | null>(() => loadCorruptSave());
   const [lastSync, setLastSync] = useState<number | null>(null);
+  const [syncFailed, setSyncFailed] = useState(false); // last cloud push failed → show "unsynced", not a stale "✓ synced" (19d)
   const [prefill, setPrefill] = useState<TicketPrefill | null>(null);
   const [regionPick, setRegionPick] = useState<{ regionId: string; n: number } | null>(null);
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_SEEN_KEY) === null);
@@ -233,7 +234,12 @@ export function App({ initial }: { initial?: Game }) {
       const g = gameRef.current;
       if (g) {
         void pushCloudSave(g).then((ok) => {
-          if (ok) setLastSync(Date.now());
+          if (ok) {
+            setLastSync(Date.now());
+            setSyncFailed(false);
+          } else {
+            setSyncFailed(true); // surface it — don't leave a stale "✓ synced" (19d)
+          }
         });
       }
     }, 5_000);
@@ -1012,7 +1018,7 @@ export function App({ initial }: { initial?: Game }) {
             </span>
           )}
         </div>
-        <AccountBar session={session} lastSync={lastSync} />
+        <AccountBar session={session} lastSync={lastSync} syncFailed={syncFailed} />
         <div className="purse">
           <span className="value gold">{view.gp.toLocaleString('en-US')}</span>
           <span className="label">gp</span>
