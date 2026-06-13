@@ -788,6 +788,7 @@ describe('UI shell', () => {
     render(<HelpOverlay onClose={() => {}} />);
     expect(screen.getByText(/walk the market/i)).toBeTruthy(); // j/k nav
     expect(screen.getByText(/pick buy or sell/i)).toBeTruthy(); // b/s side
+    expect(screen.getByText(/pick a region and/i)).toBeTruthy(); // the Adventure ←/→ + Enter embark nav (18d)
   });
 
   it('the help overlay covers the decision tools (watchlist/alerts/bands) and the duel (16u)', () => {
@@ -797,7 +798,9 @@ describe('UI shell', () => {
     expect(container.textContent).toMatch(/cost→value band/);
     expect(container.textContent).toMatch(/dares a friend to beat your fortune/); // the duel
     expect(container.textContent).toMatch(/sorts.*by margin, value-band, swing/); // the table's sort columns (17j)
+    expect(container.textContent).toMatch(/momentum/); // momentum sort now documented (18d)
     expect(container.textContent).toMatch(/filters.*to flippable, cheap, steady/); // and its filter tracks (17j)
+    expect(container.textContent).toMatch(/movers/); // the movers filter now documented (18d)
   });
 
   it('MilestonesPanel shows a progress bar on the closest unearned deeds', () => {

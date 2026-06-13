@@ -43,8 +43,9 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             profit). Star items into your <b>Watchlist</b> and set a <b>≤/≥ price alert</b> or a
             threshold-free <b>band alert</b> (🟢 buy-the-dip / 🟡 take-profit) — it tells you the moment a
             watched item turns cheap or rich. The market table <b>sorts</b> by margin, value-band, swing
-            (volatility), or volume, and <b>filters</b> to flippable, cheap, steady, gear, or your watchlist —
-            narrow 100+ goods to your best candidates in a click.
+            (volatility), momentum (vs trend), or volume, and <b>filters</b> to flippable, cheap, steady,
+            movers (what's dislocated right now), gear, exotics/staples, or your watchlist — narrow 100+ goods
+            to your best candidates in a click. <b>Compact</b> hides the analysis columns for a clean price read.
           </li>
           <li>
             <b>Expeditions</b>: delve {REGIONS.length} regions, plains to {REGIONS[REGIONS.length - 1]!.name}.
@@ -80,8 +81,9 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             resumes the world, <kbd>,</kbd>/<kbd>.</kbd> slow it down or speed it up, <kbd>?</kbd> toggles
             this guide. In the Exchange,{' '}
             <kbd>j</kbd>/<kbd>k</kbd> (or <kbd>↑</kbd>/<kbd>↓</kbd>) walk the market, <kbd>b</kbd>/<kbd>s</kbd>{' '}
-            pick buy or sell, <kbd>w</kbd> stars the loaded item to your watchlist, and <kbd>/</kbd> jumps to
-            the filter to search by name.
+            pick buy or sell, <kbd>w</kbd> stars the loaded item to your watchlist, <kbd>/</kbd> jumps to the
+            filter to search by name, and <kbd>Esc</kbd> clears it. In <b>Adventure</b>, <kbd>←</kbd>/<kbd>→</kbd>{' '}
+            pick a region and <kbd>Enter</kbd> embarks.
           </li>
         </ul>
         <button className="submit buy" onClick={onClose}>
