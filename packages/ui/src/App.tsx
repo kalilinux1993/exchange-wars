@@ -1433,13 +1433,12 @@ export function App({ initial }: { initial?: Game }) {
         </section>
       </main>
       <main className={room === 'hall' ? 'board' : 'board tabhidden'}>
+        {/* Three columns, balanced ~3/3/2 (18t) — identity/economy · progression/adventure · competition/reference.
+            Was 6/1/1 (all the tall panels in col 1), which left a large void below the short cols 2-3. */}
         <section className="middle">
           <BragCard game={game} worth={playerWorth(game)} handle={localStorage.getItem('ew-handle') ?? ''} />
           <UpgradeShop view={view} items={game.world.items} onCommand={command} />
           <RecordsPanel game={game} />
-          <ConquestPanel game={game} />
-          <DelvePanel game={game} onPick={jumpToRegion} />
-          <AlmanacPanel game={game} />
         </section>
         <section className="middle">
           <WorthChart
@@ -1450,6 +1449,8 @@ export function App({ initial }: { initial?: Game }) {
               .filter((id) => game.milestoneTicks?.[id] !== undefined)
               .map((id) => ({ tick: game.milestoneTicks![id]!, name: MILESTONES.find((m) => m.id === id)?.name ?? id }))}
           />
+          <ConquestPanel game={game} />
+          <DelvePanel game={game} onPick={jumpToRegion} />
         </section>
         <section className="middle">
           <LeaderboardPanel
@@ -1457,6 +1458,7 @@ export function App({ initial }: { initial?: Game }) {
             session={session}
             onToast={(name, flavor) => setToast({ id: 'sprint', name, flavor, achieved: () => false })}
           />
+          <AlmanacPanel game={game} />
         </section>
       </main>
       {helpOpen && <HelpOverlay onClose={closeHelp} />}
