@@ -395,6 +395,20 @@ body {
   outline: none;
   border-color: var(--gold);
 }
+/* clear-the-filter ✕ (17s): only shown when the filter has text, sits just after the input. */
+.filterclear {
+  background: none;
+  border: 0;
+  padding: 0 4px;
+  margin-left: -2px;
+  cursor: pointer;
+  color: var(--muted, #8a7f66);
+  font-size: 0.85em;
+  line-height: 1;
+}
+.filterclear:hover {
+  color: var(--gold);
+}
 
 /* player-set worth goal (17l): a compact inline target input + its progress/ETA line. */
 .goalinput {

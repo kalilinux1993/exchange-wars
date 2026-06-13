@@ -175,7 +175,26 @@ export function MarketTable({
           placeholder="filter items…  /"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setFilter(''); // Esc clears + steps out — the search-box convention (17s)
+              e.currentTarget.blur();
+            }
+          }}
         />
+        {filter !== '' && (
+          <button
+            className="filterclear"
+            title="clear the filter (or press Esc)"
+            aria-label="clear filter"
+            onClick={() => {
+              setFilter('');
+              filterRef.current?.focus();
+            }}
+          >
+            ✕
+          </button>
+        )}
         {(['all', 'staples', 'exotics', 'gear', 'flippable', 'cheap', 'watched', 'steady'] as const).map((t) => (
           <button
             key={t}

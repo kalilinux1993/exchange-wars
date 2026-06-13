@@ -1383,6 +1383,22 @@ describe('UI shell', () => {
       expect(container.querySelector('.market.compact')).toBeNull(); // toggled back
     });
 
+    it('the market filter clears with Esc and the ✕ button (17s)', () => {
+      const items = [{ id: 'a', name: 'Apple', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
+      const v = { markets: [{ itemId: 'a', bestBid: 1, bestAsk: 2, lastPrice: 100, ema: 100, volume: 0, bestBidIsMine: false, bestAskIsMine: false }] } as unknown as PlayerView;
+      const { container } = render(<MarketTable view={v} items={items} trades={[]} selected="a" onSelect={() => {}} eventItems={new Set()} active />);
+      const filter = container.querySelector('input.filter') as HTMLInputElement;
+      expect(container.querySelector('.filterclear')).toBeNull(); // no ✕ when empty
+      fireEvent.change(filter, { target: { value: 'app' } });
+      expect(container.querySelector('.filterclear')).toBeTruthy(); // ✕ appears with text
+      fireEvent.keyDown(filter, { key: 'Escape' }); // Esc clears
+      expect(filter.value).toBe('');
+      expect(container.querySelector('.filterclear')).toBeNull();
+      fireEvent.change(filter, { target: { value: 'ban' } }); // and the ✕ clears too
+      fireEvent.click(container.querySelector('.filterclear') as HTMLButtonElement);
+      expect(filter.value).toBe('');
+    });
+
     it('the "flippable" track keeps only items with a positive after-tax margin', () => {
       const row = (itemId: string, bid: number, ask: number) => ({
         itemId, bestBid: bid, bestAsk: ask, lastPrice: bid, ema: bid, volume: 0, bestBidIsMine: false, bestAskIsMine: false,
