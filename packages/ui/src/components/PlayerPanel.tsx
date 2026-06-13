@@ -1,6 +1,6 @@
 import { GEAR, levelsOf } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
-import { bidWalk, gearDelta, lootSpoils, orderAge, STALE_ORDER_TICKS, type Game } from '../game';
+import { bidWalk, gearDelta, lootSpoils, orderAge, restingQueue, STALE_ORDER_TICKS, type Game } from '../game';
 import { ItemIcon } from './Icon';
 
 export function PlayerPanel({
@@ -181,6 +181,26 @@ export function PlayerPanel({
                     {' '}· {stale ? '⏳ ' : ''}rested {age.toLocaleString('en-US')}t
                   </span>
                 )}
+                {(() => {
+                  const q = restingQueue(game.world, o);
+                  if (!q) return null;
+                  const gapNote =
+                    q.gap === null
+                      ? ' nobody is on the other side yet — it fills when a counterparty appears.'
+                      : q.gap > 0
+                        ? ` priced ${q.gap.toLocaleString('en-US')} ${o.side === 'buy' ? 'below the lowest ask' : 'above the highest bid'} — it fills when the market moves to you, or you re-price.`
+                        : ' at the touch — next to fill.';
+                  return (
+                    <span
+                      className={q.ahead === 0 ? 'dim small' : 'dim small queued'}
+                      title={`price-time priority: ${
+                        q.ahead === 0 ? 'you are best-priced on your side (first in line).' : `${q.ahead.toLocaleString('en-US')} offer${q.ahead === 1 ? '' : 's'} at a better price or placed earlier fill before yours — undercut to jump the queue.`
+                      }${gapNote}`}
+                    >
+                      {' '}· {q.ahead === 0 ? 'top of book' : `${q.ahead.toLocaleString('en-US')} ahead`}
+                    </span>
+                  );
+                })()}
               </span>
               <button className="chip danger" onClick={() => onCommand({ type: 'cancel', itemId: o.itemId, side: o.side })}>
                 abort

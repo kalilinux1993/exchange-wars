@@ -1888,6 +1888,30 @@ export function orderAge(
   return o ? Math.max(0, world.tick - o.tick) : null;
 }
 
+/** Why a resting maker offer isn't filling YET — read from the live book (a display read).
+ *  `ahead` is its queue position under price-time priority: since the book's `buys`/`sells` are
+ *  kept sorted by exactly the engine's matching order (types.ts:92-95 — buys price-desc, sells
+ *  price-asc, then tick asc, then id asc), the count of orders that fill BEFORE yours IS your
+ *  index in that array — authoritative, can't disagree with the engine. `ahead === 0` ⟺ you're
+ *  best-priced on your side (top of book). `gap` is the distance to the opposing best — a SELL
+ *  above the highest bid / a BUY below the lowest ask: how far the market must move to you (or
+ *  you re-price) before a counterparty reaches your price; 0 ⟺ at the touch, `null` ⟺ nobody's
+ *  on the other side yet. null when the order isn't on the book (filled/cancelled). Pure. */
+export function restingQueue(
+  world: { books: Record<string, { buys: { id: number; price: number }[]; sells: { id: number; price: number }[] }> },
+  order: { id: number; itemId: string; side: 'buy' | 'sell' },
+): { ahead: number; gap: number | null } | null {
+  const book = world.books[order.itemId];
+  if (!book) return null;
+  const sameSide = order.side === 'buy' ? book.buys : book.sells;
+  const idx = sameSide.findIndex((o) => o.id === order.id);
+  if (idx < 0) return null;
+  const self = sameSide[idx]!;
+  const oppBest = order.side === 'buy' ? book.sells[0]?.price : book.buys[0]?.price;
+  const gap = oppBest === undefined ? null : Math.max(0, order.side === 'buy' ? oppBest - self.price : self.price - oppBest);
+  return { ahead: idx, gap };
+}
+
 /** What the resting bids (excluding the player's own) would pay for `qty` of
  * an item right now: the walkable quantity, the FLOOR price of that walk, the
  * gross take (`gp`), and `net` — what the SELLER actually receives after the 2%

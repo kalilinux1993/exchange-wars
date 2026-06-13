@@ -86,6 +86,7 @@ import {
   loadGame,
   loadoutShort,
   orderAge,
+  restingQueue,
   newGame,
   nextRoundTarget,
   normalizeGame,
@@ -240,6 +241,37 @@ describe('UI shell', () => {
     expect(orderAge({ tick: 50, books: { x: { buys: [{ id: 1, tick: 100 }], sells: [] } } }, { id: 1, itemId: 'x', side: 'buy' })).toBe(0); // floors at 0
   });
 
+  it('restingQueue reports queue rank (index in the engine-sorted book) and the gap to the touch (19h)', () => {
+    // book arrays are pre-sorted by the engine's matching priority (types.ts:92-95): buys price-desc,
+    // sells price-asc. So an order's index IS how many fill before it.
+    const world = {
+      books: {
+        shark: {
+          buys: [{ id: 5, price: 100 }, { id: 6, price: 95 }], // best bid 100
+          sells: [{ id: 2, price: 105 }, { id: 3, price: 110 }], // best ask 105
+        },
+      },
+    };
+    // a SELL at 105 is the lowest ask → top of book; gap = 105 − best bid 100 = 5 over the bid
+    expect(restingQueue(world, { id: 2, itemId: 'shark', side: 'sell' })).toEqual({ ahead: 0, gap: 5 });
+    // a SELL at 110 sits behind the cheaper 105 → 1 ahead; gap = 110 − 100 = 10
+    expect(restingQueue(world, { id: 3, itemId: 'shark', side: 'sell' })).toEqual({ ahead: 1, gap: 10 });
+    // a BUY at 100 is the highest bid → top; gap = best ask 105 − 100 = 5 under the ask
+    expect(restingQueue(world, { id: 5, itemId: 'shark', side: 'buy' })).toEqual({ ahead: 0, gap: 5 });
+    // a BUY at 95 sits behind the higher 100 → 1 ahead; gap = 105 − 95 = 10
+    expect(restingQueue(world, { id: 6, itemId: 'shark', side: 'buy' })).toEqual({ ahead: 1, gap: 10 });
+  });
+
+  it('restingQueue: null off-book, null gap when nobody is on the other side, 0 gap at the touch (19h)', () => {
+    const oneSided = { books: { x: { buys: [{ id: 1, price: 50 }], sells: [] } } };
+    expect(restingQueue(oneSided, { id: 1, itemId: 'x', side: 'buy' })).toEqual({ ahead: 0, gap: null }); // no asks
+    expect(restingQueue(oneSided, { id: 99, itemId: 'x', side: 'buy' })).toBeNull(); // not on the book
+    expect(restingQueue(oneSided, { id: 1, itemId: 'nope', side: 'buy' })).toBeNull(); // no such book
+    // marketable: a sell at/below the best bid → gap floors at 0 (at the touch)
+    const crossed = { books: { x: { buys: [{ id: 1, price: 100 }], sells: [{ id: 2, price: 100 }] } } };
+    expect(restingQueue(crossed, { id: 2, itemId: 'x', side: 'sell' })).toEqual({ ahead: 0, gap: 0 });
+  });
+
   it('PlayerPanel shows an open offer rested age and flags a stale one (18i)', () => {
     const game = newGame(42);
     const item = game.world.items[0]!.id;
@@ -249,6 +281,7 @@ describe('UI shell', () => {
     const { container, unmount } = render(<PlayerPanel game={game} view={view} items={game.world.items} onCommand={() => {}} />);
     expect(container.textContent).toMatch(/rested 600t/);
     expect(container.querySelector('li.stale')).toBeTruthy(); // amber-flagged dead capital
+    expect(container.textContent).toMatch(/top of book|ahead/); // 19h: queue position shown on the resting offer
     unmount();
 
     game.world.tick = 100; // fresh — under the threshold
