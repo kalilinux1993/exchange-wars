@@ -1,7 +1,22 @@
 export type Shortcut =
   | { kind: 'room'; room: 'exchange' | 'adventure' | 'hall' }
   | { kind: 'pause' }
-  | { kind: 'help' };
+  | { kind: 'help' }
+  | { kind: 'speed'; dir: 1 | -1 };
+
+/** The live world speeds the `,`/`.` keys step through (the 1×/5×/20× buttons). */
+export const SPEEDS = [1, 5, 20];
+
+/**
+ * Step the world speed one notch through SPEEDS, clamped (17q). `dir` +1 = faster, −1 = slower. A speed
+ * that isn't a live tier (0/paused, or an unknown value) resumes at SPEEDS[0] on faster and is a no-op on
+ * slower — so `.` un-pauses to 1× and `,` while paused stays paused. Pure.
+ */
+export function stepSpeed(current: number, dir: 1 | -1, speeds: number[] = SPEEDS): number {
+  const i = speeds.indexOf(current);
+  if (i === -1) return dir > 0 ? speeds[0]! : current;
+  return speeds[Math.max(0, Math.min(speeds.length - 1, i + dir))]!;
+}
 
 /**
  * Map a bare keypress to a cockpit shortcut, or null. Pure — the focus/modifier
@@ -22,6 +37,10 @@ export function resolveShortcut(key: string): Shortcut | null {
       return { kind: 'pause' };
     case '?':
       return { kind: 'help' };
+    case ',':
+      return { kind: 'speed', dir: -1 }; // slower
+    case '.':
+      return { kind: 'speed', dir: 1 }; // faster
     default:
       return null;
   }

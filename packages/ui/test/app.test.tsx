@@ -14,7 +14,7 @@ import { CharacterPanel, equipped, lockedUpgrades } from '../src/components/Char
 import { TopFlips, rankFlips, flipAffordability } from '../src/components/TopFlips';
 import { RecordsPanel, recordRows } from '../src/components/RecordsPanel';
 import { regionDanger, regionTypical, diveReadiness } from '../src/components/ExpeditionPanel';
-import { resolveShortcut } from '../src/keyboard';
+import { resolveShortcut, stepSpeed } from '../src/keyboard';
 import { ProfitPanel } from '../src/components/ProfitPanel';
 import { PositionsPanel } from '../src/components/PositionsPanel';
 import { ConquestPanel } from '../src/components/ConquestPanel';
@@ -3175,8 +3175,22 @@ describe('UI shell', () => {
       expect(resolveShortcut('3')).toEqual({ kind: 'room', room: 'hall' });
       expect(resolveShortcut('p')).toEqual({ kind: 'pause' });
       expect(resolveShortcut('?')).toEqual({ kind: 'help' });
+      expect(resolveShortcut(',')).toEqual({ kind: 'speed', dir: -1 }); // slower (17q)
+      expect(resolveShortcut('.')).toEqual({ kind: 'speed', dir: 1 }); // faster
       expect(resolveShortcut(' ')).toBeNull(); // space stays for buttons
       expect(resolveShortcut('x')).toBeNull();
+    });
+  });
+
+  describe('stepSpeed', () => {
+    it('steps through the live speeds clamped, resuming from pause on faster only (17q)', () => {
+      expect(stepSpeed(1, 1)).toBe(5); // 1× → 5×
+      expect(stepSpeed(5, 1)).toBe(20); // 5× → 20×
+      expect(stepSpeed(20, 1)).toBe(20); // clamped at the top
+      expect(stepSpeed(5, -1)).toBe(1); // 5× → 1×
+      expect(stepSpeed(1, -1)).toBe(1); // clamped at the bottom
+      expect(stepSpeed(0, 1)).toBe(1); // paused + faster → resume at 1×
+      expect(stepSpeed(0, -1)).toBe(0); // paused + slower → stays paused
     });
   });
 

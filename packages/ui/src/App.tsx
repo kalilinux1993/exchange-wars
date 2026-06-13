@@ -92,7 +92,7 @@ import {
   type OfflineResult,
 } from './game';
 import { usePref } from './usePref';
-import { resolveShortcut } from './keyboard';
+import { resolveShortcut, stepSpeed } from './keyboard';
 
 const SPEEDS = [0, 1, 5, 20] as const;
 // Offline catch-ups at or under this run synchronously (sub-second); bigger
@@ -397,6 +397,7 @@ export function App({ initial }: { initial?: Game }) {
       if (!sc) return;
       if (sc.kind === 'room') pickRoom(sc.room);
       else if (sc.kind === 'pause') setSpeed((s) => (s === 0 ? 1 : 0));
+      else if (sc.kind === 'speed') setSpeed((s) => stepSpeed(s, sc.dir));
       else setHelpOpen((h) => !h);
     };
     window.addEventListener('keydown', onKey);
