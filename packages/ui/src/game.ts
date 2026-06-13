@@ -1965,6 +1965,33 @@ export function bidWalk(
   return sold > 0 ? { qty: sold, floor, gp, net } : null;
 }
 
+/**
+ * What the WHOLE satchel would really cash out for if you market-sold every open position into the
+ * resting bids right now — each holding walked DOWN its bid book via `bidWalk` (per-fill tax, own
+ * orders skipped), summed. The honest counterpart to PositionsPanel's mark-based `value`: the mark
+ * prices each unit at last trade, but you can't sell N units AT the mark — a sizeable holding in a
+ * thin book walks the bids and nets less (tax + slippage), and `sold < units` when the bids run dry
+ * before absorbing the lot. A worst-case snapshot (bids don't refill mid-dump — the conservative
+ * "fire-sale now" floor; patient selling beats it). Pure (reads the world for display).
+ */
+export function liquidateNow(
+  game: Game,
+  positions: { itemId: string; units: number }[],
+): { net: number; units: number; sold: number } {
+  let net = 0;
+  let units = 0;
+  let sold = 0;
+  for (const p of positions) {
+    units += p.units;
+    const w = bidWalk(game, p.itemId, p.units);
+    if (w) {
+      net += w.net;
+      sold += w.qty;
+    }
+  }
+  return { net, units, sold };
+}
+
 const SAMPLE_EVERY_TICKS = 50;
 const SAMPLE_CAP = 240;
 

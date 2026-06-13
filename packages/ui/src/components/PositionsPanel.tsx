@@ -1,7 +1,7 @@
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useState } from 'react';
 import type { Game } from '../game';
-import { bandPosition, fmtCompact, heldPositions, positionConcentration, underwaterSummary, valueBand } from '../game';
+import { bandPosition, fmtCompact, heldPositions, liquidateNow, positionConcentration, underwaterSummary, valueBand } from '../game';
 import { ItemIcon } from './Icon';
 
 /** Distinguishable, theme-fitting segment colours for the allocation bar. */
@@ -54,6 +54,9 @@ export function PositionsPanel({
   const shown = ordered.slice(0, limit);
   const totalValue = positions.reduce((s, p) => s + p.value, 0);
   const totalPaper = positions.reduce((s, p) => s + p.unrealized, 0);
+  // The HONEST exit value: marking at last price overstates what you'd actually cash out, because
+  // dumping every holding walks down the bids (tax + slippage, and a thin book may not absorb it all).
+  const liq = liquidateNow(game, positions);
   const conc = positionConcentration(positions);
   const under = underwaterSummary(positions);
   const topName = conc.weights[0] ? (names.get(conc.weights[0].itemId) ?? conc.weights[0].itemId) : '';
@@ -72,6 +75,18 @@ export function PositionsPanel({
               {totalPaper >= 0 ? '+' : ''}
               {fmtCompact(totalPaper)}
             </b>
+          </span>
+        )}
+        {positions.length > 0 && liq.units > 0 && (
+          <span
+            className="dim small cashout"
+            title={`what you'd actually receive dumping every position into the bids right now — bid-walk net after the 2% tax and slippage (the mark prices each unit at last trade, which you can't get for the whole lot). Bids refill over time, so patient selling does better.${
+              liq.sold < liq.units ? ` Only ${liq.sold.toLocaleString('en-US')} of ${liq.units.toLocaleString('en-US')} units would fill now — the rest has no bids.` : ''
+            }`}
+          >
+            {' '}
+            · cash out now ≈{fmtCompact(liq.net)}
+            {liq.sold < liq.units && <span className="pct down"> ⚠</span>}
           </span>
         )}
       </h2>

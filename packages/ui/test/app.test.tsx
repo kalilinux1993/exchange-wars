@@ -81,6 +81,7 @@ import {
   momentum,
   bookFromFills,
   emptyTradeBook,
+  liquidateNow,
   HUMAN_START_GP,
   importSaveString,
   loadGame,
@@ -2280,6 +2281,38 @@ describe('UI shell', () => {
     expect(w.net).toBe(98); // per-fill: 0 tax each. On the 98 total it'd be floor(98·.02)=1 → 97. Per-fill matches paySeller.
   });
 
+  it('liquidateNow sums the honest bid-walk net across every held position (19j)', () => {
+    const game = {
+      playerId: 0,
+      world: {
+        books: {
+          shark: { buys: [
+            { agentId: 9, price: 100, remaining: 3 }, // 3@100 = 300, tax 6 → 294
+            { agentId: 9, price: 90, remaining: 5 }, // then 2@90 = 180, tax floor(3.6)=3 → 177
+          ] },
+          bones: { buys: [{ agentId: 9, price: 50, remaining: 10 }] }, // 4@50 = 200, tax 4 → 196
+        },
+      },
+    } as unknown as Game;
+    const liq = liquidateNow(game, [{ itemId: 'shark', units: 5 }, { itemId: 'bones', units: 4 }]);
+    expect(liq).toEqual({ net: 471 + 196, units: 9, sold: 9 }); // 294+177=471 shark; 196 bones
+  });
+
+  it('liquidateNow caps at available bid depth (sold < units) and ignores no-bid items (19j)', () => {
+    const game = {
+      playerId: 0,
+      world: {
+        books: {
+          shark: { buys: [{ agentId: 9, price: 100, remaining: 3 }] }, // only 3 bid for a 10-unit lot
+          dust: { buys: [] }, // no bids at all → nothing fills
+        },
+      },
+    } as unknown as Game;
+    const liq = liquidateNow(game, [{ itemId: 'shark', units: 10 }, { itemId: 'dust', units: 7 }]);
+    expect(liq).toEqual({ net: 294, units: 17, sold: 3 }); // 3@100 net 294; dust contributes 0 net/sold but counts units
+    expect(liquidateNow(game, [])).toEqual({ net: 0, units: 0, sold: 0 });
+  });
+
   it('"sell the spoils" dumps loot but keeps your gear', () => {
     const game = newGame(42);
     for (let i = 0; i < 200; i++) tickWorld(game.world); // populate NPC bids so items are sellable
@@ -3280,6 +3313,19 @@ describe('UI shell', () => {
     expect(screen.getAllByText(/\+300/).length).toBeGreaterThan(0); // row + header paper total
     fireEvent.click(screen.getByText(FIRST.name));
     expect(onSelect).toHaveBeenCalledWith(FIRST.id);
+  });
+
+  it('PositionsPanel shows the honest "cash out now" liquidation value from the bids (19j)', () => {
+    const game = newGame(42);
+    game.tradeBook = bookFromFills([{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }], 0.02);
+    // inject a real bid so liquidateNow can walk it; agentId ≠ player so it isn't skipped
+    const book = game.world.books[FIRST.id]!;
+    book.buys.push({ id: 1, tick: 0, agentId: game.playerId + 1, itemId: FIRST.id, side: 'buy', price: 120, qty: 10, remaining: 10, escrowGp: 1200 });
+    book.buys.sort((a, b) => b.price - a.price || a.tick - b.tick || a.id - b.id);
+    const view = { markets: [{ itemId: FIRST.id, lastPrice: 130 }] } as unknown as PlayerView; // mark 130 → value 1,300
+    render(<PositionsPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} />);
+    // 10 units dumped @ bid 120 = 1,200 gross − floor(1,200·0.02)=24 tax → 1,176 net, BELOW the 1,300 mark
+    expect(screen.getByText(/cash out now/)).toBeTruthy();
   });
 
   it('PositionsPanel tags a holding by its value band (rich = ripe to offload)', () => {
