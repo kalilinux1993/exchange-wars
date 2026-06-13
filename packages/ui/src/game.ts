@@ -770,7 +770,6 @@ export function recentFlips(fills: Fill[], taxRate: number, limit = 6): FlipReco
       (lots[f.itemId] ??= []).push({ price: f.price, qty: f.qty });
       continue;
     }
-    const proceeds = f.price - Math.floor(f.price * taxRate); // per-unit, after tax
     const itemLots = lots[f.itemId] ?? [];
     let remaining = f.qty;
     let matched = 0;
@@ -785,12 +784,15 @@ export function recentFlips(fills: Fill[], taxRate: number, limit = 6): FlipReco
       if (lot.qty === 0) itemLots.shift();
     }
     if (matched > 0) {
+      // Per-FILL sell tax on the matched units (floor(price·matched·rate)) — matches the engine + the trade
+      // book (18w); per-unit floored to 0 tax below price 50, overstating cheap flips.
+      const gross = f.price * matched;
       flips.push({
         itemId: f.itemId,
         qty: matched,
         buyAvg: Math.round(buyCost / matched),
         sellPrice: f.price,
-        profit: proceeds * matched - buyCost,
+        profit: gross - Math.floor(gross * taxRate) - buyCost,
         tick: f.tick,
       });
     }
@@ -860,18 +862,28 @@ export function applyFillToBook(book: TradeBook, f: Fill, taxRate: number): void
     (book.lots[f.itemId] ??= []).push({ price: f.price, qty: f.qty });
     return;
   }
-  const proceeds = f.price - Math.floor(f.price * taxRate); // per-unit, after tax
   const lots = (book.lots[f.itemId] ??= []);
   const acc = (book.realized[f.itemId] ??= { profit: 0, soldUnits: 0 });
   let remaining = f.qty;
+  let matched = 0;
+  let buyCost = 0;
   while (remaining > 0 && lots.length > 0) {
     const lot = lots[0]!;
     const take = Math.min(remaining, lot.qty);
-    acc.profit += (proceeds - lot.price) * take;
-    acc.soldUnits += take;
+    buyCost += lot.price * take;
+    matched += take;
     lot.qty -= take;
     remaining -= take;
     if (lot.qty === 0) lots.shift();
+  }
+  if (matched > 0) {
+    // Net the sell tax PER FILL on the matched units — `floor(price·qty·rate)`, exactly the engine's
+    // paySeller (exchange.ts). NOT per-unit `floor(price·rate)`, which is 0 below price 50 and so booked
+    // ZERO tax on cheap-staple flips, overstating their profit by the full ~2% (18w). Full match ==
+    // engine net; a partial match (selling loot beyond buys) taxes only the matched flip portion.
+    const gross = f.price * matched;
+    acc.profit += gross - Math.floor(gross * taxRate) - buyCost;
+    acc.soldUnits += matched;
   }
 }
 

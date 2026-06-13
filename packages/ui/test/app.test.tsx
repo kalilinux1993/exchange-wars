@@ -3048,10 +3048,17 @@ describe('UI shell', () => {
     const TAX = 0.02;
     const buy = (itemId: string, qty: number, price: number, tick = 0): Fill => ({ tick, itemId, side: 'buy', qty, price });
     const sell = (itemId: string, qty: number, price: number, tick = 1): Fill => ({ tick, itemId, side: 'sell', qty, price });
-    it('matches a clean round-trip and nets the sell tax', () => {
-      // sell 120, tax floor(2.4)=2 → proceeds 118/unit; (118-100)*10 = 180
+    it('matches a clean round-trip and nets the sell tax PER FILL (18w)', () => {
+      // sell 10 @ 120: gross 1,200, tax floor(1200·.02)=24, net 1,176 − 1,000 buy = 176.
+      // (Per-fill, matching the engine's paySeller — NOT per-unit floor(120·.02)·10 = 20, which under-taxed.)
       expect(realizedPnL([buy('rune', 10, 100), sell('rune', 10, 120)], TAX)).toEqual([
-        { itemId: 'rune', profit: 180, soldUnits: 10 },
+        { itemId: 'rune', profit: 176, soldUnits: 10 },
+      ]);
+    });
+    it('books the FULL sell tax on a cheap-staple flip (per-unit floored it to ZERO below price 50) (18w)', () => {
+      // sell 100 @ 33: gross 3,300, tax floor(66)=66, net 3,234 − 3,000 buy = 234. Per-unit was floor(33·.02)=0 → +300.
+      expect(realizedPnL([buy('coal', 100, 30), sell('coal', 100, 33)], TAX)).toEqual([
+        { itemId: 'coal', profit: 234, soldUnits: 100 },
       ]);
     });
     it('FIFO-matches across buy lots and tolerates a loss leg', () => {
@@ -3092,7 +3099,7 @@ describe('UI shell', () => {
     const onSelect = vi.fn();
     const view = { markets: [] } as unknown as PlayerView;
     render(<ProfitPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={onSelect} />);
-    expect(screen.getAllByText('+180').length).toBeGreaterThan(0); // row + header realized total
+    expect(screen.getAllByText('+176').length).toBeGreaterThan(0); // row + header realized total (per-fill tax, 18w)
     expect(screen.getByText(/realized/)).toBeTruthy(); // scorecard header
     fireEvent.click(screen.getByText(FIRST.name));
     expect(onSelect).toHaveBeenCalledWith(FIRST.id);
@@ -3354,8 +3361,8 @@ describe('UI shell', () => {
     it('applyFillToBook accrues realized + open lots incrementally', () => {
       const book = emptyTradeBook();
       [buy('a', 10, 100), sell('a', 4, 120), buy('b', 5, 50)].forEach((f) => applyFillToBook(book, f, 0.02));
-      // a: sold 4 @ proceeds 118 → +72 realized; 6 left @ 100 open. b: 5 open @ 50.
-      expect(realizedFromBook(book)).toEqual([{ itemId: 'a', profit: 72, soldUnits: 4 }]);
+      // a: sold 4 @ 120 → gross 480, tax floor(480·.02)=9, net 471 − 400 buy = +71 (per-fill, 18w); 6 left @ 100. b: 5 @ 50.
+      expect(realizedFromBook(book)).toEqual([{ itemId: 'a', profit: 71, soldUnits: 4 }]);
       expect(openFromBook(book, 'a')).toEqual({ units: 6, avgCost: 100 });
       expect(openFromBook(book, 'b')).toEqual({ units: 5, avgCost: 50 });
     });
@@ -3370,9 +3377,9 @@ describe('UI shell', () => {
     });
     it('totalRealized + totalUnrealized are the trading scorecard', () => {
       const book = emptyTradeBook();
-      // a: +72 realized, 6 left @ 100. b: 5 left @ 50, never sold.
+      // a: +71 realized (sell 4 @ 120 net of per-fill tax 9, 18w), 6 left @ 100. b: 5 left @ 50, never sold.
       [buy('a', 10, 100), sell('a', 4, 120), buy('b', 5, 50)].forEach((f) => applyFillToBook(book, f, 0.02));
-      expect(totalRealized(book)).toBe(72);
+      expect(totalRealized(book)).toBe(71);
       // mark a @ 130 (+30/unit × 6 = +180), b @ 40 (−10/unit × 5 = −50) → +130 paper
       const price: Record<string, number> = { a: 130, b: 40 };
       expect(totalUnrealized(book, (id) => price[id] ?? 0)).toBe(130);
