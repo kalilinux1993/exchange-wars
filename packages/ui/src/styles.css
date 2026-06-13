@@ -402,7 +402,9 @@ body {
   padding: 0 4px;
   margin-left: -2px;
   cursor: pointer;
-  color: var(--muted, #8a7f66);
+  /* WCAG 1.4.3 (21p): was var(--muted,#8a7f66) — an UNDEFINED var whose #8a7f66 fallback is 4.03:1 on the
+     panels (fails AA-text 4.5:1). The established --parchment-dim token is 5.02:1 (AA) and palette-consistent. */
+  color: var(--parchment-dim);
   font-size: 0.85em;
   line-height: 1;
 }
