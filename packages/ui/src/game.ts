@@ -1728,6 +1728,17 @@ export const MILESTONES: Milestone[] = [
       }),
   },
   {
+    id: 'profiteer',
+    name: 'Profiteer',
+    flavor: 'A hundred thousand gp of realized spread — bought low, sold high, the merchant’s whole art.',
+    // Lifetime REALIZED flip profit from the FIFO trade book (tax-accurate since 18w) — the core loop's
+    // SUCCESS, which the worth tiers can't measure (they count NET WORTH, reachable by idle accrual on the
+    // starting stake) and big-leagues doesn't (it rewards a big FILL, not a profitable round-trip). Reads
+    // g.tradeBook (UI-side, rebuilt by normalizeGame) — replay-inert, like every deed.
+    achieved: (g) => totalRealized(g.tradeBook) >= 100_000,
+    progress: (g) => totalRealized(g.tradeBook) / 100_000,
+  },
+  {
     id: 'first-blood',
     name: 'Monster Slayer',
     flavor: 'Your first kill in the depths.',

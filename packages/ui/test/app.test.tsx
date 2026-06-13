@@ -4703,6 +4703,36 @@ describe('UI shell', () => {
     expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('untouchable'); // latches
   });
 
+  it('the Profiteer deed needs 100k in realized flip profit, with partial progress (21g)', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    const deed = MILESTONES.find((m) => m.id === 'profiteer')!;
+    // fresh — nothing booked
+    expect(deed.achieved(game, view, 0)).toBe(false);
+    expect(deed.progress!(game, view, 0)).toBe(0);
+    // a profitable round-trip BELOW the bar: buy 1000@100 → sell 1000@180 ≈ +76k after tax
+    game.tradeBook = bookFromFills(
+      [
+        { tick: 0, itemId: FIRST.id, side: 'buy', qty: 1000, price: 100 },
+        { tick: 1, itemId: FIRST.id, side: 'sell', qty: 1000, price: 180 },
+      ],
+      0.02,
+    );
+    expect(deed.achieved(game, view, 0)).toBe(false);
+    expect(deed.progress!(game, view, 0)).toBeGreaterThan(0.5);
+    expect(deed.progress!(game, view, 0)).toBeLessThan(1);
+    // a wider spread clears it: buy 1000@100 → sell 1000@250 ≈ +145k after tax
+    game.tradeBook = bookFromFills(
+      [
+        { tick: 0, itemId: FIRST.id, side: 'buy', qty: 1000, price: 100 },
+        { tick: 1, itemId: FIRST.id, side: 'sell', qty: 1000, price: 250 },
+      ],
+      0.02,
+    );
+    expect(deed.achieved(game, view, 0)).toBe(true);
+    expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('profiteer'); // latches
+  });
+
   it('BountyBoard shows reward-per-kill and a progress bar', () => {
     const game = newGame(42);
     game.world.bounties = [{ id: 1, monsterId: 'goblin', qty: 4, rewardGp: 2_000, baseline: 0, expiresTick: 5_000 }];
