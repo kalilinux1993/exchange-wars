@@ -2410,6 +2410,10 @@ describe('UI shell', () => {
       expect(flipMargin({ bestBid: null, bestAsk: 110 })).toBeNull();
       expect(flipMargin({ bestBid: 100, bestAsk: null })).toBeNull();
       expect(flipMargin({ bestBid: 1, bestAsk: 1 })).toBeNull(); // sell = 0 → null
+      // INTENTIONAL qty-1 behavior (18x): a cheap flip's per-unit tax floor(32·.02)=0 — exact for a 1-unit
+      // sell (the engine floors tax per fill, so a single 32-gp sale genuinely pays 0). Do NOT "fix" this
+      // to per-fill like the realized book (18w) — flipMargin is a per-unit figure.
+      expect(flipMargin({ bestBid: 30, bestAsk: 33 })).toBe(1); // buy 31, sell 32, −floor(32·.02=0) → 1
     });
     it('momentum reads last vs EMA as a signed fraction; null when there is no EMA (17z)', () => {
       expect(momentum(120, 100)).toBeCloseTo(0.2); // +20% above EMA

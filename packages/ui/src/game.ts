@@ -1337,10 +1337,17 @@ export function valueBand(
 }
 
 /**
- * After-tax flip margin per unit at the current spread: undercut the spread one tick each way
+ * After-tax flip margin PER UNIT at the current spread: undercut the spread one tick each way
  * (buy at bestBid+1, sell at bestAsk−1) and net the 2% sell tax. `null` when the book isn't
  * two-sided or a leg is non-positive. Pure — the single source for the market column AND the
  * watchlist row (they can't disagree on a margin).
+ *
+ * INVARIANT (do NOT "fix" to per-fill — see 18w/18x): `floor(sell·rate)` is the EXACT tax the engine
+ * charges on a ONE-unit sell (paySeller floors per fill; a qty-1 fill at price <50 genuinely pays 0 tax).
+ * So this is qty-1-exact. A bulk cheap flip realizes slightly UNDER margin×qty because the engine's
+ * per-fill tax `floor(price·qty·rate)` exceeds `qty·floor(price·rate)` — that's the per-unit↔per-fill
+ * relationship, not a bug. The realized BOOK (applyFillToBook) is per-fill (qty-known) and was the one
+ * that needed the per-fill fix (18w); this per-unit estimate must stay per-unit.
  */
 export function flipMargin(m: { bestBid: number | null; bestAsk: number | null }): number | null {
   if (m.bestBid === null || m.bestAsk === null) return null;
