@@ -974,6 +974,18 @@ describe('UI shell', () => {
     expect(screen.getByText(/pick a region and/i)).toBeTruthy(); // the Adventure ←/→ + Enter embark nav (18d)
   });
 
+  it('the help overlay is a dialog that takes focus on open and restores it on close (20c a11y)', () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+    const { unmount } = render(<HelpOverlay onClose={() => {}} />);
+    const dialog = screen.getByRole('dialog', { name: 'How to Play' }); // proper modal semantics
+    expect(document.activeElement).toBe(dialog); // focus moved INTO the modal on open
+    unmount();
+    expect(document.activeElement).toBe(trigger); // restored to the prior element on close
+    trigger.remove();
+  });
+
   it('the help overlay covers the decision tools (watchlist/alerts/bands) and the duel (16u)', () => {
     const { container } = render(<HelpOverlay onClose={() => {}} />);
     expect(container.textContent).toMatch(/Watchlist/); // the decision-support tools

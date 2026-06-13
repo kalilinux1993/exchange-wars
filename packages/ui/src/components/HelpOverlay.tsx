@@ -1,12 +1,23 @@
 import { REGIONS, SPRINT_TICKS } from '@exchange-wars/engine';
+import { useEffect, useRef } from 'react';
 import { HUMAN_START_GP } from '../game';
 
 export const HELP_SEEN_KEY = 'ew-help-seen';
 
 export function HelpOverlay({ onClose }: { onClose: () => void }) {
+  // Modal focus management (WCAG 2.4.3 / the dialog pattern): move focus INTO the dialog on open — so a
+  // keyboard/screen-reader user lands in it (and a SR announces "How to Play dialog") instead of on the
+  // inert background behind the scrim — and RESTORE focus to wherever it was when the dialog closes. Escape
+  // already dismisses (17u). (A full Tab-trap is a follow-up; move-in + restore is the bulk of the value.)
+  const panelRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+    return () => prev?.focus?.();
+  }, []);
   return (
     <div className="scrim" onClick={onClose}>
-      <section className="panel help" onClick={(e) => e.stopPropagation()}>
+      <section ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="How to Play" className="panel help" onClick={(e) => e.stopPropagation()}>
         <h2>How to Play</h2>
         <ul className="guide">
           <li>
