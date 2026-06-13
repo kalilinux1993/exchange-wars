@@ -1,5 +1,5 @@
 import { levelsOf, maxHpFor, MONSTERS, REGIONS } from '@exchange-wars/engine';
-import type { Game } from '../game';
+import { diveSurvival, type Game } from '../game';
 
 const fmt = (n: number): string => n.toLocaleString('en-US');
 
@@ -90,6 +90,20 @@ export function AlmanacPanel({ game }: { game: Game }) {
           <span>deaths</span>
           <span className="num">{fmt(st.deaths ?? 0)}†</span>
         </li>
+        {(() => {
+          // Push-your-luck report card (21j): clean-extraction rate + avg loot banked per survived dive.
+          // The rate behind the survival streak (16f) / Untouchable deed (21f). Hidden until you've dived.
+          const s = diveSurvival(game.delves);
+          if (s.total === 0) return null;
+          return (
+            <li title="how often you extract alive, and the average loot you bank when you do — your push-your-luck report card (a death banks nothing)">
+              <span>dives survived</span>
+              <span className="num">
+                {fmt(s.survived)}/{fmt(s.total)} ({Math.round(s.survivalPct * 100)}%) · avg {fmt(s.avgHaul)} gp
+              </span>
+            </li>
+          );
+        })()}
         <li>
           <span>bounties claimed</span>
           <span className="num">{fmt(st.bountiesClaimed ?? 0)}</span>

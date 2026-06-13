@@ -465,6 +465,35 @@ export function diveStreak(delves: DelveRecord[] | undefined): DiveStreak {
   return { current: run, best }; // at loop end, `run` is the trailing (current) streak
 }
 
+export interface DiveSurvival {
+  total: number;
+  survived: number;
+  /** Clean-extraction rate, 0..1 (0 with no dives). */
+  survivalPct: number;
+  /** Mean loot banked per SURVIVED dive (0 when none survived). */
+  avgHaul: number;
+}
+/** Your push-your-luck report card from the Delve Log: how often you extract alive, and the average loot you
+ *  bank when you do. A died dive banks nothing (its `lootGp` was lost — the same mapping `raidTotals` uses), so
+ *  avgHaul averages banked loot over SURVIVED dives only. The rate behind the streak (16f). Pure; one pass. */
+export function diveSurvival(delves: DelveRecord[] | undefined): DiveSurvival {
+  const list = delves ?? [];
+  let survived = 0;
+  let banked = 0;
+  for (const d of list) {
+    if (!d.died) {
+      survived++;
+      banked += d.lootGp;
+    }
+  }
+  return {
+    total: list.length,
+    survived,
+    survivalPct: list.length > 0 ? survived / list.length : 0,
+    avgHaul: survived > 0 ? Math.round(banked / survived) : 0,
+  };
+}
+
 /**
  * Which room tabs to flag with an "unseen activity" dot. A room is flagged when an event relevant to it
  * fired while it was NOT the active room, and it isn't already flagged. Returns the SAME object when

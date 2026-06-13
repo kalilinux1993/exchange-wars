@@ -37,6 +37,7 @@ import { AccountBar } from '../src/components/AccountBar';
 import { depthSplit, TradeTicket } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank, rankGap, gapToTop, provisionalRank } from '../src/components/LeaderboardPanel';
 import { HandleField } from '../src/components/HandleField';
+import { AlmanacPanel } from '../src/components/AlmanacPanel';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
 import { FirstSteps, firstSteps } from '../src/components/FirstSteps';
 import { ContractsBoard, contractPremium } from '../src/components/ContractsBoard';
@@ -146,6 +147,7 @@ import {
   summarizeDelve,
   recentDelves,
   outgrownFarm,
+  diveSurvival,
   raidTotals,
   raidTotalsByRegion,
   regionLoot,
@@ -1943,6 +1945,35 @@ describe('UI shell', () => {
         { tick: 2, regionId: 'r', kills: 1, lootGp: 300, died: true },
       ];
       expect(raidTotals(delves)).toEqual({ runs: 3, deaths: 1, banked: 1400, lost: 300 });
+    });
+    it('diveSurvival rates clean extractions and averages banked loot over survived dives (21j)', () => {
+      expect(diveSurvival(undefined)).toEqual({ total: 0, survived: 0, survivalPct: 0, avgHaul: 0 });
+      const delves = [
+        { tick: 0, regionId: 'r', kills: 2, lootGp: 500, died: false },
+        { tick: 1, regionId: 'r', kills: 4, lootGp: 900, died: false },
+        { tick: 2, regionId: 'r', kills: 1, lootGp: 300, died: true }, // banks nothing
+      ];
+      expect(diveSurvival(delves)).toEqual({ total: 3, survived: 2, survivalPct: 2 / 3, avgHaul: 700 }); // (500+900)/2
+      // every dive died → 0% and no banked average
+      expect(diveSurvival([{ tick: 0, regionId: 'r', kills: 0, lootGp: 400, died: true }])).toEqual({
+        total: 1,
+        survived: 0,
+        survivalPct: 0,
+        avgHaul: 0,
+      });
+    });
+    it('AlmanacPanel shows the dive survival report card once you have dives (21j)', () => {
+      const game = newGame(42);
+      const { container: empty } = render(<AlmanacPanel game={game} />);
+      expect(empty.textContent).not.toMatch(/dives survived/); // hidden before any dive
+      game.delves = [
+        { tick: 0, regionId: 'r', kills: 2, lootGp: 500, died: false },
+        { tick: 1, regionId: 'r', kills: 4, lootGp: 900, died: false },
+        { tick: 2, regionId: 'r', kills: 1, lootGp: 300, died: true },
+      ];
+      const { container } = render(<AlmanacPanel game={game} />);
+      expect(container.textContent).toMatch(/2\/3 \(67%\)/); // clean-extraction rate
+      expect(container.textContent).toMatch(/avg 700 gp/); // banked over survived dives only
     });
     it('raidTotalsByRegion groups by region and ranks best-net first', () => {
       expect(raidTotalsByRegion(undefined)).toEqual([]);
