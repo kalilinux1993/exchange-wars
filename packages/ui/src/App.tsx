@@ -252,10 +252,13 @@ export function App({ initial }: { initial?: Game }) {
     setAwayDeeds([]); // a new absence starts fresh; the boot/catch-up checkMilestones repopulates it
     const plan = planOfflineProgress(g, Date.now());
     if (!plan) return;
-    // Offline catch-up advances world.tick via runTicks but logs NO commands; this stays
-    // replay-correct ONLY because the player agent is policy:'idle' and takes no engine
-    // action while away. If automation ever acts for the player offline, the verified-run
-    // replay would diverge and logSince would still claim 0 — guard this before that.
+    // Offline catch-up advances world.tick via runTicks but logs NO COMMANDS. This stays
+    // replay-correct because everything that happens offline is DETERMINISTIC engine behavior
+    // re-run by replay's identical tickWorld — including the autoFlip Clerk, which DOES act
+    // offline (actAgent places/cancels the player's orders, agents.ts) but needs no command log
+    // since replay re-derives it. Only the player's MANUAL commands need logging, and there are
+    // none while away. (If a player action ever fired offline WITHOUT a logged command, replay
+    // would diverge — that's the line to hold.)
     if (plan.ticks <= SYNC_CATCHUP_TICKS) {
       runTicks(g.world, plan.ticks);
       offlineRef.current = finishOfflineProgress(g, plan);
@@ -710,7 +713,12 @@ export function App({ initial }: { initial?: Game }) {
       if (document.visibilityState === 'hidden') {
         resumeSpeedRef.current = speedRef.current;
         setSpeed(0);
-        saveGame(g);
+        // Don't persist a half-finished catch-up. `planOfflineProgress` stamps lastSeenMs for the FULL
+        // debt up front, but a chunked catch-up (planRef.current set) advances world.tick in slices — a
+        // save here re-stamps lastSeenMs≈now while the world is behind, dropping the unrun remainder on
+        // reopen. Skipping the save leaves the clean prior state, so the next boot re-plans the whole gap
+        // (the in-memory partial is recomputed, not lost). No-catch-up hide saves normally. (19r)
+        if (planRef.current === null) saveGame(g);
         return;
       }
       beginOffline(g);

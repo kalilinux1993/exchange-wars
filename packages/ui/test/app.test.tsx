@@ -59,6 +59,7 @@ import {
   goalView,
   MILESTONES,
   CORRUPT_SAVE_KEY,
+  SAVE_KEY,
   dailySeed,
   deathRecap,
   discardCorruptSave,
@@ -671,6 +672,26 @@ describe('UI shell', () => {
     render(<App initial={game} />);
     expect(screen.getByText(/while you were away/i)).toBeTruthy();
     expect(game.world.tick).toBeGreaterThanOrEqual(600);
+  });
+
+  it('hiding the tab mid catch-up keeps the offline debt recoverable — no half-done save (19r)', () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.clear();
+      const game = newGame(42);
+      game.lastSeenMs = Date.now() - 7 * 24 * 3_600_000; // a week → a 100k-tick (capped) CHUNKED catch-up
+      render(<App initial={game} />); // boot starts the chunked catch-up (planRef set); fake timers hold it mid-flight
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      fireEvent(document, new Event('visibilitychange')); // hide BEFORE the catch-up completes
+      // The guard skips the mid-catch-up save, so either nothing persisted or lastSeenMs is still ~a week
+      // back — the next boot re-plans the whole gap. Without the guard, onVis would persist lastSeenMs≈now
+      // and silently drop the week of accrual.
+      const saved = localStorage.getItem(SAVE_KEY);
+      expect(saved === null || Date.now() - JSON.parse(saved).lastSeenMs > 6 * 24 * 3_600_000).toBe(true);
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('surfaces a deed the offline accrual CROSSED in the away-bar — not deeds earned before the gap (17a)', () => {
