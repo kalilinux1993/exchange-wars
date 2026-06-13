@@ -45,7 +45,7 @@ export function WatchlistPanel({
     <section className="panel watchlist">
       <h2>Watchlist</h2>
       {rows.length === 0 ? (
-        <p className="dim small">star an item from the ticket to track it here</p>
+        <p className="dim small">star an item to track it here — the ★ on a market row, the ticket star, or press w on the loaded item</p>
       ) : (
         <ul className="rows small">
           {rows.map((m) => {

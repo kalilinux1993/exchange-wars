@@ -57,7 +57,7 @@ export function MarketTable({
   watched?: ReadonlySet<ItemId>;
 }) {
   const [filter, setFilter] = useState('');
-  const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear' | 'flippable' | 'cheap'>('all');
+  const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear' | 'flippable' | 'cheap' | 'watched'>('all');
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
   const toggleSort = (key: SortKey): void =>
     setSort((s) => (s && s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 }));
@@ -76,6 +76,7 @@ export function MarketTable({
   const inTrack = (m: { itemId: ItemId; bestBid: number | null; bestAsk: number | null; lastPrice: number }): boolean => {
     if (track === 'all') return true;
     if (track === 'gear') return GEAR[m.itemId] !== undefined; // the equippable items only
+    if (track === 'watched') return watched?.has(m.itemId) ?? false; // your starred items only (17f)
     if (track === 'flippable') {
       const mg = flipMargin(m);
       return mg !== null && mg > 0; // a positive after-tax spread right now
@@ -163,11 +164,17 @@ export function MarketTable({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-        {(['all', 'staples', 'exotics', 'gear', 'flippable', 'cheap'] as const).map((t) => (
+        {(['all', 'staples', 'exotics', 'gear', 'flippable', 'cheap', 'watched'] as const).map((t) => (
           <button
             key={t}
             className={track === t ? 'chip active' : 'chip'}
-            title={t === 'cheap' ? 'items trading in the cheap third of their cost→value band — accumulation candidates' : undefined}
+            title={
+              t === 'cheap'
+                ? 'items trading in the cheap third of their cost→value band — accumulation candidates'
+                : t === 'watched'
+                  ? 'only the items on your watchlist (★ / press w to add)'
+                  : undefined
+            }
             onClick={() => setTrack(t)}
           >
             {t}

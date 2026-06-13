@@ -1065,6 +1065,22 @@ describe('UI shell', () => {
       expect(screen.queryByText('Rich Silk')).toBeNull(); // rich (pos 0.9) filtered out
     });
 
+    it('the "watched" track shows only the starred items (17f)', () => {
+      const items = [
+        { id: 'star_me', name: 'Star Me', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+        { id: 'ignore_me', name: 'Ignore Me', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+      ] as unknown as ItemDef[];
+      const row = (itemId: string) => ({
+        itemId, bestBid: 1, bestAsk: 2, lastPrice: 100, ema: 100, volume: 0, bestBidIsMine: false, bestAskIsMine: false,
+      });
+      const v = { markets: [row('star_me'), row('ignore_me')] } as unknown as PlayerView;
+      render(<MarketTable view={v} items={items} trades={[]} selected="star_me" onSelect={() => {}} eventItems={new Set()} active watched={new Set(['star_me'])} onToggleWatch={() => {}} />);
+      expect(screen.getByText('Ignore Me')).toBeTruthy(); // both shown under 'all'
+      fireEvent.click(screen.getByRole('button', { name: 'watched' }));
+      expect(screen.getByText('Star Me')).toBeTruthy(); // the starred one stays
+      expect(screen.queryByText('Ignore Me')).toBeNull(); // the rest filtered out
+    });
+
     it('renders a market-mood breadth line', () => {
       const items = [{ id: 'x', name: 'X', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
       const v = {
