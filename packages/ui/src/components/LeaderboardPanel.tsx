@@ -74,15 +74,29 @@ export function LeaderboardPanel({
   game,
   session,
   onToast,
+  handle: controlledHandle,
+  onHandleChange,
 }: {
   game: Game;
   session: Session | null;
   onToast: (name: string, flavor: string) => void;
+  /** Controlled handle from App (the single source of truth). When omitted, the panel falls back to its
+   * own localStorage-seeded state (preserves standalone renders / the existing tests). */
+  handle?: string;
+  onHandleChange?: (v: string) => void;
 }) {
   const seed = game.world.seed;
   const [rows, setRows] = useState<BoardRow[] | null>(null);
   const [busy, setBusy] = useState(false);
-  const [handle, setHandle] = useState(() => localStorage.getItem(HANDLE_KEY) ?? '');
+  const [localHandle, setLocalHandle] = useState(() => localStorage.getItem(HANDLE_KEY) ?? '');
+  const handle = controlledHandle ?? localHandle;
+  const updateHandle = (v: string): void => {
+    if (onHandleChange) onHandleChange(v);
+    else {
+      setLocalHandle(v);
+      localStorage.setItem(HANDLE_KEY, v);
+    }
+  };
   useEffect(() => {
     let live = true;
     void fetchLeaderboard(seed).then((r) => {
@@ -187,10 +201,7 @@ export function LeaderboardPanel({
               placeholder="handle (public — not your email)"
               maxLength={24}
               value={handle}
-              onChange={(e) => {
-                setHandle(e.target.value);
-                localStorage.setItem(HANDLE_KEY, e.target.value);
-              }}
+              onChange={(e) => updateHandle(e.target.value)}
             />
             <button className="chip" disabled={!eligible} onClick={submit}>
               {busy ? 'verifying…' : `submit ${SPRINT_TICKS / 1_000}k sprint`}

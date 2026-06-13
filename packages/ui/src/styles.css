@@ -1824,6 +1824,13 @@ input.belowbe {
   font-size: 0.72rem;
   white-space: nowrap;
 }
+/* The always-available handle setter in the Hall (21b). Full-width input within its panel; the field
+   inherits the app's global input theme. */
+.identity .handle-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0.3rem 0;
+}
 /* "GE" tag on a flip you can afford but the buy limit (not your gp) caps. */
 .gecap {
   color: var(--parchment-dim);

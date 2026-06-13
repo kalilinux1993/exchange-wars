@@ -33,6 +33,7 @@ import { TradeFeed } from './components/TradeFeed';
 import { TradeTicket } from './components/TradeTicket';
 import { UpgradeShop } from './components/UpgradeShop';
 import { WorthChart } from './components/WorthChart';
+import { HandleField } from './components/HandleField';
 import {
   alertHit,
   bandAlertHit,
@@ -140,6 +141,16 @@ export function App({ initial }: { initial?: Game }) {
   const [syncFailed, setSyncFailed] = useState(false); // last cloud push failed → show "unsynced", not a stale "✓ synced" (19d)
   const [prefill, setPrefill] = useState<TicketPrefill | null>(null);
   const [regionPick, setRegionPick] = useState<{ regionId: string; n: number } | null>(null);
+  // The player's public handle — single source of truth for the social surfaces (brag / challenge link /
+  // Run Card) AND the leaderboard. Seeded from + persisted RAW under 'ew-handle' (the existing reads and
+  // LeaderboardPanel use raw getItem/setItem — JSON-quoting via usePref would corrupt them). The setter is
+  // surfaced in the Hall (HandleField) so it's reachable when the cloud board — the only other setter — is
+  // absent or you're signed out (the common case).
+  const [handle, setHandle] = useState(() => localStorage.getItem('ew-handle') ?? '');
+  const setHandlePersist = (v: string): void => {
+    setHandle(v);
+    localStorage.setItem('ew-handle', v);
+  };
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_SEEN_KEY) === null);
   // Mirror for the once-bound keydown listener: Escape should only dismiss (+ mark seen) an OPEN help (17v).
   const helpOpenRef = useRef(helpOpen);
@@ -794,7 +805,7 @@ export function App({ initial }: { initial?: Game }) {
   };
 
   const shareBrag = (): void => {
-    const text = bragText(game, playerWorth(game), window.location.origin, window.location.pathname, localStorage.getItem('ew-handle') ?? '');
+    const text = bragText(game, playerWorth(game), window.location.origin, window.location.pathname, handle);
     // Prefer the native share sheet (mobile → one tap to any app, the real viral path); the sheet IS
     // the feedback, and a user cancel rejects the promise — swallow it. Fall back to clipboard copy.
     if (navigator.share) {
@@ -816,7 +827,7 @@ export function App({ initial }: { initial?: Game }) {
   };
   const copyChallenge = (): void => {
     // A duel link: the seed + your current worth + handle, so it dares them to beat YOUR number (16s).
-    const url = challengeLink(window.location.origin, window.location.pathname, game.world.seed, playerWorth(game), localStorage.getItem('ew-handle') ?? '');
+    const url = challengeLink(window.location.origin, window.location.pathname, game.world.seed, playerWorth(game), handle);
     const done = (): void =>
       setToast({
         id: 'challenge-link',
@@ -1458,7 +1469,8 @@ export function App({ initial }: { initial?: Game }) {
         {/* Three columns, balanced ~3/3/2 (18t) — identity/economy · progression/adventure · competition/reference.
             Was 6/1/1 (all the tall panels in col 1), which left a large void below the short cols 2-3. */}
         <section className="middle">
-          <BragCard game={game} worth={playerWorth(game)} handle={localStorage.getItem('ew-handle') ?? ''} />
+          <HandleField handle={handle} onChange={setHandlePersist} />
+          <BragCard game={game} worth={playerWorth(game)} handle={handle} />
           <UpgradeShop
             view={view}
             items={game.world.items}
@@ -1484,6 +1496,8 @@ export function App({ initial }: { initial?: Game }) {
           <LeaderboardPanel
             game={game}
             session={session}
+            handle={handle}
+            onHandleChange={setHandlePersist}
             onToast={(name, flavor) => setToast({ id: 'sprint', name, flavor, achieved: () => false })}
           />
           <AlmanacPanel game={game} />

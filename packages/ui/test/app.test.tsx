@@ -36,6 +36,7 @@ import { PlayerPanel } from '../src/components/PlayerPanel';
 import { AccountBar } from '../src/components/AccountBar';
 import { depthSplit, TradeTicket } from '../src/components/TradeTicket';
 import { LeaderboardPanel, myRank, rankGap, gapToTop, provisionalRank } from '../src/components/LeaderboardPanel';
+import { HandleField } from '../src/components/HandleField';
 import { MilestonesPanel } from '../src/components/MilestonesPanel';
 import { FirstSteps, firstSteps } from '../src/components/FirstSteps';
 import { ContractsBoard, contractPremium } from '../src/components/ContractsBoard';
@@ -5525,6 +5526,47 @@ describe('UI shell', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Sprint verified — new best!', expect.stringContaining('123,456')),
     );
+  });
+
+  it('HandleField shows the value + an anonymous/active hint and fires onChange on edit (21b)', () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<HandleField handle="" onChange={onChange} />);
+    const input = screen.getByLabelText('your handle') as HTMLInputElement;
+    expect(input.value).toBe('');
+    expect(screen.getByText(/anonymous/)).toBeTruthy(); // empty → nudge to set a name
+    fireEvent.change(input, { target: { value: 'zara' } });
+    expect(onChange).toHaveBeenCalledWith('zara');
+    rerender(<HandleField handle="zara" onChange={onChange} />);
+    expect((screen.getByLabelText('your handle') as HTMLInputElement).value).toBe('zara');
+    expect(screen.getByText(/shown on your brags/)).toBeTruthy(); // non-empty → confirms where it appears
+  });
+
+  it('LeaderboardPanel uses a controlled handle from the parent, leaving persistence to it (21b)', async () => {
+    localStorage.removeItem('ew-handle');
+    fetchRoutes = (url) =>
+      url.includes('/rest/v1/leaderboard') ? jsonResponse([{ handle: 'zara', worth: 5000 }]) : null;
+    const game = newGame(42);
+    game.world.tick = SPRINT_TICKS;
+    const onHandleChange = vi.fn();
+    render(
+      <LeaderboardPanel game={game} session={{} as Session} handle="zara" onHandleChange={onHandleChange} onToast={vi.fn()} />,
+    );
+    await waitFor(() => expect(screen.getByText('Sprint Board')).toBeTruthy());
+    const input = screen.getByLabelText('handle') as HTMLInputElement; // the submit-row input
+    expect(input.value).toBe('zara'); // reflects the controlled prop, not its own localStorage seed
+    fireEvent.change(input, { target: { value: 'zora' } });
+    expect(onHandleChange).toHaveBeenCalledWith('zora'); // delegates upward…
+    expect(localStorage.getItem('ew-handle')).toBeNull(); // …and does NOT persist itself when controlled
+  });
+
+  it('the Hall handle field sets your public name for the offline social surfaces, no cloud needed (21b)', () => {
+    localStorage.removeItem('ew-handle');
+    freshApp(); // default offline route → the Sprint Board (the only other setter) is hidden
+    const input = screen.getByLabelText('your handle') as HTMLInputElement;
+    expect(input.value).toBe(''); // anonymous to start
+    fireEvent.change(input, { target: { value: 'zara' } });
+    expect(localStorage.getItem('ew-handle')).toBe('zara'); // persisted RAW (not JSON-quoted)
+    expect(document.body.textContent).toContain('zara'); // flows live into the Run Card byline (App state, not a remount)
   });
 
   it('shows the 👑 gap-to-#1 line for a top contender (#3) alongside the immediate climb (18a)', async () => {
