@@ -1033,6 +1033,24 @@ kbd {
   font-size: 0.82rem;
 }
 
+/* Placed-and-resting confirmation (18h) — the third feedback outcome beside
+   .reject/.filled; gold = "on the book now". */
+.resting {
+  color: var(--gold);
+  font-size: 0.82rem;
+}
+
+/* A stale resting offer (18i): dead capital that's sat unfilled too long —
+   an amber accent draws the eye to re-price/abort it. */
+li.stale {
+  border-left: 3px solid var(--gold);
+  padding-left: 8px;
+}
+
+span.stale {
+  color: var(--gold-bright);
+}
+
 /* ── ledger / shop ────────────────────────────────────── */
 .rows {
   list-style: none;

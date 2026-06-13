@@ -153,3 +153,15 @@ test('engine rejection reasons surface in the ticket', async ({ page }) => {
   await page.getByText('place buy offer').click();
   await expect(page.locator('.reject')).toContainText('insufficient-gp');
 });
+
+test('a resting offer shows the gold "resting" confirmation (18h/18k)', async ({ page }) => {
+  await dismissHelp(page);
+  await page.locator('.market tbody tr').first().click();
+  await page.getByLabel('price').fill('1'); // far below any ask → rests, no instant fill
+  await page.getByLabel('qty').fill('1');
+  await page.getByText('place buy offer').click();
+  const resting = page.locator('.resting');
+  await expect(resting).toContainText('resting on the book');
+  // the stylesheet loaded and the rule applies (real-browser CSS check): --gold #d4a937
+  await expect(resting).toHaveCSS('color', 'rgb(212, 169, 55)');
+});
