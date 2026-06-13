@@ -4759,6 +4759,15 @@ describe('UI shell', () => {
     expect(agent.expedition!.pack['rune_platebody']).toBe(1);
   });
 
+  it('EmbarkPanel pack steppers carry accessible names (a11y, 18v)', () => {
+    const game = newGame(42);
+    game.world.agents[game.playerId]!.inventory['shark'] = 5; // a packable consumable → a stepper row
+    const view = playerView(game.world, game.playerId)!;
+    render(<EmbarkPanel game={game} view={view} items={game.world.items} onCommand={() => {}} active />);
+    expect(screen.getByLabelText(/pack one more Shark/)).toBeTruthy(); // "+" reads with item context, not just "+"
+    expect(screen.getByLabelText(/pack one fewer Shark/)).toBeTruthy(); // "−"
+  });
+
   it('expedition loadouts: save a kit, refill from it clamped to what you hold', () => {
     localStorage.removeItem('ew-loadouts');
     const game = newGame(42);

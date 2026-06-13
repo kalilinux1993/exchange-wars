@@ -384,8 +384,9 @@ export function EmbarkPanel({
                     : `heals ${CONSUMABLES[id]!.heal}`}
               </span>
               <span className="num">
-                <button className="chip" onClick={() => bump(id, -1, held)}>−</button> {draft[id] ?? 0}/{held}{' '}
-                <button className="chip" onClick={() => bump(id, 1, held)}>+</button>
+                {/* a11y: symbol-only steppers need an accessible name — "−"/"+" alone read as nothing useful (18v). */}
+                <button className="chip" aria-label={`pack one fewer ${names.get(id) ?? id}`} onClick={() => bump(id, -1, held)}>−</button> {draft[id] ?? 0}/{held}{' '}
+                <button className="chip" aria-label={`pack one more ${names.get(id) ?? id}`} onClick={() => bump(id, 1, held)}>+</button>
               </span>
             </li>
           );
