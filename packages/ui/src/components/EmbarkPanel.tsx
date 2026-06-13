@@ -38,10 +38,6 @@ export function EmbarkPanel({
   const progress = agent?.questProgress ?? 0;
   const lvls = levelsOf(agent?.combatXp);
   const trainedMax = maxHpFor(lvls.hp);
-  // Dive readiness (16x), computed once: the deepest region you're favored to farm. Drives both the
-  // text readout below and the RegionMap "dive here" ring (17g).
-  const eff = deriveStats(view.inventory, lvls, agent?.worn);
-  const readiness = diveReadiness({ atk: eff.atk, def: eff.def, hp: trainedMax }, progress);
   const [regionId, setRegionId] = useState(REGIONS[0]!.id);
   const [draft, setDraft] = useState<Record<string, number>>({});
   const [loadouts, setLoadouts] = usePref<Record<string, number>[]>('ew-loadouts', []);
@@ -93,6 +89,11 @@ export function EmbarkPanel({
   // No embarking while you're out — the field shows in the Expeditions panel.
   if (agent?.expedition) return null;
 
+  // Dive readiness (16x), computed once per render BELOW the early return so it's free while diving
+  // (17i): the deepest region you're favored to farm. Drives both the text readout and the RegionMap
+  // "dive here" ring (17g). Pure consts (not hooks), used only in the JSX — safe below the return.
+  const eff = deriveStats(view.inventory, lvls, agent?.worn);
+  const readiness = diveReadiness({ atk: eff.atk, def: eff.def, hp: trainedMax }, progress);
   const idx = regionIndex(regionId);
   const locked = idx > progress;
   const bump = (id: string, delta: number, max: number): void =>
