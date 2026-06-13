@@ -1268,6 +1268,7 @@ export function App({ initial }: { initial?: Game }) {
               )
             }
             active={room === 'exchange'}
+            watched={new Set(watch)}
             onToggleWatch={(id) => {
               const nowWatching = !watch.includes(id);
               toggleWatch(id);

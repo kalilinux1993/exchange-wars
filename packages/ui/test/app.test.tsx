@@ -265,7 +265,9 @@ describe('UI shell', () => {
     const ev = game.world.items.find((i) => i.id !== first && i.wikiId !== undefined)!; // not the default selection; has an icon
     game.world.events = [{ id: 'e1', itemId: ev.id, kind: 'demand_surge', startTick: 0, endTick: 9999 }];
     render(<App initial={game} />);
-    const chip = screen.getByRole('button', { name: new RegExp(ev.name) });
+    // the event chip carries the item's PNG — disambiguates it from the 17d per-row watch ★ button,
+    // whose aria-label ("watch {item}") also matches the item-name regex.
+    const chip = screen.getAllByRole('button', { name: new RegExp(ev.name) }).find((b) => b.querySelector('img.itemimg'))!;
     expect(chip.querySelector('img.itemimg')).toBeTruthy(); // the event item's real icon
     fireEvent.click(chip);
     expect(screen.getByText(new RegExp(`Offer · ${ev.id.replace(/_/g, ' ')}`, 'i'))).toBeTruthy(); // the ticket loaded the event item
@@ -1085,6 +1087,24 @@ describe('UI shell', () => {
       );
       fireEvent.keyDown(document.body, { key: 'w' });
       expect(onToggleWatch).not.toHaveBeenCalled();
+    });
+
+    it('shows a per-row watch ★ and toggles on star-click without selecting the row (17d)', () => {
+      const onToggleWatch = vi.fn();
+      const onSelect = vi.fn();
+      const { container } = render(
+        <MarketTable view={view} items={DEFAULT_ITEMS} trades={[]} selected={ids[0]!} onSelect={onSelect} eventItems={new Set()} active watched={new Set([ids[1]!])} onToggleWatch={onToggleWatch} />,
+      );
+      const rows = [...container.querySelectorAll('tbody tr')];
+      // the watched item's row shows a lit, filled star; the others a hollow one
+      const watchedStar = rows.find((r) => r.querySelector('.watchstar.on'))!.querySelector('.watchstar.on')!;
+      expect(watchedStar.textContent).toBe('★');
+      expect(container.querySelectorAll('.watchstar:not(.on)').length).toBe(ids.length - 1); // the rest hollow
+      // clicking a hollow star toggles watch — and stopPropagation keeps it from loading the row
+      const hollow = container.querySelector('.watchstar:not(.on)') as HTMLButtonElement;
+      fireEvent.click(hollow);
+      expect(onToggleWatch).toHaveBeenCalledTimes(1);
+      expect(onSelect).not.toHaveBeenCalled();
     });
 
     it('does nothing when the Exchange tab is not the active room', () => {

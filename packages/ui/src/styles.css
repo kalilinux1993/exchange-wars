@@ -1623,6 +1623,31 @@ kbd {
   font-size: 0.82em;
   cursor: help;
 }
+/* per-row watchlist star (17d): gold ★ always visible when watched; dim ☆ otherwise,
+   brightening on row hover so it reads as "click to watch" without cluttering 128 rows. */
+.watchstar {
+  background: none;
+  border: 0;
+  padding: 0 4px 0 0;
+  margin: 0;
+  cursor: pointer;
+  font-size: 0.9em;
+  line-height: 1;
+  color: var(--muted, #8a7f66);
+  opacity: 0.28;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+tr:hover .watchstar {
+  opacity: 0.7;
+}
+.watchstar.on {
+  color: var(--gold);
+  opacity: 1;
+}
+.watchstar:hover {
+  opacity: 1;
+  color: var(--gold-bright, var(--gold));
+}
 /* return-on-stake badge in the Wealth header — your all-time result at a glance. */
 .stakeret {
   margin-left: 0.5rem;

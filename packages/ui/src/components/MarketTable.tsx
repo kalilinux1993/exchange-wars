@@ -39,6 +39,7 @@ export function MarketTable({
   eventItems,
   active = true,
   onToggleWatch,
+  watched,
 }: {
   view: PlayerView;
   items: ItemDef[];
@@ -50,8 +51,10 @@ export function MarketTable({
   /** Whether the Exchange tab is the visible room — gates the j/k keyboard nav so
    *  the hotkeys don't move the (hidden, still-mounted) market on other tabs. */
   active?: boolean;
-  /** Toggle the watchlist on the selected item — bound to the `w` key (17c). */
+  /** Toggle the watchlist on the selected item — bound to the `w` key (17c) and the per-row ★ (17d). */
   onToggleWatch?: (id: ItemId) => void;
+  /** The watched item ids — drives the per-row ★ marker (17d). */
+  watched?: ReadonlySet<ItemId>;
 }) {
   const [filter, setFilter] = useState('');
   const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear' | 'flippable' | 'cheap'>('all');
@@ -224,6 +227,23 @@ export function MarketTable({
               onClick={() => onSelect(m.itemId)}
             >
               <td className="name">
+                {onToggleWatch && (() => {
+                  const on = watched?.has(m.itemId) ?? false;
+                  return (
+                    <button
+                      className={on ? 'watchstar on' : 'watchstar'}
+                      title={on ? 'watching — click to remove (or press w)' : 'add to watchlist (or press w)'}
+                      aria-label={on ? `stop watching ${defs.get(m.itemId)?.name ?? m.itemId}` : `watch ${defs.get(m.itemId)?.name ?? m.itemId}`}
+                      aria-pressed={on}
+                      onClick={(e) => {
+                        e.stopPropagation(); // don't also load the row into the ticket
+                        onToggleWatch(m.itemId);
+                      }}
+                    >
+                      {on ? '★' : '☆'}
+                    </button>
+                  );
+                })()}
                 {defs.get(m.itemId)?.wikiId !== undefined && (
                   <img
                     className="icon"
