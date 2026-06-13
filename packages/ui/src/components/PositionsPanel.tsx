@@ -185,7 +185,7 @@ export function PositionsPanel({
                 {p.marked && p.cost > 0 && <span className="dim small"> {pct(p.unrealizedPct)}</span>}
               </span>
               {onCommand && p.marked && p.unrealized < 0 && (
-                armed === p.itemId ? (
+                armed === p.itemId + '|cut' ? (
                   <button
                     className="chip cut armed"
                     title={`sell all ${p.units.toLocaleString('en-US')} at ${(bidOf.get(p.itemId) ?? p.mark).toLocaleString('en-US')} now — books the loss`}
@@ -203,7 +203,7 @@ export function PositionsPanel({
                     title="cut this loser — sell the whole position at the best bid (tap again to confirm)"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setArmed(p.itemId);
+                      setArmed(p.itemId + '|cut');
                     }}
                   >
                     ✂ cut
@@ -217,11 +217,14 @@ export function PositionsPanel({
                   // Take profit — the winner-side twin of "cut losers". Gated on the actual best BID being
                   // above your break-even (avg cost + the 2% sell tax), so it only ever offers to lock a
                   // REAL gain — never a paper one (marked at last price) that the spread + tax would erase.
-                  // Shares `armed` with cut: a row is a loser XOR a real-gain winner, so they never collide.
+                  // Shares the `armed` state with cut but keyed by ACTION (`id|cut` vs `id|take`): a row is a
+                  // loser XOR a real-gain winner WITHIN a render, but `armed` survives re-renders — so if a row
+                  // flips sign between ticks a bare-itemId key would turn an armed CUT into a TAKE confirm. The
+                  // action key prevents that cross-render mismatch (a flipped row shows its un-armed button).
                   const bid = bidOf.get(p.itemId);
                   if (bid == null || bid <= breakEvenSell(p.avgCost, GE_TAX_RATE)) return null;
                   const gain = bid * p.units - Math.floor(bid * p.units * GE_TAX_RATE) - p.cost;
-                  return armed === p.itemId ? (
+                  return armed === p.itemId + '|take' ? (
                     <button
                       className="chip take armed"
                       title={`sell all ${p.units.toLocaleString('en-US')} at ${bid.toLocaleString('en-US')} now — locks ≈${gain.toLocaleString('en-US')} gp after tax`}
@@ -239,7 +242,7 @@ export function PositionsPanel({
                       title="take profit — sell the whole position at the best bid, locking the gain after tax (tap again to confirm)"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setArmed(p.itemId);
+                        setArmed(p.itemId + '|take');
                       }}
                     >
                       ✓ take

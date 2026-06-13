@@ -279,7 +279,12 @@ export function outgrownFarm(
 ): { farm: number; deeper: number } | null {
   if (recentRegionIdxs.length < minDives || safeDepth < 1) return null;
   const counts = new Map<number, number>();
-  for (const i of recentRegionIdxs) counts.set(i, (counts.get(i) ?? 0) + 1);
+  // Skip unknown regions (regionIndex → -1 for a renamed/removed regionId in a persisted delve): a -1 sorts
+  // first and would win the cluster tie, suppressing an otherwise-valid nudge. Drop them from the cluster.
+  for (const i of recentRegionIdxs) {
+    if (i < 0) continue;
+    counts.set(i, (counts.get(i) ?? 0) + 1);
+  }
   let farm = -1;
   let best = 0;
   // ascending index so a tie keeps the shallower region (strict > keeps the first/lowest max)

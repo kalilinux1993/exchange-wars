@@ -1315,6 +1315,11 @@ describe('UI shell', () => {
       // both regions reach the min (3 each); the tie resolves to the shallower (0), nudging toward 1
       expect(outgrownFarm([0, 0, 0, 1, 1, 1], 3)).toEqual({ farm: 0, deeper: 1 });
     });
+    it('ignores unknown (-1) region indices so a renamed delve cannot suppress the nudge (21k)', () => {
+      // -1 (regionIndex of a removed/renamed regionId) used to sort first and win the tie → null; now skipped
+      expect(outgrownFarm([-1, -1, 0, 0, 0], 2, 2)).toEqual({ farm: 0, deeper: 1 });
+      expect(outgrownFarm([-1, -1, -1], 2)).toBeNull(); // nothing real to cluster on
+    });
   });
 
   it('EmbarkPanel nudges you to dive deeper when your safe depth outgrows your recent farm (21c)', () => {
@@ -3889,6 +3894,25 @@ describe('UI shell', () => {
     render(<PositionsPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} onCommand={() => {}} />);
     expect(screen.queryByText('✓ take')).toBeNull(); // honest: no real after-tax gain to lock at the live bid
     expect(screen.queryByText('✂ cut')).toBeNull(); // not underwater at mark either
+  });
+
+  it('an armed cut does NOT become a take confirm when the row flips into profit mid-arm (21k)', () => {
+    // 21k regression (adversarial review): `armed` is keyed by item+ACTION, so a cut armed while underwater
+    // can't silently turn into a take confirm when the next tick marks the position green.
+    const game = newGame(42);
+    game.tradeBook = bookFromFills([{ tick: 0, itemId: FIRST.id, side: 'buy', qty: 10, price: 100 }], 0.02);
+    const onCommand = vi.fn();
+    const underwater = { markets: [{ itemId: FIRST.id, lastPrice: 80, bestBid: 78 }] } as unknown as PlayerView;
+    const { rerender } = render(
+      <PositionsPanel game={game} view={underwater} items={DEFAULT_ITEMS} onSelect={() => {}} onCommand={onCommand} />,
+    );
+    fireEvent.click(screen.getByText('✂ cut')); // ARM a cut while underwater (armed = "FIRST|cut")
+    // the row flips into profit before the second tap (mark 130, bid 128 > break-even ~103)
+    const profit = { markets: [{ itemId: FIRST.id, lastPrice: 130, bestBid: 128 }] } as unknown as PlayerView;
+    rerender(<PositionsPanel game={game} view={profit} items={DEFAULT_ITEMS} onSelect={() => {}} onCommand={onCommand} />);
+    expect(screen.queryByText('confirm ✓')).toBeNull(); // the stale cut-arm must NOT surface as a take confirm
+    expect(screen.getByText('✓ take')).toBeTruthy(); // the take button shows UN-armed (a fresh two-tap intent)
+    expect(onCommand).not.toHaveBeenCalled(); // and nothing was sold by the flip
   });
 
   describe('blendBuy (average-down preview)', () => {
