@@ -1386,6 +1386,7 @@ export function App({ initial }: { initial?: Game }) {
           <ExpeditionPanel
             game={game}
             view={view}
+            active={room === 'adventure'}
             onCommand={command}
             onRest={fastForward}
             onBuy={(id) => {

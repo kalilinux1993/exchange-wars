@@ -4610,6 +4610,33 @@ describe('UI shell', () => {
     expect(foeStats.querySelector('.up')?.textContent).toBe('1');
   });
 
+  it('f swings a combat round, gated to an active fight (18q)', () => {
+    const game = newGame(42);
+    game.world.agents[game.playerId]!.expedition = {
+      regionId: 'lumbridge_plains', rngState: 1, hp: 50, pack: {}, packGp: 0, cleared: 0,
+      combat: { monsterId: 'goblin', monsterHp: 12, playerHp: 50, antifire: false, maxHp: 50, outcome: 'fighting', lootGp: 0, lootItems: [], log: [] },
+    };
+    const view = playerView(game.world, game.playerId)!;
+    const onCommand = vi.fn();
+    const { rerender } = render(<ExpeditionPanel game={game} view={view} active onCommand={onCommand} onToast={() => {}} />);
+    fireEvent.keyDown(window, { key: 'f' });
+    expect(onCommand).toHaveBeenCalledWith({ type: 'fight' }); // f swings
+
+    onCommand.mockClear();
+    rerender(<ExpeditionPanel game={game} view={view} active={false} onCommand={onCommand} onToast={() => {}} />);
+    fireEvent.keyDown(window, { key: 'f' });
+    expect(onCommand).not.toHaveBeenCalled(); // off-tab ignores the key
+  });
+
+  it('f does nothing out of combat (18q)', () => {
+    const game = newGame(42); // no expedition → not fighting
+    const view = playerView(game.world, game.playerId)!;
+    const onCommand = vi.fn();
+    render(<ExpeditionPanel game={game} view={view} active onCommand={onCommand} onToast={() => {}} />);
+    fireEvent.keyDown(window, { key: 'f' });
+    expect(onCommand).not.toHaveBeenCalled(); // not in a fight
+  });
+
   it('the combat view warns when a foe drains loot (leech = gp-race)', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;

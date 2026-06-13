@@ -103,6 +103,7 @@ export function ExpeditionPanel({
   onToast,
   onDelveEnd,
   onBuy,
+  active = true,
 }: {
   game: Game;
   view: PlayerView;
@@ -114,6 +115,8 @@ export function ExpeditionPanel({
   onDelveEnd?: (record: DelveRecord) => void;
   /** Jump to the Exchange with an item loaded — powers the GearManager "best buy → buy". */
   onBuy?: (itemId: string) => void;
+  /** True when the Adventure tab is the visible room — gates the `f`-fights combat hotkey (18q). */
+  active?: boolean;
 }) {
   const agent = game.world.agents[game.playerId];
   const exp = agent?.expedition;
@@ -180,6 +183,26 @@ export function ExpeditionPanel({
     prevRef.current = now;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exp !== undefined, exp?.combat != null, exp?.packGp, JSON.stringify(exp?.pack ?? null)]);
+
+  // `f` swings one combat round — completes keyboard-playable adventure (trade loop + embark already are, 14w).
+  // Refs keep the once-bound window listener reading current state; gated to the visible Adventure tab + an
+  // active fight + not-typing, so it never fires off-tab, during embark, or while a field has focus (18q).
+  const fightRef = useRef({ inCombat: false, active, onCommand });
+  fightRef.current = { inCombat: exp?.combat != null, active, onCommand };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      const { inCombat, active: on, onCommand: cmd } = fightRef.current;
+      if (!on || !inCombat || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(t.tagName) || t.isContentEditable)) return;
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        cmd({ type: 'fight' });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const names = new Map(game.world.items.map((i) => [i.id, i.name]));
   const wikiOf = new Map(game.world.items.map((i) => [i.id, i.wikiId]));
