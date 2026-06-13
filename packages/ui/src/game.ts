@@ -1841,26 +1841,36 @@ export function orderAge(
 }
 
 /** What the resting bids (excluding the player's own) would pay for `qty` of
- * an item right now: the walkable quantity, the FLOOR price of that walk, and
- * the gross take. A sell placed at exactly the floor fills in full against
- * those bids — instant gp, no resting residue, no slot consumed. Reads the
- * world for display; the actual sale goes through the place command. */
-export function bidWalk(game: Game, itemId: string, qty: number): { qty: number; floor: number; gp: number } | null {
+ * an item right now: the walkable quantity, the FLOOR price of that walk, the
+ * gross take (`gp`), and `net` — what the SELLER actually receives after the 2%
+ * GE tax, floored PER FILL to mirror the engine's `paySeller` (exchange.ts:166,
+ * taxed once per matched bid). Show `net` for a "what you'll realize" decision;
+ * `gp` is the bid-side gross. A sell at the floor fills in full against those
+ * bids — instant gp, no resting residue, no slot. Reads the world for display;
+ * the actual sale goes through the place command. */
+export function bidWalk(
+  game: Game,
+  itemId: string,
+  qty: number,
+): { qty: number; floor: number; gp: number; net: number } | null {
   const book = game.world.books[itemId];
   if (!book || qty <= 0) return null;
   let remaining = qty;
   let gp = 0;
+  let net = 0;
   let floor = 0;
   for (const o of book.buys) {
     if (remaining <= 0) break;
     if (o.agentId === game.playerId) continue; // never sell to yourself
     const take = Math.min(remaining, o.remaining);
-    gp += take * o.price;
+    const proceeds = take * o.price;
+    gp += proceeds;
+    net += proceeds - Math.floor(proceeds * GE_TAX_RATE); // per-fill tax, exactly as paySeller does
     floor = o.price;
     remaining -= take;
   }
   const sold = qty - remaining;
-  return sold > 0 ? { qty: sold, floor, gp } : null;
+  return sold > 0 ? { qty: sold, floor, gp, net } : null;
 }
 
 const SAMPLE_EVERY_TICKS = 50;

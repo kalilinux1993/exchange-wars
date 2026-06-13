@@ -60,8 +60,8 @@ export function PlayerPanel({
               <span>
                 <ItemIcon id={i.id} wikiId={i.wikiId} size={14} className="itemicon" /> {i.name}
               </span>
-              <span className="num">
-                {qty.toLocaleString('en-US')} · bids pay ≈{(walk?.gp ?? 0).toLocaleString('en-US')} gp
+              <span className="num" title="what you'd RECEIVE selling into the resting bids right now — after the 2% GE tax (18o)">
+                {qty.toLocaleString('en-US')} · realize ≈{(walk?.net ?? 0).toLocaleString('en-US')} gp
               </span>
               {(() => {
                 const gd = gearDelta(i.id, view.worn, lvls);
@@ -110,11 +110,11 @@ export function PlayerPanel({
         {held.length === 0 && <li className="dim">empty satchel</li>}
         {held.length > 0 && (
           <li>
-            <span className="dim">satchel, as the bids see it</span>
+            <span className="dim" title="what you'd realize dumping the whole satchel into the resting bids now — after the 2% GE tax (18o)">satchel, after tax</span>
             <span className="num">
               ≈
               {held
-                .reduce((total, i) => total + (bidWalk(game, i.id, view.inventory[i.id] ?? 0)?.gp ?? 0), 0)
+                .reduce((total, i) => total + (bidWalk(game, i.id, view.inventory[i.id] ?? 0)?.net ?? 0), 0)
                 .toLocaleString('en-US')}{' '}
               gp
             </span>

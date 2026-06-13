@@ -97,6 +97,7 @@ import {
   buyConcentration,
   underwaterSummary,
   lootSpoils,
+  bidWalk,
   gearDelta,
   bestAffordableUpgrade,
   worthBreakdown,
@@ -2100,6 +2101,34 @@ describe('UI shell', () => {
     it('returns null for non-gear', () => {
       expect(gearDelta('shark', {}, maxed)).toBeNull();
     });
+  });
+
+  it('bidWalk nets the 2% sell tax (mirrors paySeller), not the gross bid value (18o)', () => {
+    const game = {
+      playerId: 0,
+      world: { books: { x: { buys: [
+        { agentId: 9, price: 100, remaining: 3 }, // 300 gross, tax 6 → 294
+        { agentId: 0, price: 999, remaining: 5 }, // YOUR own bid → skipped (never sell to yourself)
+        { agentId: 8, price: 100, remaining: 7 }, // 700 gross, tax 14 → 686
+      ] } } },
+    } as unknown as Game;
+    const w = bidWalk(game, 'x', 10)!;
+    expect(w.qty).toBe(10); // 3 + 7 (own bid skipped)
+    expect(w.gp).toBe(1000); // gross bid value
+    expect(w.net).toBe(980); // after the 2% sell tax — what you actually receive
+    expect(w.net).toBeLessThan(w.gp);
+  });
+
+  it('bidWalk floors the tax PER FILL like the engine, not on the total (18o)', () => {
+    const game = {
+      playerId: 0,
+      world: { books: { x: { buys: [
+        { agentId: 9, price: 49, remaining: 1 }, // 49 gross, floor(0.98)=0 tax → 49
+        { agentId: 9, price: 49, remaining: 1 }, // 49 gross, 0 tax → 49
+      ] } } },
+    } as unknown as Game;
+    const w = bidWalk(game, 'x', 2)!;
+    expect(w.net).toBe(98); // per-fill: 0 tax each. On the 98 total it'd be floor(98·.02)=1 → 97. Per-fill matches paySeller.
   });
 
   it('"sell the spoils" dumps loot but keeps your gear', () => {
@@ -4201,11 +4230,11 @@ describe('UI shell', () => {
     player.inventory[FIRST.id] = 8; // spoils to dump: 5 fill at 500, 3 at 400
     render(<App initial={game} />);
     const panel = document.querySelector('.player') as HTMLElement;
-    expect(within(panel).getByText(/bids pay ≈3,700 gp/)).toBeTruthy(); // 5×500 + 3×400
+    expect(within(panel).getByText(/realize ≈3,626 gp/)).toBeTruthy(); // 5×500 + 3×400 = 3,700 gross − per-fill 2% tax (50+24) = 3,626 net (18o)
     const gpBefore = player.gp;
     fireEvent.click(within(panel).getByRole('button', { name: 'sell @ bid' }));
     expect(player.inventory[FIRST.id] ?? 0).toBe(0); // the walk took the whole stack
-    expect(player.gp).toBeGreaterThan(gpBefore); // instant fills (net of tax)
+    expect(player.gp).toBe(gpBefore + 3626); // the "realize" figure EQUALS what actually hits the purse (display matches the engine)
     expect(playerView(game.world, game.playerId)!.openOrders.length).toBe(0); // no resting residue
   });
 
