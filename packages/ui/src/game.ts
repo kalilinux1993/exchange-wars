@@ -1930,6 +1930,44 @@ export function orderAge(
   return o ? Math.max(0, world.tick - o.tick) : null;
 }
 
+export interface StaleOffers {
+  /** How many open offers have rested past STALE_ORDER_TICKS. */
+  count: number;
+  /** gp escrowed in stale BUY offers — dead cash the market has moved away from (sells lock items, not cash). */
+  buyGpIdle: number;
+  /** (itemId, side) pairs whose EVERY open offer is stale. `cancel {itemId, side}` cancels ALL offers of a
+   *  pair, so a pair shared with a FRESH offer is excluded here — bulk-aborting these can never kill a fresh
+   *  offer (the shared-pair stale offers still COUNT + add to gp idle; they're just left for per-row abort). */
+  cancelPairs: { itemId: string; side: 'buy' | 'sell' }[];
+}
+
+/**
+ * The dead-capital summary the per-row ⏳ flag (18i) lacks — the offers counterpart to PositionsPanel's
+ * underwater aggregate (13n). Pure (staleness via `orderAge`, so it reads `world.books` for placement ticks).
+ */
+export function staleOffers(
+  world: Parameters<typeof orderAge>[0],
+  openOrders: { id: number; itemId: string; side: 'buy' | 'sell'; remaining: number; price: number }[],
+): StaleOffers {
+  const stale = openOrders.filter((o) => {
+    const age = orderAge(world, o);
+    return age !== null && age >= STALE_ORDER_TICKS;
+  });
+  const buyGpIdle = stale.reduce((s, o) => (o.side === 'buy' ? s + o.price * o.remaining : s), 0);
+  const staleIds = new Set(stale.map((o) => o.id));
+  const key = (o: { itemId: string; side: 'buy' | 'sell' }): string => `${o.itemId}|${o.side}`;
+  const freshPairs = new Set(openOrders.filter((o) => !staleIds.has(o.id)).map(key));
+  const seen = new Set<string>();
+  const cancelPairs: { itemId: string; side: 'buy' | 'sell' }[] = [];
+  for (const o of stale) {
+    const k = key(o);
+    if (freshPairs.has(k) || seen.has(k)) continue;
+    seen.add(k);
+    cancelPairs.push({ itemId: o.itemId, side: o.side });
+  }
+  return { count: stale.length, buyGpIdle, cancelPairs };
+}
+
 /** Why a resting maker offer isn't filling YET — read from the live book (a display read).
  *  `ahead` is its queue position under price-time priority: since the book's `buys`/`sells` are
  *  kept sorted by exactly the engine's matching order (types.ts:92-95 — buys price-desc, sells

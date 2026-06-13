@@ -1,6 +1,6 @@
 import { GEAR, levelsOf } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
-import { bidWalk, gearDelta, lootSpoils, orderAge, repriceTarget, restingQueue, STALE_ORDER_TICKS, type Game } from '../game';
+import { bidWalk, fmtCompact, gearDelta, lootSpoils, orderAge, repriceTarget, restingQueue, STALE_ORDER_TICKS, staleOffers, type Game } from '../game';
 import { ItemIcon } from './Icon';
 
 export function PlayerPanel({
@@ -153,6 +153,34 @@ export function PlayerPanel({
       )}
       <h3>
         Open offers
+        {(() => {
+          // Dead-capital aggregate (21e): the per-offer ⏳ flag (18i) can hide in a long list, so surface the
+          // total — count + gp idle in stale BUYS — mirroring the underwater summary (13n).
+          const st = staleOffers(game.world, view.openOrders);
+          if (st.count === 0) return null;
+          return (
+            <>
+              <span
+                className="dim small stale"
+                title="offers resting past the staleness threshold — the market likely moved away; reprice or abort this dead capital"
+              >
+                {' '}
+                · ⏳ {st.count} stale{st.buyGpIdle > 0 ? ` · ≈${fmtCompact(st.buyGpIdle)} gp idle` : ''}
+              </span>
+              {st.cancelPairs.length > 0 && (
+                <button
+                  className="chip danger"
+                  title="cancel every offer that's rested too long to fill — frees the dead capital (escrow refunded). Offers sharing an item+side with a fresh one are left for you to handle per-row."
+                  onClick={() => {
+                    for (const p of st.cancelPairs) onCommand({ type: 'cancel', itemId: p.itemId, side: p.side });
+                  }}
+                >
+                  abort stale
+                </button>
+              )}
+            </>
+          );
+        })()}
         {view.openOrders.length > 1 && (
           <button
             className="chip danger"

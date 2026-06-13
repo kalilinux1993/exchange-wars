@@ -89,6 +89,7 @@ import {
   loadGame,
   loadoutShort,
   orderAge,
+  staleOffers,
   restingQueue,
   repriceTarget,
   newGame,
@@ -249,6 +250,41 @@ describe('UI shell', () => {
     expect(orderAge({ tick: 50, books: { x: { buys: [{ id: 1, tick: 100 }], sells: [] } } }, { id: 1, itemId: 'x', side: 'buy' })).toBe(0); // floors at 0
   });
 
+  describe('staleOffers (dead-capital aggregate — 21e)', () => {
+    const world = {
+      tick: 600, // > STALE_ORDER_TICKS (500)
+      books: {
+        a: { buys: [{ id: 1, tick: 0 }], sells: [] }, // age 600 → stale
+        b: { buys: [{ id: 2, tick: 0 }, { id: 3, tick: 599 }], sells: [] }, // id2 stale, id3 fresh (age 1)
+        c: { buys: [], sells: [{ id: 4, tick: 0 }] }, // stale sell
+      },
+    };
+    const orders = [
+      { id: 1, itemId: 'a', side: 'buy' as const, remaining: 5, price: 100 }, // stale buy → 500 gp idle
+      { id: 2, itemId: 'b', side: 'buy' as const, remaining: 2, price: 50 }, // stale buy → 100 gp idle, pair shared
+      { id: 3, itemId: 'b', side: 'buy' as const, remaining: 2, price: 50 }, // fresh
+      { id: 4, itemId: 'c', side: 'sell' as const, remaining: 3, price: 200 }, // stale sell → no gp idle
+    ];
+    it('counts stale offers and sums gp idle in stale BUYS (sells excluded)', () => {
+      const st = staleOffers(world, orders);
+      expect(st.count).toBe(3); // ids 1, 2, 4 (id 3 is fresh)
+      expect(st.buyGpIdle).toBe(600); // 100·5 + 50·2; the stale sell contributes no cash
+    });
+    it('only bulk-cancels pairs where EVERY offer is stale — never a fresh one', () => {
+      const st = staleOffers(world, orders);
+      // a|buy and c|sell are fully stale; b|buy is shared with a fresh offer → excluded from the bulk abort
+      expect(st.cancelPairs).toEqual([
+        { itemId: 'a', side: 'buy' },
+        { itemId: 'c', side: 'sell' },
+      ]);
+    });
+    it('is empty when nothing has gone stale', () => {
+      expect(staleOffers({ tick: 100, books: { a: { buys: [{ id: 1, tick: 0 }], sells: [] } } }, [
+        { id: 1, itemId: 'a', side: 'buy', remaining: 1, price: 10 },
+      ])).toEqual({ count: 0, buyGpIdle: 0, cancelPairs: [] });
+    });
+  });
+
   it('restingQueue reports queue rank (index in the engine-sorted book) and the gap to the touch (19h)', () => {
     // book arrays are pre-sorted by the engine's matching priority (types.ts:92-95): buys price-desc,
     // sells price-asc. So an order's index IS how many fill before it.
@@ -360,6 +396,19 @@ describe('UI shell', () => {
     const fresh = render(<PlayerPanel game={game} view={view2} items={game.world.items} onCommand={() => {}} />);
     expect(fresh.container.textContent).toMatch(/rested 100t/);
     expect(fresh.container.querySelector('li.stale')).toBeNull(); // not stale yet
+  });
+
+  it('PlayerPanel aggregates stale offers and offers a one-click abort of the dead capital (21e)', () => {
+    const game = newGame(42);
+    const item = game.world.items[0]!.id;
+    applyCommand(game.world, game.playerId, { type: 'place', itemId: item, side: 'buy', price: 2, qty: 2 }); // rests at tick 0
+    game.world.tick = 600; // > STALE_ORDER_TICKS (500) → stale
+    const view = playerView(game.world, game.playerId)!;
+    const onCommand = vi.fn();
+    render(<PlayerPanel game={game} view={view} items={game.world.items} onCommand={onCommand} />);
+    expect(screen.getByText(/⏳ 1 stale/)).toBeTruthy(); // the aggregate, not just the per-row flag
+    fireEvent.click(screen.getByText('abort stale')); // one click frees the dead capital
+    expect(onCommand).toHaveBeenCalledWith({ type: 'cancel', itemId: item, side: 'buy' });
   });
 
   it('fast-forward advances the deterministic world and feeds the Fortune chart', () => {
