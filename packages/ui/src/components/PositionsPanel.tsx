@@ -1,7 +1,7 @@
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useState } from 'react';
 import type { Game } from '../game';
-import { fmtCompact, heldPositions, positionConcentration, underwaterSummary, valueBand } from '../game';
+import { bandPosition, fmtCompact, heldPositions, positionConcentration, underwaterSummary, valueBand } from '../game';
 import { ItemIcon } from './Icon';
 
 /** Distinguishable, theme-fitting segment colours for the allocation bar. */
@@ -37,8 +37,21 @@ export function PositionsPanel({
   const bidOf = new Map(view.markets.map((m) => [m.itemId, m.bestBid]));
   // Which loser is armed for a cut — a tap arms, a second confirms (no accidental loss-lock).
   const [armed, setArmed] = useState<string | null>(null);
+  // The panel caps at `limit` rows, so the sort decides WHICH positions surface — three decision lenses
+  // beyond the P&L default: value (biggest exposure) and band (ripest to offload) (18s).
+  const [sort, setSort] = useState<'pnl' | 'value' | 'band'>('pnl');
   const positions = heldPositions(game.tradeBook, (id) => priceOf.get(id) ?? 0);
-  const shown = positions.slice(0, limit);
+  const ordered =
+    sort === 'value'
+      ? [...positions].sort((a, b) => b.value - a.value || (a.itemId < b.itemId ? -1 : 1))
+      : sort === 'band'
+        ? [...positions].sort(
+            (a, b) =>
+              (bandPosition(defOf.get(b.itemId), b.mark) ?? -1) - (bandPosition(defOf.get(a.itemId), a.mark) ?? -1) ||
+              (a.itemId < b.itemId ? -1 : 1),
+          )
+        : positions; // 'pnl' — heldPositions already sorts by unrealized desc (winners up, underwater down)
+  const shown = ordered.slice(0, limit);
   const totalValue = positions.reduce((s, p) => s + p.value, 0);
   const totalPaper = positions.reduce((s, p) => s + p.unrealized, 0);
   const conc = positionConcentration(positions);
@@ -89,6 +102,27 @@ export function PositionsPanel({
               <b className="pct down">
                 ⚠ {under.count} underwater {fmtCompact(under.paperLoss)} paper
               </b>
+            </p>
+          )}
+          {positions.length > 1 && (
+            <p className="dim small possort">
+              sort:{' '}
+              {(['pnl', 'value', 'band'] as const).map((k) => (
+                <button
+                  key={k}
+                  className={sort === k ? 'chip active' : 'chip'}
+                  title={
+                    k === 'pnl'
+                      ? 'biggest unrealized P&L first (winners up, underwater down)'
+                      : k === 'value'
+                        ? 'biggest holdings first — your largest exposure'
+                        : 'ripest to offload first — richest in its cost→value band'
+                  }
+                  onClick={() => setSort(k)}
+                >
+                  {k === 'pnl' ? 'P&L' : k}
+                </button>
+              ))}
             </p>
           )}
           <ul className="rows small">

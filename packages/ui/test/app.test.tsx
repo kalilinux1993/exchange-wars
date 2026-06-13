@@ -1860,6 +1860,30 @@ describe('UI shell', () => {
     expect(screen.getByText(/75\.0%/)).toBeTruthy(); // top concentration
   });
 
+  it('PositionsPanel sorts the capped view by P&L (default), value, or band (18s)', () => {
+    const game = newGame(42);
+    const A = DEFAULT_ITEMS[0]!;
+    const B = DEFAULT_ITEMS[1]!;
+    game.tradeBook = bookFromFills(
+      [
+        { tick: 0, itemId: A.id, side: 'buy', qty: 10, price: 100 }, // cost 1000
+        { tick: 0, itemId: B.id, side: 'buy', qty: 1, price: 100 }, //  cost 100
+      ],
+      0.02,
+    );
+    const view = {
+      markets: [
+        { itemId: A.id, lastPrice: 110 }, // value 1100, P&L +100
+        { itemId: B.id, lastPrice: 300 }, // value 300,  P&L +200
+      ],
+    } as unknown as PlayerView;
+    const { container } = render(<PositionsPanel game={game} view={view} items={DEFAULT_ITEMS} onSelect={() => {}} />);
+    const firstRow = () => container.querySelectorAll('li.mover')[0]!.textContent;
+    expect(firstRow()).toContain(B.name); // default P&L desc → B (+200) leads A (+100)
+    fireEvent.click(within(container.querySelector('.possort') as HTMLElement).getByText('value'));
+    expect(firstRow()).toContain(A.name); // value desc → A (1,100) leads B (300)
+  });
+
   describe('worthBreakdown', () => {
     it('splits net worth into cash, buy-order escrow, and holdings (residual)', () => {
       const view = {
