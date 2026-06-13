@@ -1,9 +1,35 @@
 # Dev Guide
 
-> **Consolidated record: complete (Phase 1 → 19m).** The whole autonomous build loop is now folded into the
+> **Consolidated record: complete (Phase 1 → 21q).** The whole autonomous build loop is now folded into the
 > sections below (newest-first); per-brick detail lives in `.phases/` + FINDINGS. The former 10h–13c gap was
-> closed in 16h. Engine-redeploy obligation still open: the `verify-score` batch `12b+13d+13e+13f+13r+14j`
-> (Jesse-gated on `SUPABASE_ACCESS_TOKEN`).
+> closed in 16h; the 19n–19z tail of session 19 is detailed in FINDINGS #326–#342 + `.phases/` (not yet folded
+> into a prose section here). Engine-redeploy obligation still open: the `verify-score` batch
+> `12b+13d+13e+13f+13r+14j` (Jesse-gated on `SUPABASE_ACCESS_TOKEN`).
+
+## Phases 20e–21q consolidated — a11y COMPLETED, the decision surface saturated, the alert system finished, then a review + a determinism re-verify (2026-06-13)
+
+Per-brick detail in `.phases/` and FINDINGS #343–#360; 19 bricks. **UI-only, ALL of it** — no engine change, so the `verify-score` batch is unchanged and seed-42 `hashState` stayed `fe75df57` (re-verified in 21l). Suite grew ~483→522 unit + 14→15 e2e. The chapter saturated the feature space and closed it out: every a11y dimension now covered, the alert system completed (price · band · spread), the last Jesse-flagged feature shipped with a tunable default, then an adversarial review (one real bug fixed) and a full market-sanity re-verify. The defining discipline (below): when the well runs dry, *find the flagged remainder / the broken symmetry / the un-audited dimension* — not a redundant feature.
+
+### a11y — every dimension now covered (20e · 20f · 21o · 21p)
+The pre-session set (motion 20a · live-regions 20b · modal-focus 20c · toggle-state 20d) was extended to completion: **sort-state** — an `ariaSort(key)` helper (the programmatic twin of the visual `arrow`) feeds `aria-sort` on all 9 MarketTable headers (20e, WCAG 4.1.2); **keyboard-operability** — a `sortableProps(key)` helper adds `tabIndex`+Enter/Space to those `<th onClick>` headers, which were mouse-only (20f, 2.1.1 Level A); **modal focus-trap** — an `onKeyDown` on the HelpOverlay `<section>` wraps Tab so focus can't escape to the inert background, completing the 20c dialog pattern (21o, 2.4.3); **contrast** — audited the palette (all functional text ≥ AA on the worst-case `--stone-2` panel) and fixed the one sub-AA spot, `.filterclear` at 4.03:1 (an undefined-`--muted` fallback) → `--parchment-dim` 5.02:1 (21p, 1.4.3). FINDINGS #343/#344/#358/#359.
+
+### Decision instrumentation — the shop, positions, and open offers (21a · 21d · 21e)
+**Afford-ETA (21a):** the "declined" feature, re-framed — `affordEta(cost, worth, worthPerMin)` (game.ts) keys the time-to-afford on the NET-WORTH gap (units match `worthRate`), not the cash shortfall, so the shop shows "💰 sell to afford" when worth ≥ cost > gp, else an ETA, else nothing (no invented number). No gpHistory series needed — reuses `worthHistory`. **Take-profit (21d):** PositionsPanel's winner-side twin of cut-losers — a "✓ take" two-tap gated on `bestBid > breakEvenSell(avgCost, tax)` (a REAL after-tax gain, not paper-at-mark). **Stale-capital aggregate (21e):** `staleOffers(world, openOrders)` (game.ts) → count + gp idle in stale buys + the itemId+side pairs that are ENTIRELY stale, driving an "⏳ N stale · ≈X gp idle" PlayerPanel header + a safe "abort stale" (only fully-stale pairs — never a fresh offer sharing a pair). FINDINGS #345/#348/#349.
+
+### Social / identity / retention (21b · 21n)
+**Handle setter (21b):** the public handle fed brag/duel/Run-Card but the only setter was the cloud+auth-gated LeaderboardPanel — so offline players were stuck anonymous. App now owns `handle` (raw-persisted under `ew-handle`), surfaced via a `HandleField` in the Hall, with LeaderboardPanel taking it as an optional controlled prop. **Ghost-race banner (21n):** the duel race had an always-visible masthead banner but the ghost race (beat your past self on a restarted seed) only had a quiet Hall-chart stat — added a parallel masthead banner reusing the exported `ghostWorthAt`, gated `ghost.seed===seed && !duelTarget`. FINDINGS #346/#357.
+
+### Adventure / progression (21c · 21f · 21g · 21j)
+**Outgrown-farm nudge (21c):** `outgrownFarm(recentRegionIdxs, safeDepth)` (game.ts) compares where recent dives cluster vs `diveReadiness.ready` → "🎯 you keep farming X — you're ready for Y" on the embark screen (reads `game.delves`, no new prop). **Two replay-inert deeds:** `untouchable` (`diveStreak.best >= 10`, 21f) and `profiteer` (`totalRealized(tradeBook) >= 100k`, 21g) — deeds are UI-side (`checkMilestones` never runs in `replayRun`), so content with zero engine/redeploy cost. **Dive survival card (21j):** `diveSurvival(delves)` (game.ts) → {survived, survivalPct, avgHaul over survived dives} in the Almanac — the RATE behind the streak. FINDINGS #347/#350/#351/#354.
+
+### Events + the completed alert system (21i · 21l · 21q)
+**Event move % (21i/21l):** `eventMove(startPrice, currentEma)` (game.ts) — the end-recap's `(now−start)/start` math reused live on the newsbar chip (21i) and the trade ticket's eventNote (21l, the decision point), reading the `seenEvents.startPrice` `updateNews` already captures; suppressed at 0%. **Flippable alert (21q):** `flipAlertHit(market)` = `flipMargin/lastPrice ≥ FLIP_ALERT_MIN_PCT` (1%, %-of-price — comparable across price scales; one tunable constant) drives a 🔁 WatchlistPanel toggle, mirroring the band-alert machinery (pref/fired-set/re-arm/swap-guard/toast-priority) exactly. The alert system is now COMPLETE: absolute price (≤/≥) · fundamental band (🟢/🟡) · live spread (🔁). FINDINGS #353/#356/#360.
+
+### Docs, review, and the determinism re-verify (21h · 21k · 21l · 21m · 21r)
+**Help refresh (21h):** five one-clause additions teaching the session's tools (handle, take/cut, afford-ETA, abort-stale, outgrown), pinned by `toMatch` assertions. **Adversarial review (21k):** an independent pass over the session's logic caught a real cross-render bug — PositionsPanel's cut/take shared an item-keyed `armed` state that could turn an armed cut into a take confirm when a row flipped sign between renders; fixed by keying `armed` on item+ACTION. The rest verified SOUND. **Determinism re-verify (21l):** full `npm test` (659) + sim on seeds 11/42/1337 — invariants OK, seed-42 hash `fe75df57` unchanged → 19 UI bricks provably didn't perturb the engine. **Handoff consolidation (21m)** + this DEV_GUIDE consolidation (21r). FINDINGS #352/#355/#356.
+
+### The lesson this chapter earned
+**When the safe feature space saturates, the remaining value is in CLOSURE, not new scope.** The genuinely-useful bricks late in the chapter were a flagged remainder (the 20c focus-trap, 21o), a broken symmetry (the ghost race lacked the duel's banner, 21n), an un-audited dimension (contrast, 21p), a deferred-feature shipped with a defensible default (the flip alert, 21q), and an adversarial review that caught what 12 green suites missed (21k). Two false starts (the ghost-delta and the event-move both already existed) were caught by *reading first* — the saturation signal made literal. Past that point, the honest move is to HOLD, not churn: the remaining substantive work is the Jesse-gated `verify-score` redeploy / cloud deploy / 3 product decisions.
 
 ## Phases 18y–19m consolidated — distribution + data-safety polish, then a survivability LADDER on the verified combat math and a full trading-instrument suite (2026-06-13)
 
