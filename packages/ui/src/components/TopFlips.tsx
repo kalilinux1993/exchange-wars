@@ -100,6 +100,7 @@ export function TopFlips({
         Best Flips Now{' '}
         <button
           className={fitOnly ? 'chip active' : 'chip'}
+          aria-pressed={fitOnly}
           title="show only flips your gp can cover right now (capped by the GE buy limit)"
           onClick={() => setFitOnly((v) => !v)}
         >

@@ -287,10 +287,10 @@ export function TradeTicket({
           );
         })()}
       <div className="sides" title="pick a side — or press b / s on the keyboard">
-        <button className={side === 'buy' ? 'side buy active' : 'side buy'} onClick={() => setSide('buy')}>
+        <button className={side === 'buy' ? 'side buy active' : 'side buy'} aria-pressed={side === 'buy'} onClick={() => setSide('buy')}>
           buy
         </button>
-        <button className={side === 'sell' ? 'side sell active' : 'side sell'} onClick={() => setSide('sell')}>
+        <button className={side === 'sell' ? 'side sell active' : 'side sell'} aria-pressed={side === 'sell'} onClick={() => setSide('sell')}>
           sell
         </button>
       </div>

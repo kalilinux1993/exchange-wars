@@ -3260,6 +3260,34 @@ describe('UI shell', () => {
     expect(document.querySelector('[role="status"][aria-live="polite"]')).toBeTruthy();
   });
 
+  it('the buy/sell side toggle exposes its on/off state via aria-pressed (20d a11y)', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    render(
+      <TradeTicket
+        game={game}
+        view={view}
+        selected={game.world.items[0]!.id}
+        items={game.world.items}
+        prefill={null}
+        onCommand={() => {}}
+        lastResult={null}
+        eventNote={null}
+        recentPrices={[]}
+        position={null}
+        watched={false}
+        onToggleWatch={() => {}}
+      />,
+    );
+    const buy = screen.getByRole('button', { name: 'buy' });
+    const sell = screen.getByRole('button', { name: 'sell' });
+    expect(buy.getAttribute('aria-pressed')).toBe('true'); // default side — a screen reader hears "buy, pressed"
+    expect(sell.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(sell);
+    expect(buy.getAttribute('aria-pressed')).toBe('false');
+    expect(sell.getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('the sell ticket previews the immediate bid-walk fill (net) when the order crosses (19q)', () => {
     const game = newGame(42);
     const item = game.world.items[0]!.id;

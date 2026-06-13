@@ -44,13 +44,13 @@ export function TradeFeed({
     <section className={glow ? 'panel feed feed-flash' : 'panel feed'}>
       <h2>
         Tape{' '}
-        <button className={mode === 'tape' ? 'chip active' : 'chip'} onClick={() => setMode('tape')}>
+        <button className={mode === 'tape' ? 'chip active' : 'chip'} aria-pressed={mode === 'tape'} onClick={() => setMode('tape')}>
           tape
         </button>{' '}
-        <button className={mode === 'mine' ? 'chip active' : 'chip'} onClick={() => setMode('mine')}>
+        <button className={mode === 'mine' ? 'chip active' : 'chip'} aria-pressed={mode === 'mine'} onClick={() => setMode('mine')}>
           mine
         </button>{' '}
-        <button className={mode === 'flips' ? 'chip active' : 'chip'} onClick={() => setMode('flips')} title="your recent completed round-trips, with net profit after tax">
+        <button className={mode === 'flips' ? 'chip active' : 'chip'} aria-pressed={mode === 'flips'} onClick={() => setMode('flips')} title="your recent completed round-trips, with net profit after tax">
           flips
         </button>
       </h2>

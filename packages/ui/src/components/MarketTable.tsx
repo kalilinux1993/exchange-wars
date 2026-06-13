@@ -207,6 +207,7 @@ export function MarketTable({
           <button
             key={t}
             className={track === t ? 'chip active' : 'chip'}
+            aria-pressed={track === t}
             title={
               t === 'cheap'
                 ? 'items trading in the cheap third of their cost→value band — accumulation candidates'

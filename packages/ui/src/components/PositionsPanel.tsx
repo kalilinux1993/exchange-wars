@@ -126,6 +126,7 @@ export function PositionsPanel({
                 <button
                   key={k}
                   className={sort === k ? 'chip active' : 'chip'}
+                  aria-pressed={sort === k}
                   title={
                     k === 'pnl'
                       ? 'biggest unrealized P&L first (winners up, underwater down)'
