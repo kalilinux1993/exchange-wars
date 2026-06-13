@@ -486,6 +486,15 @@ describe('UI shell', () => {
     expect(bar!.textContent).toContain('99,999'); // the target to beat
   });
 
+  it('settles a duel already beaten on boot — fires the win, drops the banner (16v offline win)', () => {
+    // a tiny target your starting worth already clears (as an offline-grown run would) → settled at
+    // boot, not left silent with a stale banner.
+    const game = { ...newGame(42), duelTarget: { worth: 1, handle: 'rival' } };
+    render(<App initial={game} />);
+    expect(screen.getByText(/You beat rival/)).toBeTruthy(); // the win toast fires on boot
+    expect(screen.queryByText(/dueling/)).toBeNull(); // duelTarget cleared → no banner
+  });
+
   it('parseChallengeSeed accepts only #seed=<digits>', () => {
     expect(parseChallengeSeed('#seed=777')).toBe(777);
     expect(parseChallengeSeed('#seed=0')).toBe(0);

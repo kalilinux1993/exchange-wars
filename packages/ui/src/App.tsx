@@ -258,6 +258,7 @@ export function App({ initial }: { initial?: Game }) {
     beginOffline(g);
     const v0 = playerView(g.world, g.playerId);
     if (v0) checkMilestones(g, v0, playerWorth(g));
+    settleDuel(g); // a duel beaten via the offline accrual that beginOffline just applied (16v)
     const ch = parseChallengeSeed(window.location.hash);
     const target = parseChallengeTarget(window.location.hash); // the claimed "beat me" figure (16s)
     if (ch !== null) {
@@ -298,6 +299,7 @@ export function App({ initial }: { initial?: Game }) {
       recordFills(g);
       const v = playerView(g.world, g.playerId);
       if (v) checkMilestones(g, v, playerWorth(g));
+      settleDuel(g); // a big offline catch-up may have grown worth past the duel target (16v)
       saveGame(g);
       schedulePush();
       setCatchUp(null);
@@ -439,6 +441,16 @@ export function App({ initial }: { initial?: Game }) {
   // game swap (cloud-adopt / restart) — same identity guard as the level baseline above.
   const sessionBaseWorth = useRef<number | null>(null);
   const sessionBaseGame = useRef<typeof game | null>(null);
+  // Settle an accepted duel the moment worth clears the target — at ANY worth-update site (live ticks,
+  // boot-after-offline, the chunked catch-up finalize), because the clerk grows worth OFFLINE too (16v).
+  // Idempotent: deletes + saves the target, so a second call (or a reload) can't re-fire.
+  const settleDuel = (g: Game): void => {
+    if (!duelWon(g.duelTarget, playerWorth(g))) return;
+    const t = g.duelTarget!;
+    setToast({ id: 'duel-won', name: `🏆 You beat ${t.handle ?? 'the challenger'}!`, flavor: `passed their ${t.worth.toLocaleString('en-US')} gp — the duel is yours`, achieved: () => false });
+    delete g.duelTarget;
+    saveGame(g);
+  };
   const refreshProgress = (notifyFills = false): void => {
     const v = playerView(game.world, game.playerId);
     if (!v) return;
@@ -586,14 +598,9 @@ export function App({ initial }: { initial?: Game }) {
       setToast(newly[newly.length - 1]!);
       firedHall = true;
     }
-    // Duel won (16t): worth cleared the accepted "beat my score" target — celebrate ONCE and clear it
-    // (deleting + saving so it can't re-fire on the next tick or a reload). The highest-priority toast.
-    if (duelWon(game.duelTarget, w)) {
-      const t = game.duelTarget!;
-      setToast({ id: 'duel-won', name: `🏆 You beat ${t.handle ?? 'the challenger'}!`, flavor: `passed their ${t.worth.toLocaleString('en-US')} gp — the duel is yours`, achieved: () => false });
-      delete game.duelTarget;
-      saveGame(game);
-    }
+    // Duel won (16t/16v): worth cleared the accepted target — celebrate once + clear. settleDuel also
+    // runs at boot + the catch-up finalize, so an OFFLINE win (the clerk grew you past it) lands too.
+    settleDuel(game);
     // Tab badges (16r): flag a room whose event fired while you were on a DIFFERENT tab, so a missed
     // transient toast leaves a persistent dot. markRooms returns the same ref when nothing changes,
     // so this is a no-op re-render on a quiet tick.
