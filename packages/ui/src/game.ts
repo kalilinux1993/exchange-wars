@@ -548,7 +548,16 @@ export function regionMastery(
 export function expectedHit(atk: number, def: number): number {
   const lo = Math.max(1, Math.ceil(atk / 3));
   const hi = Math.max(2, atk);
-  return Math.max(1, (lo + hi) / 2 - Math.floor(def / 4));
+  const k = Math.floor(def / 4);
+  // The engine floors damage at 1 PER ROLL (quest.ts:415: `max(1, raw − floor(def/4))`),
+  // NOT on the mean. When armour is heavy enough that some — but not all — rolls in [lo, hi]
+  // would land ≤1, each of those is lifted to 1, which pulls the TRUE mean ABOVE
+  // `max(1, mean − k)`. Averaging the per-roll clamp over the (inclusive — rng.ts:7) uniform
+  // range is exact; the old `max(1, (lo+hi)/2 − k)` under-counted incoming damage for any
+  // armoured target (def ≳ 1.3× atk) — the dangerous direction for a "how safe am I?" read.
+  let sum = 0;
+  for (let raw = lo; raw <= hi; raw++) sum += Math.max(1, raw - k);
+  return sum / (hi - lo + 1);
 }
 
 /**

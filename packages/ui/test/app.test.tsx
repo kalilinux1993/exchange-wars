@@ -1701,6 +1701,28 @@ describe('UI shell', () => {
       expect(expectedHit(24, 11)).toBe(14); // roll [8..24] mean 16, −floor(11/4)=2
       expect(expectedHit(4, 40)).toBe(1); // heavy armour floors the hit at 1
     });
+    it('expectedHit applies the engine PER-ROLL damage floor, not a floor on the mean (19e)', () => {
+      // quest.ts:415 floors EACH roll at 1; low rolls clamp UP, lifting the true mean above
+      // `max(1, mean − floor(def/4))`. Heavy armour (def ≳ 1.3× atk) is the mixed regime where
+      // the old per-mean formula under-counted incoming damage — the dangerous direction.
+      expect(expectedHit(19, 60)).toBeCloseTo(19 / 13); // rolls 7..19, k=15: ten clamp to 1, three give 2/3/4
+      expect(expectedHit(24, 60)).toBeCloseTo(53 / 17); // rolls 8..24, k=15: nine clamp to 1, rest give 2..9
+      expect(expectedHit(19, 60)).toBeGreaterThan(1); // old per-mean formula reported exactly 1
+      expect(expectedHit(24, 60)).toBeGreaterThan(3); // old: 1 — a 3× under-count
+    });
+    it('expectedHit is unchanged where no roll clamps or every roll clamps (no regression)', () => {
+      expect(expectedHit(30, 20)).toBe(15); // rolls 10..30, k=5 — none clamp → (10+30)/2 − 5
+      expect(expectedHit(10, 40)).toBe(1); // rolls 4..10, k=10 — every roll clamps to 1
+    });
+    it('an armoured forecast counts the damage the engine actually deals — fewer rounds to fall (19e)', () => {
+      // def 60 vs a fire-giant-class foe (atk 19): per-roll floor → ≈1.46 dmg/landed hit, not the
+      // 1.0 the old mean-floor implied → rounds-to-fall is SHORTER (you are less safe than it said).
+      const you = { atk: 40, def: 60, hp: 50 };
+      const foe = { atk: 19, def: 11, hp: 85 };
+      const buggyFoeDpr = hitChance(19, 60) * 1; // old expectedHit(19, 60) === 1
+      const buggyRoundsToFall = Math.ceil(50 / buggyFoeDpr);
+      expect(combatForecast(you, foe).roundsToFall).toBeLessThan(buggyRoundsToFall);
+    });
     it('forecasts the exchange; a tie favours the player (strikes first)', () => {
       const strong = combatForecast({ atk: 50, def: 40, hp: 80 }, { atk: 4, def: 1, hp: 12 });
       expect(strong).toMatchObject({ roundsToKill: 1, favored: true });
