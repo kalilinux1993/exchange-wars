@@ -99,6 +99,7 @@ import {
   parseChallengeSeed,
   parseChallengeTarget,
   challengeLink,
+  duelWon,
   realizedFromBook,
   tradeRecord,
   recordFills,
@@ -476,6 +477,15 @@ describe('UI shell', () => {
     expect(game.world.tick).toBeGreaterThanOrEqual(600);
   });
 
+  it('shows the duel banner with the target while a duel is active (16t)', () => {
+    const game = { ...newGame(42), duelTarget: { worth: 99_999, handle: 'rival' } };
+    render(<App initial={game} />);
+    const bar = screen.getByText(/dueling/).closest('.duel');
+    expect(bar).toBeTruthy();
+    expect(bar!.textContent).toContain('rival'); // who you're racing
+    expect(bar!.textContent).toContain('99,999'); // the target to beat
+  });
+
   it('parseChallengeSeed accepts only #seed=<digits>', () => {
     expect(parseChallengeSeed('#seed=777')).toBe(777);
     expect(parseChallengeSeed('#seed=0')).toBe(0);
@@ -498,6 +508,13 @@ describe('UI shell', () => {
     expect(parseChallengeTarget('#seed=42')).toBeNull();
     // worth without a handle is still a valid target
     expect(parseChallengeTarget('#seed=42&w=5000')).toEqual({ worth: 5000, handle: null });
+  });
+
+  it('duelWon fires once your worth reaches the accepted target, never with no duel', () => {
+    expect(duelWon({ worth: 5000, handle: 'jesse' }, 4999)).toBe(false); // not yet
+    expect(duelWon({ worth: 5000, handle: 'jesse' }, 5000)).toBe(true); // tie = beaten (you reached it)
+    expect(duelWon({ worth: 5000, handle: null }, 6000)).toBe(true); // past it
+    expect(duelWon(undefined, 9_999_999)).toBe(false); // no duel → never
   });
 
   it('dailySeed derives a shared YYYYMMDD seed from the UTC date', () => {

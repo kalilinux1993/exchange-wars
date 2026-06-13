@@ -58,6 +58,7 @@ import {
   parseChallengeSeed,
   parseChallengeTarget,
   challengeLink,
+  duelWon,
   type ChallengeTarget,
   planOfflineProgress,
   clearSave,
@@ -585,6 +586,14 @@ export function App({ initial }: { initial?: Game }) {
       setToast(newly[newly.length - 1]!);
       firedHall = true;
     }
+    // Duel won (16t): worth cleared the accepted "beat my score" target — celebrate ONCE and clear it
+    // (deleting + saving so it can't re-fire on the next tick or a reload). The highest-priority toast.
+    if (duelWon(game.duelTarget, w)) {
+      const t = game.duelTarget!;
+      setToast({ id: 'duel-won', name: `🏆 You beat ${t.handle ?? 'the challenger'}!`, flavor: `passed their ${t.worth.toLocaleString('en-US')} gp — the duel is yours`, achieved: () => false });
+      delete game.duelTarget;
+      saveGame(game);
+    }
     // Tab badges (16r): flag a room whose event fired while you were on a DIFFERENT tab, so a missed
     // transient toast leaves a persistent dot. markRooms returns the same ref when nothing changes,
     // so this is a no-op re-render on a quiet tick.
@@ -764,11 +773,12 @@ export function App({ initial }: { initial?: Game }) {
     }
   };
 
-  const restart = (seed: number): void => {
+  const restart = (seed: number, duel?: ChallengeTarget | null): void => {
     const ghost = gameRef.current ? ghostForRestart(gameRef.current, seed) : undefined;
     clearSave();
     gameRef.current = newGame(seed);
     if (ghost) gameRef.current.ghost = ghost;
+    if (duel) gameRef.current.duelTarget = duel; // race this accepted "beat my score" target (16t)
     setSelected(gameRef.current.world.items[0]?.id ?? '');
     setLastResult(null);
     setSpeed(0);
@@ -1082,7 +1092,7 @@ export function App({ initial }: { initial?: Game }) {
           <button
             className="chip"
             onClick={() => {
-              restart(challenge);
+              restart(challenge, challengeTarget);
               setChallenge(null);
               setChallengeTarget(null);
             }}
@@ -1094,6 +1104,24 @@ export function App({ initial }: { initial?: Game }) {
             onClick={() => {
               setChallenge(null);
               setChallengeTarget(null);
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {game.duelTarget && (
+        <div className="awaybar duel">
+          ⚔ dueling <b>{game.duelTarget.handle ?? 'a challenger'}</b> — beat{' '}
+          <b className="up">{game.duelTarget.worth.toLocaleString('en-US')} gp</b>{' '}
+          <span className="dim">(you: {playerWorth(game).toLocaleString('en-US')})</span>
+          <button
+            className="chip"
+            title="give up this duel"
+            onClick={() => {
+              delete game.duelTarget;
+              saveGame(game);
+              force();
             }}
           >
             ×

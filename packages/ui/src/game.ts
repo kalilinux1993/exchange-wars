@@ -34,6 +34,9 @@ export interface Game {
   /** Your best previous run on THIS seed — raced as a dim line on the
    * Fortune chart. Determinism makes it a fair ghost. */
   ghost?: GhostRun;
+  /** An accepted "beat my score" duel (16s/16t): the claimed worth + handle to chase on this run.
+   * UI-only (like `ghost`), persisted so the duel survives a reload; cleared when you beat it. */
+  duelTarget?: ChallengeTarget;
   /** Every human command with its tick — the run is REPLAYABLE from seed +
    * this log (engine replayRun), which is what verified leaderboards check. */
   commandLog: RunLogEntry[];
@@ -84,6 +87,11 @@ export interface ChallengeTarget {
   worth: number;
   handle: string | null;
 }
+/** Has this run beaten its accepted duel target? True once your worth reaches the claimed figure. Pure. */
+export function duelWon(target: ChallengeTarget | undefined, worth: number): boolean {
+  return target !== undefined && worth >= target.worth;
+}
+
 export function parseChallengeTarget(hash: string): ChallengeTarget | null {
   const wm = /[#&]w=(\d{1,15})(?:&|$)/.exec(hash);
   if (!wm) return null;
