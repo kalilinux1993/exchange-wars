@@ -2018,3 +2018,20 @@ input.belowbe {
   max-height: 110px;
   overflow: auto;
 }
+
+/* Honor a reduced-motion preference GLOBALLY (WCAG 2.3.3, vestibular safety). The per-animation blocks
+   above covered only a few; the looping ones — the elite-aura pulse, the monster bob, the ending-event
+   pulse — are the real triggers and kept slipping through as animations were added. This drift-proof
+   pattern reduces ALL motion (current + future) to imperceptible: the loops here are symmetric (0%==100%),
+   so they settle to their REST state rather than mid-cycle, and the only one-shot whose value matters —
+   the combat hit-splat — is redundant with the combat log, so nothing readable is lost. (a11y) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

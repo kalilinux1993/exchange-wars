@@ -60,6 +60,26 @@ test('the page serves social-card meta for shared links (18z)', async ({ page })
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
 });
 
+test('honors prefers-reduced-motion — looping animations reduced to imperceptible (a11y)', async ({ page }) => {
+  // The global `*` guard must crush EVERY animation (incl. the real looping triggers — monster-bob, the
+  // elite aura, the ending-event pulse) regardless of which selector carries it. Measure a div given a real
+  // looping keyframe; compare reduce vs no-preference numerically (Chromium serializes duration in seconds).
+  const measure = (): Promise<string> =>
+    page.evaluate(() => {
+      const d = document.createElement('div');
+      d.style.animation = 'monster-bob 2.4s ease-in-out infinite';
+      document.body.appendChild(d);
+      const v = getComputedStyle(d).animationDuration;
+      d.remove();
+      return v;
+    });
+  const toSec = (s: string): number => (s.trim().endsWith('ms') ? parseFloat(s) / 1000 : parseFloat(s));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(toSec(await measure())).toBeLessThan(0.001); // the global guard collapses 2.4s → ~0
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  expect(toSec(await measure())).toBeGreaterThanOrEqual(2); // its real 2.4s with no preference
+});
+
 test('the active room survives a reload', async ({ page }) => {
   await dismissHelp(page);
   await page.getByRole('tab', { name: /Adventure/ }).click();
