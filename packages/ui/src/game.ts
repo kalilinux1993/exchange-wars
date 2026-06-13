@@ -2396,7 +2396,14 @@ export function loadGame(): Game | null {
     if (!parsed || typeof parsed !== 'object' || !(parsed as Game).world || typeof (parsed as Game).playerId !== 'number') {
       throw new Error('save shape invalid');
     }
-    return normalizeGame(parsed as Game);
+    const g = normalizeGame(parsed as Game);
+    // Loadability gate (matches importSaveString, 19x/19y): a save that passes the shape gate but can't
+    // produce a playerView (playerId points at no agent, missing agents/books) would otherwise render
+    // "save corrupted" with NO recovery — the recovery bar only shows for QUARANTINED saves. Throw so the
+    // catch quarantines it: recover-or-discard + fresh start, never a bricked boot. (A malformed world that
+    // makes playerView THROW is caught here too.)
+    if (!playerView(g.world, g.playerId)) throw new Error('save not loadable');
+    return g;
   } catch (e) {
     // Don't silently destroy a save we couldn't read — the first autosave of
     // a fresh game is about to overwrite SAVE_KEY. Quarantine the original so

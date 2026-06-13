@@ -4688,6 +4688,12 @@ describe('UI shell', () => {
     localStorage.setItem('exchange-wars-save-v1', '{"foo":1}');
     expect(loadGame()).toBeNull();
     expect(localStorage.getItem('exchange-wars-save-v1-corrupt')).toBe('{"foo":1}');
+    // 19y: parseable + right SHAPE but UNLOADABLE (playerId points at no agent) — must also quarantine, not
+    // boot into a "save corrupted" brick with no recovery (the shape gate alone would have let it through).
+    const unloadable = JSON.stringify({ ...newGame(42), playerId: 999 });
+    localStorage.setItem('exchange-wars-save-v1', unloadable);
+    expect(loadGame()).toBeNull();
+    expect(localStorage.getItem('exchange-wars-save-v1-corrupt')).toBe(unloadable); // recoverable, not bricked
     localStorage.removeItem('exchange-wars-save-v1');
     localStorage.removeItem('exchange-wars-save-v1-corrupt');
     spy.mockRestore();
