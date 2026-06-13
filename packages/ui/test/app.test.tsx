@@ -29,7 +29,7 @@ import { ItemIcon } from '../src/components/Icon';
 import { DelvePanel } from '../src/components/DelvePanel';
 import { ExpeditionPanel } from '../src/components/ExpeditionPanel';
 import { GearManager } from '../src/components/GearManager';
-import { HelpOverlay } from '../src/components/HelpOverlay';
+import { HelpOverlay, HELP_SEEN_KEY } from '../src/components/HelpOverlay';
 import { WealthPanel } from '../src/components/WealthPanel';
 import { UpgradeShop } from '../src/components/UpgradeShop';
 import { PlayerPanel } from '../src/components/PlayerPanel';
@@ -3653,6 +3653,16 @@ describe('UI shell', () => {
     expect(screen.getByText('How to Play')).toBeTruthy();
     fireEvent.keyDown(document.body, { key: 'Escape' });
     expect(screen.queryByText('How to Play')).toBeNull(); // Escape dismissed the modal
+  });
+
+  it('Escape only acts on an OPEN help — a ?-peeked-then-closed help is not marked seen (17v)', () => {
+    freshApp(); // fresh: help open, HELP_SEEN_KEY null
+    expect(screen.getByText('How to Play')).toBeTruthy();
+    fireEvent.keyDown(document.body, { key: '?' }); // ? toggles it CLOSED without marking seen (a peek)
+    expect(screen.queryByText('How to Play')).toBeNull();
+    expect(localStorage.getItem(HELP_SEEN_KEY)).toBeNull(); // the peek didn't dismiss the first-run
+    fireEvent.keyDown(document.body, { key: 'Escape' }); // gate: help closed → no-op, no seen-flag write
+    expect(localStorage.getItem(HELP_SEEN_KEY)).toBeNull(); // 17v: Escape didn't mark a closed help seen
   });
 
   it('locked worth deeds show progress percentages (in the badge grid tooltips)', () => {

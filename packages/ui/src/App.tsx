@@ -138,6 +138,9 @@ export function App({ initial }: { initial?: Game }) {
   const [prefill, setPrefill] = useState<TicketPrefill | null>(null);
   const [regionPick, setRegionPick] = useState<{ regionId: string; n: number } | null>(null);
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_SEEN_KEY) === null);
+  // Mirror for the once-bound keydown listener: Escape should only dismiss (+ mark seen) an OPEN help (17v).
+  const helpOpenRef = useRef(helpOpen);
+  helpOpenRef.current = helpOpen;
   type Room = 'exchange' | 'adventure' | 'hall';
   const [room, setRoom] = useState<Room>(() => {
     const saved = localStorage.getItem('ew-room');
@@ -394,7 +397,7 @@ export function App({ initial }: { initial?: Game }) {
       const tag = t?.tagName;
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || t?.isContentEditable) return;
       if (e.key === 'Escape') {
-        closeHelp(); // the modal-close convention (17u); idempotent when already closed, so no helpOpen read
+        if (helpOpenRef.current) closeHelp(); // the modal-close convention (17u); only dismiss an OPEN help (17v)
         return;
       }
       const sc = resolveShortcut(e.key);
