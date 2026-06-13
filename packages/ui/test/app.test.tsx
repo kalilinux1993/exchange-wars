@@ -4684,6 +4684,25 @@ describe('UI shell', () => {
     expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('apex-predator'); // latches
   });
 
+  it('the Untouchable deed needs a 10-dive clean survival streak, with partial progress (21f)', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    const deed = MILESTONES.find((m) => m.id === 'untouchable')!;
+    const dive = (i: number, died: boolean) => ({ tick: i, regionId: REGIONS[0]!.id, kills: 1, lootGp: 100, died });
+    // fresh — no dives
+    expect(deed.achieved(game, view, 0)).toBe(false);
+    expect(deed.progress!(game, view, 0)).toBe(0);
+    // nine clean extractions then a death — the best run is 9, short of the bar
+    game.delves = [...Array.from({ length: 9 }, (_, i) => dive(i, false)), dive(9, true)];
+    expect(deed.achieved(game, view, 0)).toBe(false);
+    expect(deed.progress!(game, view, 0)).toBeCloseTo(0.9);
+    // ten clean returns in a row → the badge
+    game.delves = Array.from({ length: 10 }, (_, i) => dive(i, false));
+    expect(deed.achieved(game, view, 0)).toBe(true);
+    expect(deed.progress!(game, view, 0)).toBe(1);
+    expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('untouchable'); // latches
+  });
+
   it('BountyBoard shows reward-per-kill and a progress bar', () => {
     const game = newGame(42);
     game.world.bounties = [{ id: 1, monsterId: 'goblin', qty: 4, rewardGp: 2_000, baseline: 0, expiresTick: 5_000 }];

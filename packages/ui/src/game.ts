@@ -1797,6 +1797,17 @@ export const MILESTONES: Milestone[] = [
     progress: (g) => (g.world.stats.deaths ?? 0) / 9,
   },
   {
+    id: 'untouchable',
+    name: 'Untouchable',
+    flavor: 'Ten dives into the dark, ten clean returns — not a scratch banked into the ledger.',
+    // The careful diver's badge — the positive counterpart to nine-lives (deaths): the best run of
+    // consecutive extractions WITHOUT a death, from the Delve Log. Reuses `diveStreak` so the deed agrees
+    // with the streak readout (16f) and the milestone toasts (16g). Reads game.delves (UI-side) — no
+    // engine/replay effect, like the other delve-derived reads.
+    achieved: (g) => diveStreak(g.delves).best >= 10,
+    progress: (g) => diveStreak(g.delves).best / 10,
+  },
+  {
     id: 'monster-scholar',
     name: 'Monster Scholar',
     flavor: 'Every page of the bestiary, written in something other than ink.',
