@@ -1268,6 +1268,17 @@ export function App({ initial }: { initial?: Game }) {
               )
             }
             active={room === 'exchange'}
+            onToggleWatch={(id) => {
+              const nowWatching = !watch.includes(id);
+              toggleWatch(id);
+              const name = game.world.items.find((i) => i.id === id)?.name ?? id;
+              setToast({
+                id: 'watch',
+                name: nowWatching ? `★ watching ${name}` : `☆ unwatched ${name}`,
+                flavor: nowWatching ? 'added to your watchlist' : 'removed from your watchlist',
+                achieved: () => false,
+              });
+            }}
           />
           <TopFlips
             view={view}

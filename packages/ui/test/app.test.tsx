@@ -1064,6 +1064,29 @@ describe('UI shell', () => {
       expect(onSelect).toHaveBeenLastCalledWith(ids[1]); // last → second
     });
 
+    it('w toggles the watchlist on the selected item — active-gated, ignored while typing (17c)', () => {
+      const onToggleWatch = vi.fn();
+      const { container } = render(
+        <MarketTable view={view} items={DEFAULT_ITEMS} trades={[]} selected={ids[1]!} onSelect={() => {}} eventItems={new Set()} active onToggleWatch={onToggleWatch} />,
+      );
+      fireEvent.keyDown(document.body, { key: 'w' });
+      expect(onToggleWatch).toHaveBeenLastCalledWith(ids[1]); // watches the loaded item
+      onToggleWatch.mockClear();
+      // ignored while typing in the filter input (no accidental watch toggles mid-search)
+      const filter = container.querySelector('input.filter') as HTMLInputElement;
+      fireEvent.keyDown(filter, { key: 'w' });
+      expect(onToggleWatch).not.toHaveBeenCalled();
+    });
+
+    it('w does nothing when the Exchange tab is not active', () => {
+      const onToggleWatch = vi.fn();
+      render(
+        <MarketTable view={view} items={DEFAULT_ITEMS} trades={[]} selected={ids[0]!} onSelect={() => {}} eventItems={new Set()} active={false} onToggleWatch={onToggleWatch} />,
+      );
+      fireEvent.keyDown(document.body, { key: 'w' });
+      expect(onToggleWatch).not.toHaveBeenCalled();
+    });
+
     it('does nothing when the Exchange tab is not the active room', () => {
       const onSelect = vi.fn();
       render(

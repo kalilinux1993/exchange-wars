@@ -38,6 +38,7 @@ export function MarketTable({
   onSelect,
   eventItems,
   active = true,
+  onToggleWatch,
 }: {
   view: PlayerView;
   items: ItemDef[];
@@ -49,6 +50,8 @@ export function MarketTable({
   /** Whether the Exchange tab is the visible room — gates the j/k keyboard nav so
    *  the hotkeys don't move the (hidden, still-mounted) market on other tabs. */
   active?: boolean;
+  /** Toggle the watchlist on the selected item — bound to the `w` key (17c). */
+  onToggleWatch?: (id: ItemId) => void;
 }) {
   const [filter, setFilter] = useState('');
   const [track, setTrack] = useState<'all' | 'staples' | 'exotics' | 'gear' | 'flippable' | 'cheap'>('all');
@@ -112,14 +115,20 @@ export function MarketTable({
   // Keyboard nav (j/k or ↑/↓ walk the selection through the *displayed* order, so
   // it always matches the on-screen sort/filter). Refs keep the once-bound window
   // listener reading current state without re-binding every render.
-  const navRef = useRef({ sorted, selected, onSelect, active });
-  navRef.current = { sorted, selected, onSelect, active };
+  const navRef = useRef({ sorted, selected, onSelect, active, onToggleWatch });
+  navRef.current = { sorted, selected, onSelect, active, onToggleWatch };
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      const { sorted: list, selected: sel, onSelect: pick, active: on } = navRef.current;
+      const { sorted: list, selected: sel, onSelect: pick, active: on, onToggleWatch: watch } = navRef.current;
       if (!on || e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(t.tagName) || t.isContentEditable)) return;
+      // `w` toggles the watchlist on the selected item — the watch verb of the keyboard trade loop (17c).
+      if ((e.key === 'w' || e.key === 'W') && watch) {
+        e.preventDefault();
+        watch(sel);
+        return;
+      }
       const delta = e.key === 'j' || e.key === 'ArrowDown' ? 1 : e.key === 'k' || e.key === 'ArrowUp' ? -1 : 0;
       if (delta === 0) return;
       const cur = list.findIndex((m) => m.itemId === sel);
