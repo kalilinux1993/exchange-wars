@@ -111,9 +111,19 @@ export async function submitSprint(
   }
 }
 
-/** Latest-wins by the save's own lastSeenMs (same clock domain as accrual). */
+/** Which save to keep on sign-in. Latest-wins by `lastSeenMs` (same clock domain as accrual) — EXCEPT a
+ *  pristine, untouched save (a fresh new game: never ticked, no player commands) must never win by recency,
+ *  or starting a fresh game on a new device / after a storage clear and then signing in would clobber the
+ *  real cloud save (the fresh local's lastSeenMs=now beats the older-but-real cloud → the adopt flow pushes
+ *  it over the cloud → total progress loss). A pristine save has zero progress and zero intent to discard the
+ *  other, so the real run always wins; only when both are comparable (both real, or both pristine) does
+ *  recency decide. (19w) */
 export function chooseSave(local: Game | null, cloud: Game | null): 'local' | 'cloud' {
   if (!cloud) return 'local';
   if (!local) return 'cloud';
+  const untouched = (g: Game): boolean => (g.world.tick ?? 0) === 0 && (g.commandLog?.length ?? 0) === 0;
+  const lU = untouched(local);
+  const cU = untouched(cloud);
+  if (lU !== cU) return lU ? 'cloud' : 'local'; // a save with a real run always beats a pristine one
   return (cloud.lastSeenMs ?? 0) >= (local.lastSeenMs ?? 0) ? 'cloud' : 'local';
 }

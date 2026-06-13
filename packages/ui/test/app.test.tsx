@@ -5672,6 +5672,22 @@ describe('UI shell', () => {
     expect(chooseSave(a, b)).toBe('cloud'); // tie → cloud
   });
 
+  it('cloud chooser: a pristine save never clobbers a real run, regardless of recency (19w)', () => {
+    const real = newGame(42);
+    real.world.tick = 500; // a played run
+    real.lastSeenMs = 1_000; // OLDER
+    const pristine = newGame(42); // tick 0, empty commandLog — never touched
+    pristine.lastSeenMs = 9_999; // NEWER, e.g. a fresh game just opened on a new device
+    // the data-loss path: a fresh local newer than the cloud must NOT win (it'd push the empty game over the cloud)
+    expect(chooseSave(pristine, real)).toBe('cloud'); // local pristine, cloud real → keep the cloud
+    expect(chooseSave(real, pristine)).toBe('local'); // local real, cloud pristine → keep the local
+    // "touched" via a player command counts even at tick 0
+    const acted = newGame(42);
+    acted.commandLog = [{ tick: 0, cmd: { type: 'cancel' } }];
+    acted.lastSeenMs = 1_000; // older than the pristine, but it's a real run
+    expect(chooseSave(acted, pristine)).toBe('local');
+  });
+
   it('renders the sign-in bar when signed out', () => {
     freshApp();
     expect(screen.getByPlaceholderText(/sign in to sync/i)).toBeTruthy();
