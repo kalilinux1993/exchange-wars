@@ -3648,6 +3648,13 @@ describe('UI shell', () => {
     expect(screen.getByText('How to Play')).toBeTruthy();
   });
 
+  it('Escape closes the help overlay (17u)', () => {
+    freshApp(); // fresh device → the help opens by default
+    expect(screen.getByText('How to Play')).toBeTruthy();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(screen.queryByText('How to Play')).toBeNull(); // Escape dismissed the modal
+  });
+
   it('locked worth deeds show progress percentages (in the badge grid tooltips)', () => {
     freshApp();
     // The compact deed grid (9k) carries every deed's progress in its title;

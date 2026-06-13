@@ -393,6 +393,10 @@ export function App({ initial }: { initial?: Game }) {
       const t = e.target as HTMLElement | null;
       const tag = t?.tagName;
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || t?.isContentEditable) return;
+      if (e.key === 'Escape') {
+        closeHelp(); // the modal-close convention (17u); idempotent when already closed, so no helpOpen read
+        return;
+      }
       const sc = resolveShortcut(e.key);
       if (!sc) return;
       if (sc.kind === 'room') pickRoom(sc.room);
