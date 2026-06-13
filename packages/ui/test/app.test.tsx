@@ -83,6 +83,7 @@ import {
   HUMAN_START_GP,
   importSaveString,
   loadGame,
+  loadoutShort,
   newGame,
   nextRoundTarget,
   normalizeGame,
@@ -4508,6 +4509,30 @@ describe('UI shell', () => {
     expect(within(sharkRow as HTMLElement).getByText('0/5')).toBeTruthy();
     fireEvent.click(within(panel).getByText(/Shark ×2/));
     expect(within(sharkRow as HTMLElement).getByText('2/5')).toBeTruthy(); // refilled
+    localStorage.removeItem('ew-loadouts');
+  });
+
+  it('loadoutShort lists what the apply-clamp would silently take (18c)', () => {
+    expect(loadoutShort({ shark: 3, antifire: 1 }, { shark: 1 })).toEqual([
+      { itemId: 'antifire', want: 1, have: 0 }, // out entirely → have 0 (sorted before shark)
+      { itemId: 'shark', want: 3, have: 1 }, // hold fewer than the kit wants
+    ]);
+    expect(loadoutShort({ shark: 2 }, { shark: 5 })).toEqual([]); // fully stockable → nothing short
+    expect(loadoutShort({ shark: 2 }, { shark: 2 })).toEqual([]); // exact stock → not short
+    expect(loadoutShort({ shark: 0 }, {})).toEqual([]); // a zero-want entry is ignored
+  });
+
+  it('an understocked loadout chip shows ⚠ + names the shortfall (18c)', () => {
+    localStorage.setItem('ew-loadouts', JSON.stringify([{ shark: 3 }])); // saved a 3-shark kit…
+    const game = newGame(42);
+    game.world.agents[game.playerId]!.inventory['shark'] = 1; // …but you now hold only 1
+    const view = playerView(game.world, game.playerId)!;
+    const { container } = render(<EmbarkPanel game={game} view={view} items={game.world.items} onCommand={() => {}} active />);
+    const chip = within(container).getByText(/Shark ×3/).closest('button')!;
+    expect(chip.textContent).toContain('⚠'); // the silent clamp is now visible
+    expect(chip.getAttribute('title')).toContain('understocked');
+    expect(chip.getAttribute('title')).toContain('shark 1/3'); // have/want named
+    expect(chip.className).toContain('short');
     localStorage.removeItem('ew-loadouts');
   });
 

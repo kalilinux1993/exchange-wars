@@ -1,7 +1,7 @@
 import { CONSUMABLES, deriveStats, GEAR, levelsOf, maxHpFor, monsterById, REGIONS, REST_REGEN_TICKS, regionIndex } from '@exchange-wars/engine';
 import type { ItemDef, PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { combatForecast, embarkPrep, healEta, regionLoot, type Game } from '../game';
+import { combatForecast, embarkPrep, healEta, loadoutShort, regionLoot, type Game } from '../game';
 import { usePref } from '../usePref';
 import { arenaTheme } from './CombatScene';
 import { ItemIcon } from './Icon';
@@ -336,16 +336,28 @@ export function EmbarkPanel({
         return (
           <p className="dim small loadouts">
             loadouts:{' '}
-            {loadouts.map((lo, i) => (
-              <span key={i}>
-                <button className="chip" title="fill the pack from this saved kit (clamped to what you hold)" onClick={() => applyLoadout(lo)}>
-                  {label(lo)}
-                </button>
-                <button className="chip" title="forget this loadout" onClick={() => removeLoadout(i)}>
-                  ×
-                </button>{' '}
-              </span>
-            ))}
+            {loadouts.map((lo, i) => {
+              // Surface what `applyLoadout`'s clamp would silently take: if you no longer hold enough
+              // of an item, mark the chip ⚠ + name the shortfall, so a reduced refill is informed (18c).
+              const short = loadoutShort(lo, view.inventory);
+              const title =
+                short.length > 0
+                  ? `⚠ understocked: ${short
+                      .map((s) => `${(names.get(s.itemId) ?? s.itemId).toLowerCase()} ${s.have}/${s.want}`)
+                      .join(', ')} — applies what you hold`
+                  : 'fill the pack from this saved kit (clamped to what you hold)';
+              return (
+                <span key={i}>
+                  <button className={short.length > 0 ? 'chip short' : 'chip'} title={title} onClick={() => applyLoadout(lo)}>
+                    {label(lo)}
+                    {short.length > 0 ? ' ⚠' : ''}
+                  </button>
+                  <button className="chip" title="forget this loadout" onClick={() => removeLoadout(i)}>
+                    ×
+                  </button>{' '}
+                </span>
+              );
+            })}
             {draftUnits > 0 && loadouts.length < 4 && (
               <button className="chip" title="save the current pack as a loadout" onClick={saveCurrent}>
                 + save kit

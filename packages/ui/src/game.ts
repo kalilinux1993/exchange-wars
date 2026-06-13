@@ -583,6 +583,22 @@ export function healFromPack(pack: Record<string, number>): number {
   return total;
 }
 
+/**
+ * The items a saved loadout can't fully stock from your current inventory — `applyLoadout` silently
+ * clamps each to what you hold (`Math.min(want, have)`) and drops anything you're out of, so this is
+ * exactly what that clamp would quietly take away. One entry per under-stocked item (want > have,
+ * have=0 included), sorted by itemId for a deterministic readout. Empty when the kit fits. Pure.
+ */
+export function loadoutShort(
+  loadout: Record<string, number>,
+  inventory: Record<string, number>,
+): { itemId: string; want: number; have: number }[] {
+  return Object.keys(loadout)
+    .filter((id) => loadout[id]! > 0 && (inventory[id] ?? 0) < loadout[id]!)
+    .sort()
+    .map((id) => ({ itemId: id, want: loadout[id]!, have: inventory[id] ?? 0 }));
+}
+
 /** A combat skill that just leveled up — for the celebration toast. */
 export interface LevelUp {
   skill: 'atk' | 'def' | 'hp';
