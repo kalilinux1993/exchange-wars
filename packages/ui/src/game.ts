@@ -1965,6 +1965,38 @@ export function bidWalk(
   return sold > 0 ? { qty: sold, floor, gp, net } : null;
 }
 
+/** The buy-side mirror of `bidWalk`: what an aggressive buy of `qty` would IMMEDIATELY fill for,
+ * walking UP the resting asks (`sells`, sorted price ASC — cheapest first) only as far as your
+ * `maxPrice` limit. A limit buy fills at the resting SELL's price (≤ your limit), so the real cost
+ * is below the `qty × limit` escrow ceiling, and once an ask exceeds the limit nothing further
+ * crosses (the rest rests). `ceil` is the highest ask price hit (the worst fill); `gp` is the gross
+ * cost — buys carry NO GE tax (it's sell-side, exchange.ts:72), so there's no net/gross split. Skips
+ * the player's own asks (no self-trade). `null` when nothing crosses (your limit is below the best
+ * ask, or there are no asks). Reads the world for display; the actual buy goes through `place`. */
+export function askWalk(
+  game: Game,
+  itemId: string,
+  qty: number,
+  maxPrice: number,
+): { qty: number; ceil: number; gp: number } | null {
+  const book = game.world.books[itemId];
+  if (!book || qty <= 0) return null;
+  let remaining = qty;
+  let gp = 0;
+  let ceil = 0;
+  for (const o of book.sells) {
+    if (remaining <= 0) break;
+    if (o.agentId === game.playerId) continue; // never buy from yourself
+    if (o.price > maxPrice) break; // sells are price-ascending → nothing further is within the limit
+    const take = Math.min(remaining, o.remaining);
+    gp += take * o.price;
+    ceil = o.price;
+    remaining -= take;
+  }
+  const bought = qty - remaining;
+  return bought > 0 ? { qty: bought, ceil, gp } : null;
+}
+
 /**
  * What the WHOLE satchel would really cash out for if you market-sold every open position into the
  * resting bids right now — each holding walked DOWN its bid book via `bidWalk` (per-fill tax, own

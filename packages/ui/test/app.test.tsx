@@ -102,6 +102,7 @@ import {
   underwaterSummary,
   lootSpoils,
   bidWalk,
+  askWalk,
   gearDelta,
   bestAffordableUpgrade,
   worthBreakdown,
@@ -2313,6 +2314,34 @@ describe('UI shell', () => {
     expect(liquidateNow(game, [])).toEqual({ net: 0, units: 0, sold: 0 });
   });
 
+  it('askWalk prices an aggressive buy by walking UP the asks to the limit, untaxed (19k)', () => {
+    const game = {
+      playerId: 0,
+      world: { books: { x: { sells: [
+        { agentId: 9, price: 100, remaining: 3 }, // cheapest first (asc)
+        { agentId: 0, price: 101, remaining: 9 }, // YOUR own ask → skipped
+        { agentId: 8, price: 110, remaining: 5 },
+      ] } } },
+    } as unknown as Game;
+    // buy 5 with a generous limit 200: 3@100 + 2@110 = 520, no tax (buys are untaxed), ceil 110
+    const w = askWalk(game, 'x', 5, 200)!;
+    expect(w).toEqual({ qty: 5, ceil: 110, gp: 520 });
+  });
+
+  it('askWalk caps at the limit price and returns null when nothing crosses (19k)', () => {
+    const game = {
+      playerId: 0,
+      world: { books: { x: { sells: [
+        { agentId: 9, price: 100, remaining: 3 },
+        { agentId: 8, price: 110, remaining: 5 },
+      ] } } },
+    } as unknown as Game;
+    // limit 105 only crosses the 100 level (110 > 105 stops the walk) → fills 3, rest would rest
+    expect(askWalk(game, 'x', 5, 105)).toEqual({ qty: 3, ceil: 100, gp: 300 });
+    // limit below the best ask → nothing fills now
+    expect(askWalk(game, 'x', 5, 99)).toBeNull();
+  });
+
   it('"sell the spoils" dumps loot but keeps your gear', () => {
     const game = newGame(42);
     for (let i = 0; i < 200; i++) tickWorld(game.world); // populate NPC bids so items are sellable
@@ -3068,6 +3097,40 @@ describe('UI shell', () => {
     fireEvent.change(price, { target: { value: String(view.gp) } });
     expect(screen.getByText(/% of holdings/)).toBeTruthy();
     expect(screen.getByText(/⚠ concentrated/)).toBeTruthy();
+  });
+
+  it('the buy ticket previews the ask-walk fill cost when the order crosses the spread (19k)', () => {
+    const game = newGame(42);
+    const item = game.world.items[0]!.id;
+    // inject an ask so a buy can cross right now; agentId ≠ player so it isn't skipped
+    const book = game.world.books[item]!;
+    book.sells.push({ id: 1, tick: 0, agentId: game.playerId + 1, itemId: item, side: 'sell', price: 100, qty: 5, remaining: 5, escrowGp: 0 });
+    book.sells.sort((a, b) => a.price - b.price || a.tick - b.tick || a.id - b.id);
+    game.world.agents[game.playerId]!.gp = 100_000; // afford it (no shortGp → valid)
+    const view = playerView(game.world, game.playerId)!;
+    render(
+      <TradeTicket
+        game={game}
+        view={view}
+        selected={item}
+        items={game.world.items}
+        prefill={null}
+        onCommand={() => {}}
+        lastResult={null}
+        eventNote={null}
+        recentPrices={[]}
+        position={null}
+        watched={false}
+        onToggleWatch={() => {}}
+      />,
+    );
+    const [price, qtyInput] = screen.getAllByRole('textbox'); // [price, qty]
+    fireEvent.change(price!, { target: { value: '100' } }); // ≥ best ask 100 → crosses
+    fireEvent.change(qtyInput!, { target: { value: '3' } });
+    const preview = document.querySelector('p.fillpreview');
+    expect(preview).toBeTruthy();
+    expect(preview!.textContent).toMatch(/fills ≈3 now/);
+    expect(preview!.textContent).toMatch(/300 gp/); // 3 @ 100, untaxed
   });
 
   it('TradeTicket shows no gear preview for a non-gear commodity', () => {

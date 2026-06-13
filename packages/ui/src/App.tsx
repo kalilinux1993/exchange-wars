@@ -1334,6 +1334,7 @@ export function App({ initial }: { initial?: Game }) {
         </section>
         <section className="middle">
           <TradeTicket
+            game={game}
             view={view}
             selected={selected}
             items={game.world.items}

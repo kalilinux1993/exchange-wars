@@ -3,7 +3,7 @@ import type { CommandResult, ItemDef, ItemId, PlayerCommand, PlayerView, Side } 
 import { useEffect, useRef, useState } from 'react';
 import { Sparkline } from './Sparkline';
 import { BandMeter } from './BandMeter';
-import { blendBuy, breakEvenSell, buyConcentration, gearDelta, itemSources, priceSwing, valueBand } from '../game';
+import { askWalk, blendBuy, breakEvenSell, buyConcentration, gearDelta, itemSources, priceSwing, valueBand, type Game } from '../game';
 
 /**
  * Split the resting book into bid/ask proportions for the liquidity bar —
@@ -24,6 +24,7 @@ export interface TicketPrefill {
 }
 
 export function TradeTicket({
+  game,
   view,
   selected,
   items,
@@ -39,6 +40,9 @@ export function TradeTicket({
   onHunt,
   active = true,
 }: {
+  /** The world, for display reads only (ask-depth walk on the buy preview); mutations go through onCommand.
+   * Optional — omitted in isolated render tests, in which case the buy fill-preview line just doesn't show. */
+  game?: Game;
   view: PlayerView;
   selected: ItemId;
   items: ItemDef[];
@@ -346,6 +350,25 @@ export function TradeTicket({
           {shortGp && <span className="warn"> · exceeds your {view.gp.toLocaleString('en-US')} gp</span>}
           {shortItems && <span className="warn"> · you hold only {held.toLocaleString('en-US')}</span>}
         </p>
+        {side === 'buy' &&
+          valid &&
+          game &&
+          (() => {
+            // What CROSSES the spread right now: a limit buy fills at the resting ask's price (≤ your
+            // limit), so the real immediate cost is below the `cost` ceiling and only part may fill.
+            const w = askWalk(game, selected, q, p);
+            if (!w) return null;
+            return (
+              <p
+                className="dim small fillpreview"
+                title="how much of this buy crosses the spread RIGHT NOW — limit buys fill at the resting seller's price (≤ your limit), so you pay less than the escrow ceiling; the rest rests at your price. Buys are untaxed."
+              >
+                fills ≈<b>{w.qty.toLocaleString('en-US')}</b> now · ≈{w.gp.toLocaleString('en-US')} gp (avg{' '}
+                {Math.round(w.gp / w.qty).toLocaleString('en-US')})
+                {q > w.qty && <span className="dim"> · {(q - w.qty).toLocaleString('en-US')} rests at {p.toLocaleString('en-US')}</span>}
+              </p>
+            );
+          })()}
         {side === 'buy' &&
           valid &&
           (() => {
