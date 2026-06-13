@@ -1782,6 +1782,15 @@ export const MILESTONES: Milestone[] = [
     progress: (g) => totalRealized(g.tradeBook) / 100_000,
   },
   {
+    id: 'spread-magnate',
+    name: 'Spread Magnate',
+    flavor: 'A million gp earned purely on the spread — buy low, sell high, a thousand times over.',
+    // The Profiteer capstone (the realized-profit tier above 100k, as the worth tiers ladder 100k→5M):
+    // lifetime realized flip profit ≥ 1M. Same tax-accurate FIFO book; replay-inert UI-side deed.
+    achieved: (g) => totalRealized(g.tradeBook) >= 1_000_000,
+    progress: (g) => totalRealized(g.tradeBook) / 1_000_000,
+  },
+  {
     id: 'first-blood',
     name: 'Monster Slayer',
     flavor: 'Your first kill in the depths.',

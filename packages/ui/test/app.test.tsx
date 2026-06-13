@@ -4905,6 +4905,33 @@ describe('UI shell', () => {
     expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('profiteer'); // latches
   });
 
+  it('the Spread Magnate deed is the 1M realized-profit capstone above Profiteer (21s)', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    const deed = MILESTONES.find((m) => m.id === 'spread-magnate')!;
+    // below 1M: buy 100k@100 → sell 100k@108 ≈ +584k after tax (clears Profiteer's 100k, not the capstone)
+    game.tradeBook = bookFromFills(
+      [
+        { tick: 0, itemId: FIRST.id, side: 'buy', qty: 100_000, price: 100 },
+        { tick: 1, itemId: FIRST.id, side: 'sell', qty: 100_000, price: 108 },
+      ],
+      0.02,
+    );
+    expect(deed.achieved(game, view, 0)).toBe(false);
+    expect(deed.progress!(game, view, 0)).toBeGreaterThan(0.4);
+    expect(deed.progress!(game, view, 0)).toBeLessThan(1);
+    // a fatter spread clears 1M: buy 100k@100 → sell 100k@120 ≈ +1.76M after tax
+    game.tradeBook = bookFromFills(
+      [
+        { tick: 0, itemId: FIRST.id, side: 'buy', qty: 100_000, price: 100 },
+        { tick: 1, itemId: FIRST.id, side: 'sell', qty: 100_000, price: 120 },
+      ],
+      0.02,
+    );
+    expect(deed.achieved(game, view, 0)).toBe(true);
+    expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('spread-magnate'); // latches
+  });
+
   it('BountyBoard shows reward-per-kill and a progress bar', () => {
     const game = newGame(42);
     game.world.bounties = [{ id: 1, monsterId: 'goblin', qty: 4, rewardGp: 2_000, baseline: 0, expiresTick: 5_000 }];
