@@ -1,11 +1,11 @@
 import { GEAR } from '@exchange-wars/engine';
 import type { ItemDef, ItemId, PlayerView, Trade } from '@exchange-wars/engine';
 import { useEffect, useRef, useState } from 'react';
-import { bandPosition, flipMargin, marketMood, nextRowIndex, valueBand } from '../game';
+import { bandPosition, flipMargin, marketMood, nextRowIndex, priceSwing, valueBand } from '../game';
 
 const SPARK_POINTS = 20;
 
-type SortKey = 'name' | 'bid' | 'ask' | 'last' | 'vol' | 'margin' | 'band';
+type SortKey = 'name' | 'bid' | 'ask' | 'last' | 'vol' | 'margin' | 'band' | 'swing';
 
 /** After-tax flip margin per unit (undercut the spread one tick each way), or
  *  null when there's no two-sided book — the same sum TopFlips ranks, per row,
@@ -62,6 +62,10 @@ export function MarketTable({
     arr.push(t.price);
     sparks.set(t.itemId, arr);
   }
+  // Recent realized volatility per item, from the SAME window the sparkline draws — computed once
+  // so the sortable swing column and its cell share it (untraded items are absent → null → '—').
+  const swings = new Map<ItemId, ReturnType<typeof priceSwing>>();
+  for (const [id, arr] of sparks) swings.set(id, priceSwing(arr.slice(-SPARK_POINTS)));
   const needle = filter.trim().toLowerCase();
   const inTrack = (m: { itemId: ItemId; bestBid: number | null; bestAsk: number | null; lastPrice: number }): boolean => {
     if (track === 'all') return true;
@@ -86,6 +90,7 @@ export function MarketTable({
     if (sort.key === 'last') return m.lastPrice;
     if (sort.key === 'margin') return flipMargin(m);
     if (sort.key === 'band') return bandPosition(defs.get(m.itemId), m.lastPrice);
+    if (sort.key === 'swing') return swings.get(m.itemId)?.swingPct ?? null;
     return m.volume;
   };
   const sorted =
@@ -194,6 +199,9 @@ export function MarketTable({
               band{arrow('band')}
             </th>
             <th aria-label="trend" />
+            <th className="num sortable" onClick={() => toggleSort('swing')} title="recent realized volatility — peak-to-trough % over the last trades. Sort ascending for the steadiest spreads (safer to flip — the price holds while both legs fill), descending for the wildest (a spread can move before you complete the round-trip).">
+              swing{arrow('swing')}
+            </th>
             <th className="num sortable" onClick={() => toggleSort('vol')}>
               volume{arrow('vol')}
             </th>
@@ -274,6 +282,19 @@ export function MarketTable({
               <td className="sparkcell">
                 <Spark prices={(sparks.get(m.itemId) ?? []).slice(-SPARK_POINTS)} />
               </td>
+              {(() => {
+                const sw = swings.get(m.itemId);
+                if (!sw) return <td className="num dim">—</td>;
+                const cls = sw.read === 'steady' ? 'up' : sw.read === 'wild' ? 'down' : 'pct';
+                return (
+                  <td
+                    className={`num ${cls}`}
+                    title={`recent range ${sw.lo.toLocaleString('en-US')}–${sw.hi.toLocaleString('en-US')} — ${sw.read} (${Math.round(sw.swingPct * 100)}% peak-to-trough); steady spreads are safer to flip, wild ones can move before both legs fill`}
+                  >
+                    {Math.round(sw.swingPct * 100)}%
+                  </td>
+                );
+              })()}
               <td className="num dim">{m.volume.toLocaleString('en-US')}</td>
             </tr>
           ))}

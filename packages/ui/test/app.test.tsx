@@ -5,7 +5,7 @@ import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, placeOrder, playerV
 import type { AgentState, SimStats } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ItemDef, PlayerView } from '@exchange-wars/engine';
+import type { ItemDef, PlayerView, Trade } from '@exchange-wars/engine';
 import { App } from '../src/App';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { Icon, itemIcon } from '../src/components/Icon';
@@ -1115,6 +1115,29 @@ describe('UI shell', () => {
       const rows = container.querySelectorAll('tbody tr');
       expect(rows[0]!.textContent).toContain('Cheap One'); // ascending → cheapest band first
       expect(rows[1]!.textContent).toContain('Rich One');
+    });
+
+    it('shows a sortable swing column bucketing recent volatility (steady → wild)', () => {
+      const items = [
+        { id: 'steady_one', name: 'Steady One' },
+        { id: 'wild_one', name: 'Wild One' },
+      ] as unknown as ItemDef[];
+      const row = (itemId: string) => ({
+        itemId, bestBid: 1, bestAsk: 2, lastPrice: 100, ema: 100, volume: 0, bestBidIsMine: false, bestAskIsMine: false,
+      });
+      // input order is wild-then-steady, so an ascending swing sort must reorder them
+      const view = { markets: [row('wild_one'), row('steady_one')] } as unknown as PlayerView;
+      const trades = [
+        { itemId: 'steady_one', price: 100 }, { itemId: 'steady_one', price: 101 }, // +1% → steady
+        { itemId: 'wild_one', price: 100 }, { itemId: 'wild_one', price: 200 }, // +100% → wild
+      ] as unknown as Trade[];
+      const { container } = render(<MarketTable view={view} items={items} trades={trades} selected="steady_one" onSelect={() => {}} eventItems={new Set()} active />);
+      expect(screen.getByRole('columnheader', { name: /swing/ })).toBeTruthy();
+      expect(container.textContent).toContain('100%'); // wild_one's peak-to-trough
+      fireEvent.click(screen.getByRole('columnheader', { name: /swing/ })); // ascending → steadiest first
+      const rows = container.querySelectorAll('tbody tr');
+      expect(rows[0]!.textContent).toContain('Steady One');
+      expect(rows[1]!.textContent).toContain('Wild One');
     });
 
     it('the "flippable" track keeps only items with a positive after-tax margin', () => {
