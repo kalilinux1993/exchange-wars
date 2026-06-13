@@ -1577,6 +1577,19 @@ describe('UI shell', () => {
       expect(screen.getByText('+77')).toBeTruthy(); // 1000/1100 → buy 1001, sell 1099, +77 after 2% tax
     });
 
+    it('sortable headers expose aria-sort so a screen reader knows the active column + direction (20e a11y)', () => {
+      const view = {
+        markets: [{ itemId: 'a', bestBid: 1000, bestAsk: 1100, lastPrice: 1000, ema: 1000, volume: 0, bestBidIsMine: false, bestAskIsMine: false }],
+      } as unknown as PlayerView;
+      const items = [{ id: 'a', name: 'Item A' }] as unknown as ItemDef[];
+      render(<MarketTable view={view} items={items} trades={[]} selected="a" onSelect={() => {}} eventItems={new Set()} active />);
+      const margin = screen.getByRole('columnheader', { name: /margin/ });
+      expect(margin.getAttribute('aria-sort')).toBe('none'); // unsorted at first
+      fireEvent.click(margin);
+      expect(['ascending', 'descending']).toContain(margin.getAttribute('aria-sort')); // now the sorted column, with a direction
+      expect(screen.getByRole('columnheader', { name: /bid/ }).getAttribute('aria-sort')).toBe('none'); // others stay none
+    });
+
     it('shows a sortable value-band column ordering cheap → rich by band position', () => {
       const items = [
         { id: 'cheap_one', name: 'Cheap One', baseCost: 100, consumeValue: 200, volatility: 0.08 },
