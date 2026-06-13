@@ -2245,6 +2245,9 @@ export interface OfflineResult {
   topMover: MarketMover | null;
   /** The biggest move among items you HOLD — what YOUR positions did while away (15x). */
   heldMover: MarketMover | null;
+  /** How many of your resting offers FULLY FILLED while away (19l). Offline the player is idle (no
+   * cancels/re-places — App's replay invariant), so a vanished order can only mean it filled. */
+  ordersFilled: number;
 }
 
 export interface OfflinePlan {
@@ -2254,6 +2257,8 @@ export interface OfflinePlan {
   sellswordBanked0: number;
   /** Per-item lastPrice captured before the away ticks ran — drives the top mover. */
   pricesBefore: Record<string, number>;
+  /** Ids of your resting offers before the away ticks — diffed against the book afterward to count fills (19l). */
+  openOrderIds0: number[];
 }
 
 /**
@@ -2275,6 +2280,7 @@ export function planOfflineProgress(game: Game, nowMs: number): OfflinePlan | nu
     sellswordKills0: game.world.stats.sellswordKills ?? 0,
     sellswordBanked0: game.world.stats.sellswordBanked ?? 0,
     pricesBefore: Object.fromEntries(before.markets.map((m) => [m.itemId, m.lastPrice])),
+    openOrderIds0: before.openOrders.map((o) => o.id),
   };
 }
 
@@ -2283,6 +2289,7 @@ export function finishOfflineProgress(game: Game, plan: OfflinePlan): OfflineRes
   const worthAfter = playerWorth(game);
   recordWorth(game, worthAfter);
   const after = playerView(game.world, game.playerId);
+  const afterIds = new Set((after?.openOrders ?? []).map((o) => o.id));
   return {
     ticks: plan.ticks,
     worthBefore: plan.worthBefore,
@@ -2291,6 +2298,8 @@ export function finishOfflineProgress(game: Game, plan: OfflinePlan): OfflineRes
     sellswordBanked: (game.world.stats.sellswordBanked ?? 0) - plan.sellswordBanked0,
     topMover: after ? biggestMover(plan.pricesBefore, after.markets) : null,
     heldMover: after ? heldMover(plan.pricesBefore, after.markets, after.inventory) : null,
+    // Offline the player is idle, so a resting id that's gone from the book filled (not cancelled).
+    ordersFilled: plan.openOrderIds0.filter((id) => !afterIds.has(id)).length,
   };
 }
 

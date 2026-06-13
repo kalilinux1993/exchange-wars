@@ -621,6 +621,24 @@ describe('UI shell', () => {
     expect(mv!.pct).toBeGreaterThan(0.4);
   });
 
+  it('finishOfflineProgress counts resting offers that filled while away — vanished ids, not still-resting ones (19l)', () => {
+    const game = newGame(42);
+    game.lastSeenMs = 1_000;
+    const plan = planOfflineProgress(game, 1_000 + 600_000)!;
+    // a fresh game has no open orders; pretend two were resting before the gap → both are gone after → both filled
+    expect(finishOfflineProgress(game, { ...plan, openOrderIds0: [101, 102] }).ordersFilled).toBe(2);
+
+    // an order STILL on the book is not "filled"; only the vanished phantom counts
+    const game2 = newGame(42);
+    game2.lastSeenMs = 1_000;
+    game2.world.agents[game2.playerId]!.gp = 1_000_000;
+    applyCommand(game2.world, game2.playerId, { type: 'place', itemId: game2.world.items[0]!.id, side: 'buy', price: 1, qty: 1 }); // rests
+    const plan2 = planOfflineProgress(game2, 1_000 + 600_000)!;
+    const stillResting = playerView(game2.world, game2.playerId)!.openOrders[0]!.id;
+    const res = finishOfflineProgress(game2, { ...plan2, openOrderIds0: [stillResting, 9999] });
+    expect(res.ordersFilled).toBe(1); // 9999 vanished (filled); stillResting is still on the book
+  });
+
   it('shows the away banner when reopening after time has passed', () => {
     const game = newGame(42);
     game.lastSeenMs = Date.now() - 600_000;

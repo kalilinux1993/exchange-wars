@@ -1212,6 +1212,12 @@ export function App({ initial }: { initial?: Game }) {
                   banked
                 </span>
               )}
+              {o.ordersFilled > 0 && (
+                <span className="awayfills" title="resting offers of yours that fully filled while the tab was closed — the market worked them while you were gone">
+                  {' '}
+                  · ✅ <b className="up">{o.ordersFilled.toLocaleString('en-US')}</b> offer{o.ordersFilled === 1 ? '' : 's'} filled
+                </span>
+              )}
               {o.topMover &&
                 (() => {
                   const mv = o.topMover!;
