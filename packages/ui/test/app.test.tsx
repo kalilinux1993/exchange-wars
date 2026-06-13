@@ -4676,6 +4676,25 @@ describe('UI shell', () => {
     expect(read?.textContent).toMatch(/🍖 food \+≈/); // the cushion clause shows when food is packed
   });
 
+  it('the dive shows a live kills-before-you-fall survivability count, raised by food (19g)', () => {
+    const game = newGame(42);
+    const agent = game.world.agents[game.playerId]!;
+    agent.expedition = {
+      regionId: 'lumbridge_plains', // an easy region a fresh fighter survives
+      rngState: 1,
+      hp: 50, // full hp, fresh fighter (⚔5 🛡2)
+      pack: { shark: 4 }, // 80 hp cushion → many more kills
+      packGp: 0,
+      cleared: 2,
+      combat: null,
+    };
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Adventure/ }));
+    const text = document.body.textContent ?? '';
+    expect(text).toMatch(/more kills? before you.?d fall/); // the synthesis line renders
+    expect(text).toMatch(/with food/); // food raises the count here, so the clause shows
+  });
+
   it('the combat view shows the foe stats with danger colour (know your enemy)', () => {
     const game = newGame(42);
     const agent = game.world.agents[game.playerId]!;

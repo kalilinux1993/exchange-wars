@@ -14,7 +14,7 @@ import {
 } from '@exchange-wars/engine';
 import type { PlayerCommand, PlayerView } from '@exchange-wars/engine';
 import { useEffect, useRef } from 'react';
-import { combatForecast, deathRecap, healFromPack, MILESTONES, summarizeDelve, type DelveRecord, type Game } from '../game';
+import { combatForecast, deathRecap, healFromPack, MILESTONES, summarizeDelve, survivableKills, type DelveRecord, type Game } from '../game';
 import { CharacterPanel } from './CharacterPanel';
 import { GearManager } from './GearManager';
 import { CombatScene } from './CombatScene';
@@ -496,6 +496,7 @@ export function ExpeditionPanel({
             const typBonus = typFiery && !exp.antifire ? Math.ceil(typ.atk / 2) : 0;
             const ft = combatForecast({ atk: stats.atk, def: stats.def, hp: exp.hp }, typ, typBonus);
             return (
+              <>
               <p
                 className="dim small forecast"
                 title="a rough read on the HARDEST foe this region can send, at your CURRENT hp — push deeper, or bank what you've got? The next encounter is random and rolls vary; this is an estimate, not a promise."
@@ -515,6 +516,25 @@ export function ExpeditionPanel({
                 ) : null}
                 {!f.favored && !ff.favored && exp.packGp > 0 ? ' — bank your haul?' : ''}
               </p>
+              {(() => {
+                const kills = survivableKills(f, exp.hp);
+                const fed = survivableKills(f, exp.hp, packHeal);
+                const fmt = (n: number): string => (n >= 20 ? '20+' : String(n));
+                return (
+                  <p
+                    className="dim small survival"
+                    title="≈how many more of the hardest foe here you could down at your CURRENT hp before falling — roundsToFall ÷ roundsToKill, since wounds carry between fights. Packed food scales it. An estimate, not a promise."
+                  >
+                    ≈<b>{fmt(kills)}</b> more kill{kills === 1 ? '' : 's'} before you&apos;d fall
+                    {fed > kills && (
+                      <>
+                        {' '}· ≈<b className="up">{fmt(fed)}</b> with food
+                      </>
+                    )}
+                  </p>
+                );
+              })()}
+              </>
             );
           })()}
           {(() => {
