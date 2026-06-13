@@ -5,7 +5,7 @@ import { bandPosition, flipMargin, marketMood, nextRowIndex, priceSwing, valueBa
 
 const SPARK_POINTS = 20;
 
-type SortKey = 'name' | 'bid' | 'ask' | 'last' | 'vol' | 'margin' | 'band' | 'swing';
+type SortKey = 'name' | 'bid' | 'ask' | 'last' | 'vol' | 'margin' | 'band' | 'swing' | 'mom';
 
 /** After-tax flip margin per unit (undercut the spread one tick each way), or
  *  null when there's no two-sided book — the same sum TopFlips ranks, per row,
@@ -99,6 +99,7 @@ export function MarketTable({
     if (sort.key === 'margin') return flipMargin(m);
     if (sort.key === 'band') return bandPosition(defs.get(m.itemId), m.lastPrice);
     if (sort.key === 'swing') return swings.get(m.itemId)?.swingPct ?? null;
+    if (sort.key === 'mom') return m.ema > 0 ? (m.lastPrice - m.ema) / m.ema : null; // % vs EMA — recent momentum (17o)
     return m.volume;
   };
   const sorted =
@@ -230,6 +231,9 @@ export function MarketTable({
             <th className="num sortable" onClick={() => toggleSort('last')}>
               last{arrow('last')}
             </th>
+            <th className="num sortable" onClick={() => toggleSort('mom')} title="momentum — % the last price sits above/below its smoothed EMA. Sort descending for what's spiking (event crazes), ascending for dips (mean-reversion buys).">
+              mom{arrow('mom')}
+            </th>
             <th className="num sortable" onClick={() => toggleSort('margin')} title="after-tax flip margin per unit — undercut the spread one tick each way. Sort to find the whole market's flippable items, not just the top few.">
               margin{arrow('margin')}
             </th>
@@ -307,6 +311,18 @@ export function MarketTable({
               <td className={`num ${m.lastPrice >= m.ema ? 'up' : 'down'}`}>
                 {m.lastPrice.toLocaleString('en-US')}
               </td>
+              {(() => {
+                if (m.ema <= 0) return <td className="num dim">—</td>;
+                const mom = Math.round(((m.lastPrice - m.ema) / m.ema) * 100);
+                return (
+                  <td
+                    className={`num ${mom > 0 ? 'up' : mom < 0 ? 'down' : 'dim'}`}
+                    title={`last ${m.lastPrice.toLocaleString('en-US')} vs EMA ${Math.round(m.ema).toLocaleString('en-US')} — ${mom > 0 ? 'running hot' : mom < 0 ? 'dipping' : 'flat'}`}
+                  >
+                    {mom > 0 ? '+' : ''}{mom}%
+                  </td>
+                );
+              })()}
               {(() => {
                 const mg = flipMargin(m);
                 return (

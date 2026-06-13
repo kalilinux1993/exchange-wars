@@ -1350,6 +1350,26 @@ describe('UI shell', () => {
       expect(rows[1]!.textContent).toContain('Wild One');
     });
 
+    it('shows a sortable momentum (vs-EMA) column ordering by deviation (17o)', () => {
+      const items = [
+        { id: 'hot', name: 'Hot Co', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+        { id: 'cold', name: 'Cold Co', baseCost: 100, consumeValue: 200, volatility: 0.08 },
+      ] as unknown as ItemDef[];
+      const row = (itemId: string, lastPrice: number, ema: number) => ({
+        itemId, bestBid: 1, bestAsk: 2, lastPrice, ema, volume: 0, bestBidIsMine: false, bestAskIsMine: false,
+      });
+      // hot: 120 vs ema 100 → +20%; cold: 90 vs ema 100 → −10%; input order cold-then-hot
+      const v = { markets: [row('cold', 90, 100), row('hot', 120, 100)] } as unknown as PlayerView;
+      const { container } = render(<MarketTable view={v} items={items} trades={[]} selected="hot" onSelect={() => {}} eventItems={new Set()} active />);
+      expect(screen.getByRole('columnheader', { name: /mom/ })).toBeTruthy();
+      expect(container.textContent).toContain('+20%'); // hot's momentum vs EMA
+      expect(container.textContent).toContain('-10%'); // cold's
+      fireEvent.click(screen.getByRole('columnheader', { name: /mom/ })); // ascending → biggest dip first
+      const rows = container.querySelectorAll('tbody tr');
+      expect(rows[0]!.textContent).toContain('Cold Co'); // −10% sinks to top ascending
+      expect(rows[1]!.textContent).toContain('Hot Co');
+    });
+
     it('the "flippable" track keeps only items with a positive after-tax margin', () => {
       const row = (itemId: string, bid: number, ask: number) => ({
         itemId, bestBid: bid, bestAsk: ask, lastPrice: bid, ema: bid, volume: 0, bestBidIsMine: false, bestAskIsMine: false,
