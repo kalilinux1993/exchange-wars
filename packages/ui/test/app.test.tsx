@@ -54,6 +54,7 @@ import {
   checkMilestones,
   playerWorth,
   eventEndingSoon,
+  deedEta,
   MILESTONES,
   CORRUPT_SAVE_KEY,
   dailySeed,
@@ -800,6 +801,30 @@ describe('UI shell', () => {
     // worth = start → the 100k-worth deed sits at 50%, so a bar renders
     const { container } = render(<MilestonesPanel unlocked={[]} game={game} view={view} worth={HUMAN_START_GP} />);
     expect(container.querySelectorAll('.deedbar').length).toBeGreaterThan(0);
+  });
+
+  describe('deedEta', () => {
+    it('projects time-to-earn from progress + worth rate; null when flat, falling, or done', () => {
+      expect(deedEta(0.5, 50_000, 6_000)).toBeCloseTo((100_000 - 50_000) / 6_000); // threshold 100k recovered from 50%
+      expect(deedEta(0.5, 50_000, 0)).toBeNull(); // flat → no finish line
+      expect(deedEta(0.5, 50_000, -10)).toBeNull(); // falling
+      expect(deedEta(1, 50_000, 6_000)).toBeNull(); // already there
+      expect(deedEta(0, 50_000, 6_000)).toBeNull(); // not started
+    });
+  });
+
+  it('MilestonesPanel shows an ETA on worth deeds at a positive rate, none when flat (17k)', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    game.worthHistory = [{ tick: 0, worth: 40_000 }, { tick: 100, worth: 50_000 }]; // rising → perMin > 0
+    const rising = render(<MilestonesPanel unlocked={[]} game={game} view={view} worth={50_000} />);
+    const eta = rising.container.querySelector('.eta');
+    expect(eta).toBeTruthy(); // a worth deed (e.g. Six Figures at 50%) projects a finish line
+    expect(eta!.textContent).toContain('≈');
+    rising.unmount();
+    game.worthHistory = [{ tick: 0, worth: 50_000 }, { tick: 100, worth: 50_000 }]; // flat → no rate
+    const flat = render(<MilestonesPanel unlocked={[]} game={game} view={view} worth={50_000} />);
+    expect(flat.container.querySelector('.eta')).toBeNull();
   });
 
   describe('regionMastery', () => {

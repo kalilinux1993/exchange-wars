@@ -1420,6 +1420,21 @@ export interface Milestone {
   achieved: (game: Game, view: PlayerView, worth: number) => boolean;
   /** Optional 0..1 progress toward the deed (shown on locked entries). */
   progress?: (game: Game, view: PlayerView, worth: number) => number;
+  /** Deeds whose `progress` is a net-worth fraction — the only ones an ETA from the gp/min worth rate is
+   *  valid for (17k). Combat/contract/region deeds advance on other axes, so they get no ETA. */
+  paceMetric?: 'worth';
+}
+
+/**
+ * Minutes-of-worth (tick-minutes, matching `worthRate`'s `perMin`) until a worth-based deed at `progress`
+ * (0..1) is reached, at the recent `perMin` rate. The threshold is recovered from progress (`worth/progress`,
+ * since a worth deed's progress IS `worth/threshold`), so the raw — not floored — progress must be passed.
+ * null when the rate is non-positive (flat/falling — no finish line) or progress is complete/not-started. Pure.
+ */
+export function deedEta(progress: number, worth: number, perMin: number): number | null {
+  if (perMin <= 0 || progress <= 0 || progress >= 1) return null;
+  const remaining = worth / progress - worth; // threshold − worth
+  return remaining / perMin;
 }
 
 export const MILESTONES: Milestone[] = [
@@ -1441,6 +1456,7 @@ export const MILESTONES: Milestone[] = [
     flavor: 'The satchel jingles differently now.',
     achieved: (_g, _v, worth) => worth >= 100_000,
     progress: (_g, _v, worth) => worth / 100_000,
+    paceMetric: 'worth',
   },
   {
     id: 'doubled',
@@ -1448,6 +1464,7 @@ export const MILESTONES: Milestone[] = [
     flavor: 'Twice what you walked in with.',
     achieved: (g, _v, worth) => worth >= g.startGp * 2,
     progress: (g, _v, worth) => worth / (g.startGp * 2),
+    paceMetric: 'worth',
   },
   {
     id: 'quarter-m',
@@ -1455,6 +1472,7 @@ export const MILESTONES: Milestone[] = [
     flavor: 'Clerks nod when you pass.',
     achieved: (_g, _v, worth) => worth >= 250_000,
     progress: (_g, _v, worth) => worth / 250_000,
+    paceMetric: 'worth',
   },
   {
     id: 'millionaire',
@@ -1462,6 +1480,7 @@ export const MILESTONES: Milestone[] = [
     flavor: 'The ledger needs wider columns.',
     achieved: (_g, _v, worth) => worth >= 1_000_000,
     progress: (_g, _v, worth) => worth / 1_000_000,
+    paceMetric: 'worth',
   },
   {
     id: 'five-million',
@@ -1469,6 +1488,7 @@ export const MILESTONES: Milestone[] = [
     flavor: 'Five million. The vault groans.',
     achieved: (_g, _v, worth) => worth >= 5_000_000,
     progress: (_g, _v, worth) => worth / 5_000_000,
+    paceMetric: 'worth',
   },
   {
     id: 'full-counter',
