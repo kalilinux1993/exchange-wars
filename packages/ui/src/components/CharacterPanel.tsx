@@ -164,12 +164,18 @@ export function CharacterPanel({
   const skill = (key: 'atk' | 'def' | 'hp', glyph: string, name: string) => {
     const lvl = lvls[key];
     const cur = agent?.combatXp?.[key] ?? 0;
-    const into = lvl >= 99 ? 1 : (cur - xpForLevel(lvl)) / (xpForLevel(lvl + 1) - xpForLevel(lvl));
+    const maxed = lvl >= 99;
+    const into = maxed ? 1 : (cur - xpForLevel(lvl)) / (xpForLevel(lvl + 1) - xpForLevel(lvl));
+    // Quantify the bar (18j): it showed SOME progress but no value — surface the % and the actual xp to the
+    // next level (which gates the next gear tier), so "how close am I?" is readable, not eyeballed.
+    const progress = maxed
+      ? 'maxed (99)'
+      : `${Math.round(into * 100)}% to ${lvl + 1} · ${(xpForLevel(lvl + 1) - cur).toLocaleString('en-US')} xp to go`;
     return (
-      <div className={flash[key] ? 'skillcell flash' : 'skillcell'} title={`${name} ${lvl}`}>
+      <div className={flash[key] ? 'skillcell flash' : 'skillcell'} title={`${name} ${lvl} · ${progress}`}>
         <Icon name={`skill-${name.toLowerCase()}`} glyph={glyph} size={14} className="skillglyph" />
         <span className="skilllvl">{lvl}</span>
-        <span className="skillbar">
+        <span className="skillbar" title={progress}>
           <span style={{ width: `${Math.round(into * 100)}%` }} />
         </span>
       </div>

@@ -3516,6 +3516,19 @@ describe('UI shell', () => {
     expect(container.querySelector('.skillcell.flash')).toBeNull(); // re-baselined — no false celebration
   });
 
+  it('CharacterPanel quantifies XP progress to the next level in each skill tooltip (18j)', () => {
+    const agent = { inventory: {}, combatXp: { atk: 1000, def: 0, hp: 0 } } as unknown as AgentState;
+    render(<CharacterPanel agent={agent} names={new Map()} />);
+    expect(screen.getByTitle(/Attack \d+ · \d+% to \d+ · [\d,]+ xp to go/)).toBeTruthy(); // % + xp remaining
+    expect(screen.getByTitle(/Defence 1 · 0% to 2 · [\d,]+ xp to go/)).toBeTruthy(); // 0 xp → exactly level 1, 0% in
+  });
+
+  it('CharacterPanel reads a maxed (99) skill as maxed, not a fractional bar (18j)', () => {
+    const agent = { inventory: {}, combatXp: { atk: xpForLevel(99), def: 0, hp: 0 } } as unknown as AgentState;
+    render(<CharacterPanel agent={agent} names={new Map()} />);
+    expect(screen.getByTitle(/Attack 99 · maxed/)).toBeTruthy();
+  });
+
   it('a #seed link starts fresh visitors on that seed directly', () => {
     window.location.hash = '#seed=777';
     render(<App />); // no initial, no save
