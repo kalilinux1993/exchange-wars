@@ -38,6 +38,13 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             market: acquire the goods, hit deliver.
           </li>
           <li>
+            <b>Decide with the numbers</b>: every price shows where it sits in its cost→value band —{' '}
+            <b>🟢 cheap</b> (room to run, accumulate), <b>⚪ fair</b>, <b>🟡 rich</b> (near its ceiling, take
+            profit). Star items into your <b>Watchlist</b> and set a <b>≤/≥ price alert</b> or a
+            threshold-free <b>band alert</b> (🟢 buy-the-dip / 🟡 take-profit) — it tells you the moment a
+            watched item turns cheap or rich.
+          </li>
+          <li>
             <b>Expeditions</b>: delve {REGIONS.length} regions, plains to {REGIONS[REGIONS.length - 1]!.name}.
             Every step and every combat round costs a market tick — time raiding is time not trading. Loot
             mints straight into the economy; death keeps only your 3 most valuable carried items, and{' '}
@@ -57,8 +64,9 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
           </li>
           <li>
             <b>Race on fair ground</b>: the same seed is always the same world. Restart your seed to chase
-            your best run's <b>ghost</b> on the Fortune chart, or copy a <b>challenge link</b> to put a
-            friend on your exact market. Sign in and submit a{' '}
+            your best run's <b>ghost</b> on the Fortune chart, or share a <b>challenge link</b> (or a one-tap{' '}
+            <b>run brag</b>) that <b>dares a friend to beat your fortune</b> on your exact market — accept one
+            and you'll race a visible target, with a <b>🏆 when you pass it</b>. Sign in and submit a{' '}
             <b>{SPRINT_TICKS.toLocaleString('en-US')}-tick sprint</b> to the board — every entry is verified
             by replaying your actual run, depth badge included.
           </li>

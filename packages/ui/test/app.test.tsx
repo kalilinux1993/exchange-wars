@@ -695,6 +695,14 @@ describe('UI shell', () => {
     expect(screen.getByText(/pick buy or sell/i)).toBeTruthy(); // b/s side
   });
 
+  it('the help overlay covers the decision tools (watchlist/alerts/bands) and the duel (16u)', () => {
+    const { container } = render(<HelpOverlay onClose={() => {}} />);
+    expect(container.textContent).toMatch(/Watchlist/); // the decision-support tools
+    expect(container.textContent).toMatch(/band alert/);
+    expect(container.textContent).toMatch(/cost→value band/);
+    expect(container.textContent).toMatch(/dares a friend to beat your fortune/); // the duel
+  });
+
   it('MilestonesPanel shows a progress bar on the closest unearned deeds', () => {
     const game = newGame(42);
     const view = playerView(game.world, game.playerId)!;
