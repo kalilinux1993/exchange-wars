@@ -377,8 +377,9 @@ describe('UI shell', () => {
     fireEvent.click(screen.getAllByText(DEFAULT_ITEMS[1]!.name).find((el) => el.closest('.market') !== null)!);
     const marketCell = screen.getAllByText(FIRST.name).find((el) => el.closest('.market') !== null)!;
     fireEvent.click(marketCell);
-    const deliver = screen.getByText('deliver') as HTMLButtonElement;
-    expect(deliver.disabled).toBe(true);
+    // not ready → the board offers to BUY the shortfall (17y), not a disabled deliver
+    expect(screen.getByText('buy 1')).toBeTruthy();
+    expect(screen.queryByText('deliver')).toBeNull();
     placeBuy(String(FIRST.consumeValue * 3), '1'); // crosses any ask — instant fill
     const gpBefore = game.world.agents[game.playerId]!.gp;
     const deliverNow = screen.getByText('deliver') as HTMLButtonElement;
@@ -3889,6 +3890,26 @@ describe('UI shell', () => {
     render(<ContractsBoard view={view} items={items} tick={0} onCommand={() => {}} />);
     expect(screen.getByText(/\+20%/)).toBeTruthy(); // premium over market
     expect(document.querySelector('.contract.ready')).toBeTruthy(); // fillable highlight
+  });
+
+  it('a not-ready contract offers a buy-the-shortfall action; a ready one delivers (17y)', () => {
+    const view = {
+      contracts: [{ id: 1, itemId: 'a', qty: 5, unitPrice: 120, expiresTick: 1000 }],
+      inventory: { a: 2 }, // 3 short
+      markets: [{ itemId: 'a', lastPrice: 100 }],
+    } as unknown as PlayerView;
+    const items = [{ id: 'a', name: 'Item A' }] as unknown as ItemDef[];
+    const onSelect = vi.fn();
+    const onCommand = vi.fn();
+    const { rerender } = render(<ContractsBoard view={view} items={items} tick={0} onCommand={onCommand} onSelect={onSelect} />);
+    fireEvent.click(screen.getByRole('button', { name: 'buy 3' })); // load the 3 you still need
+    expect(onSelect).toHaveBeenCalledWith('a');
+    expect(onCommand).not.toHaveBeenCalled();
+    // top up to ready → the button becomes deliver
+    const ready = { ...view, inventory: { a: 5 } } as unknown as PlayerView;
+    rerender(<ContractsBoard view={ready} items={items} tick={0} onCommand={onCommand} onSelect={onSelect} />);
+    fireEvent.click(screen.getByRole('button', { name: 'deliver' }));
+    expect(onCommand).toHaveBeenCalledWith({ type: 'fulfillContract', contractId: 1 });
   });
 
   describe('offlineRatePerMin', () => {

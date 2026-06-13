@@ -1366,7 +1366,16 @@ export function App({ initial }: { initial?: Game }) {
             items={game.world.items}
             playerId={game.playerId}
           />
-          <ContractsBoard view={view} items={game.world.items} tick={game.world.tick} onCommand={command} />
+          <ContractsBoard
+            view={view}
+            items={game.world.items}
+            tick={game.world.tick}
+            onCommand={command}
+            onSelect={(id) => {
+              setSelected(id);
+              pickRoom('exchange'); // already on the Exchange, but keeps the jump robust (mirrors 15l)
+            }}
+          />
         </section>
       </main>
       <main className={room === 'adventure' ? 'board' : 'board tabhidden'}>

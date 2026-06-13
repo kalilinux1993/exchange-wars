@@ -16,11 +16,14 @@ export function ContractsBoard({
   items,
   tick,
   onCommand,
+  onSelect,
 }: {
   view: PlayerView;
   items: ItemDef[];
   tick: number;
   onCommand: (cmd: PlayerCommand) => void;
+  /** Load a contract item into the ticket — powers the "buy {shortfall}" action (17y). */
+  onSelect?: (itemId: string) => void;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
   return (
@@ -49,14 +52,20 @@ export function ContractsBoard({
                 )}
               </span>
               <span className="dim num">{(c.expiresTick - tick).toLocaleString('en-US')}t left</span>
-              <button
-                className="chip"
-                disabled={!ready}
-                title={ready ? 'deliver from inventory' : `need ${c.qty - have} more in inventory`}
-                onClick={() => onCommand({ type: 'fulfillContract', contractId: c.id })}
-              >
-                deliver
-              </button>
+              {ready ? (
+                <button className="chip" title="deliver from inventory" onClick={() => onCommand({ type: 'fulfillContract', contractId: c.id })}>
+                  deliver
+                </button>
+              ) : onSelect ? (
+                // Not ready → make the shortfall actionable: load the item into the ticket to buy it (17y).
+                <button className="chip" title={`load ${names.get(c.itemId) ?? c.itemId} — buy the ${c.qty - have} you still need`} onClick={() => onSelect(c.itemId)}>
+                  buy {c.qty - have}
+                </button>
+              ) : (
+                <button className="chip" disabled title={`need ${c.qty - have} more in inventory`}>
+                  deliver
+                </button>
+              )}
             </li>
           );
         })}
