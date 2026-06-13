@@ -16,9 +16,9 @@ The defining constraint: **the entire game core is testable and debuggable with 
 - **Progression**: GE offer slots (3→8), a hireable **auto-flipping clerk** with three tiers and configurable orders (risk / capital / focus), real **GE buy limits**, quartermaster **delivery contracts**, and a book of Deeds spanning trading and adventuring
 - **True idle game**: the world advances ~1 tick per real second while the tab is closed (≈28h cap); installable PWA; save export/import; optional email sign-in for cross-device cloud saves
 - **Challenge seeds, ghosts & sharing**: the same seed always produces the identical world — send a friend a `#seed=` challenge link, share a one-tap **run brag** (your stats + that link, via the native share sheet on mobile), or restart your own seed and race your best previous run as a chart ghost
-- **Expeditions (RPG layer)**: outfit an adventurer with gear and food bought on the exchange and delve a **seven-region node graph**, Lumbridge Plains to the Inferno Gate. Every step and combat round costs a market tick — time raiding is time not trading. Drops mint through the same audited conservation ledger as everything else; death keeps your 3 most valuable carried items and **wounds persist** (mend slowly at home, or eat in the field)
+- **Expeditions (RPG layer)**: outfit an adventurer with gear and food bought on the exchange and delve an **eight-region node graph**, Lumbridge Plains to The Abyss. Every step and combat round costs a market tick — time raiding is time not trading. Drops mint through the same audited conservation ledger as everything else; death keeps your 3 most valuable carried items (5 with a Death Ward) and **wounds persist** (mend slowly at home, or eat in the field)
 - **Combat training**: Attack grows from damage dealt and gates weapons; Defence from damage taken and gates armor; Hitpoints raise your max hp. A 20-item gear ladder (darts → staff → mystic → rune → dragon) where carried gear above your level is inert — and past the Wilderness everything **breathes fire**: armor won't stop it, a super antifire potion will, one per dive
-- **The dark between fights**: shrines, goblin dice, imp chases, depth-skipping portals and overpriced merchants; two named elites (Vorkanth, Zukrath) guarding the deep ends; a **Bestiary** that reveals kill counts and drop tables monster by monster as you meet them
+- **The dark between fights**: shrines, goblin dice, imp chases, depth-skipping portals and overpriced merchants; four named elites (Skarn, Vorkanth, Zukrath, Vessith) guarding the deep ends; a **Bestiary** that reveals kill counts and drop tables monster by monster as you meet them
 - **Honest scoring**: your net worth is *liquidation value* — what the resting order books would actually pay for everything you hold right now, not a fantasy mark. One-click **sell @ bid** realizes it
 - **Verified leaderboards**: submit your best fortune at tick 2,000 — the server replays your entire command log through the same deterministic engine and posts the worth *it* computed, deepest-region badge included. Determinism is the anti-cheat; a forged score cannot reproduce
 
@@ -54,7 +54,7 @@ packages/
 │   └── test/              the gates (19 suites) — see DEV_GUIDE.md
 ├── ui/                    @exchange-wars/ui — THE GAME: React + Vite + TS over the engine (mutates only via applyCommand)
 │   ├── src/               App.tsx · game.ts (pure UI helpers — flips, value bands, P&L, forecasts) · components/ (trading cockpit + OSRS HUD) · cloud.ts (Supabase saves/leaderboard) · usePref.ts
-│   └── test/              app.test.tsx (370+ cases) + e2e/ (Playwright)
+│   └── test/              app.test.tsx (450+ cases) + e2e/ (Playwright)
 └── cli/                   @exchange-wars/cli
     └── src/               run.ts (sim runner) · balance.ts (tier-curve matrix)
 ```
