@@ -2371,7 +2371,13 @@ export function importSaveString(raw: string): Game | null {
   try {
     const g = JSON.parse(raw) as Game;
     if (!g || typeof g !== 'object' || !g.world || typeof g.playerId !== 'number') return null;
-    return normalizeGame(g);
+    const normalized = normalizeGame(g);
+    // Loadability gate: a parseable-but-broken save (playerId points at no agent, missing agents/books)
+    // passes the shallow check above, then would REPLACE the current run and only THEN render "save
+    // corrupted". Reject anything the app can't actually load here — so a bad import can't clobber a good
+    // game. The try/catch also covers a malformed world that makes playerView throw. (19x)
+    if (!playerView(normalized.world, normalized.playerId)) return null;
+    return normalized;
   } catch {
     return null;
   }

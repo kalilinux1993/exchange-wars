@@ -4201,6 +4201,9 @@ describe('UI shell', () => {
     expect(back!.playerId).toBe(game.playerId);
     expect(importSaveString('not json')).toBeNull();
     expect(importSaveString('{"hello":1}')).toBeNull();
+    // 19x: parseable + shaped (has world + numeric playerId) but UNLOADABLE — playerId points at no agent.
+    // Must be rejected here so a broken import can't replace (clobber) the current good run.
+    expect(importSaveString(JSON.stringify({ ...game, playerId: 999 }))).toBeNull();
   });
 
   it('column sort orders the market by last price both ways', () => {
