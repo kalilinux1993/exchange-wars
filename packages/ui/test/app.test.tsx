@@ -159,6 +159,7 @@ import {
   totalRealized,
   totalUnrealized,
   updateNews,
+  eventMove,
   worthRate,
   affordEta,
   type Fill,
@@ -4599,6 +4600,34 @@ describe('UI shell', () => {
     fireEvent.click(screen.getByText('start trading'));
     expect(screen.getByText(/450 left/)).toBeTruthy(); // newsbar chip
     expect(screen.getByText(/craze active — ends in ~450 ticks/)).toBeTruthy(); // ticket (FIRST selected by default)
+  });
+
+  describe('eventMove (live event price move — 21i)', () => {
+    it('rounds the % move of the current EMA vs the start EMA', () => {
+      expect(eventMove(100, 115)).toBe(15);
+      expect(eventMove(200, 160)).toBe(-20);
+      expect(eventMove(100, 100)).toBe(0);
+    });
+    it('is null until the start price is captured, or when a price is invalid', () => {
+      expect(eventMove(undefined, 115)).toBeNull(); // not captured yet (pre-first-updateNews)
+      expect(eventMove(0, 115)).toBeNull();
+      expect(eventMove(100, undefined)).toBeNull();
+      expect(eventMove(100, 0)).toBeNull();
+    });
+  });
+
+  it('the newsbar chip shows the live price move since the event began (21i)', () => {
+    const game = newGame(42);
+    game.world.events!.push({ id: 'ev1', itemId: FIRST.id, kind: 'demand_surge', startTick: 0, endTick: 450 });
+    // pre-seed the captured start EMA + a higher current EMA → a known +50% move (capture won't re-fire since
+    // the event id is already in seenEvents); paused on mount, so no tick perturbs the EMA before render.
+    game.seenEvents = [{ id: 'ev1', itemId: FIRST.id, kind: 'demand_surge', startPrice: 100 }];
+    game.world.books[FIRST.id]!.ema = 150;
+    render(<App initial={game} />);
+    fireEvent.click(screen.getByText('start trading'));
+    const chip = document.querySelector('.newsbar .event-chip') as HTMLElement;
+    expect(chip.textContent).toMatch(/\+50%/); // the live dislocation magnitude
+    expect(chip.textContent).toMatch(/450 left/); // countdown still present
   });
 
   it('the hunter tally renders once there is something to tell', () => {

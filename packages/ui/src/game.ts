@@ -1557,6 +1557,15 @@ export function updateNews(game: Game): void {
   if (game.newsLog.length > NEWS_CAP) game.newsLog.splice(0, game.newsLog.length - NEWS_CAP);
 }
 
+/** The live price move of an active event since it began: the current EMA vs the start EMA captured in
+ *  `seenEvents` (the SAME basis as the end-recap, 15z — `(now − start)/start`, rounded to whole %). null
+ *  until the start price is captured (it lands on the first updateNews after the event begins) or when a
+ *  price is missing/non-positive. Pure — the magnitude that says whether an event is a tradeable dislocation. */
+export function eventMove(startPrice: number | undefined, currentEma: number | undefined): number | null {
+  if (!startPrice || startPrice <= 0 || currentEma === undefined || currentEma <= 0) return null;
+  return Math.round(((currentEma - startPrice) / startPrice) * 100);
+}
+
 export interface Milestone {
   id: string;
   name: string;

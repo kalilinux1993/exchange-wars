@@ -42,6 +42,7 @@ import {
   newElites,
   reconcileEvents,
   eventEndingSoon,
+  eventMove,
   type CapturedEvent,
   bumpStreak,
   streakCelebration,
@@ -1114,7 +1115,18 @@ export function App({ initial }: { initial?: Game }) {
                   }}
                 >
                   ⚡ <ItemIcon id={e.itemId} wikiId={wikiOf.get(e.itemId)} size={12} className="itemicon" /> {names.get(e.itemId) ?? e.itemId}{' '}
-                  {EVENT_LABELS[e.kind]} · {ending ? '⏳ ' : ''}{left.toLocaleString('en-US')} left
+                  {EVENT_LABELS[e.kind]}
+                  {(() => {
+                    // The live price move since this event began (current EMA vs the start EMA captured in
+                    // seenEvents) — the magnitude that says whether it's a tradeable dislocation; same basis
+                    // as the end recap (15z). Omitted until startPrice is captured (next updateNews after begin).
+                    const move = eventMove(
+                      game.seenEvents.find((s) => s.id === e.id)?.startPrice,
+                      game.world.books[e.itemId]?.ema,
+                    );
+                    return move !== null ? ` · ${move >= 0 ? '+' : ''}${move}%` : '';
+                  })()}
+                  {' · '}{ending ? '⏳ ' : ''}{left.toLocaleString('en-US')} left
                 </button>
               );
             })}
