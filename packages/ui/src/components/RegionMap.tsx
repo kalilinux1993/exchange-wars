@@ -12,10 +12,14 @@ export function RegionMap({
   progress,
   selected,
   onSelect,
+  recommended,
 }: {
   progress: number;
   selected: string;
   onSelect: (id: string) => void;
+  /** The deepest region you're favored to farm (16x `diveReadiness.ready`) — ringed as "dive here".
+   *  -1 or undefined rings nothing (you're outmatched, or readiness isn't supplied). */
+  recommended?: number;
 }) {
   // Pulse the node when the selection CHANGES (e.g. a Delve Log "raid again" jump re-points
   // the map from another tab) so the eye lands on where you're now aimed. Skip the first
@@ -53,11 +57,12 @@ export function RegionMap({
         const p = pts[i]!;
         const state = i > progress ? 'locked' : i === progress ? 'frontier' : 'cleared';
         const isSel = selected === r.id;
+        const isRec = recommended !== undefined && recommended >= 0 && i === recommended;
         const mark = state === 'locked' ? '🔒' : state === 'frontier' ? '⚑' : '✓';
         return (
           <g
             key={r.id}
-            className={`mapnode ${state}${isSel ? ' selected' : ''}${isSel && flashing ? ' flash' : ''}`}
+            className={`mapnode ${state}${isSel ? ' selected' : ''}${isSel && flashing ? ' flash' : ''}${isRec ? ' recommended' : ''}`}
             onClick={() => i <= progress && onSelect(r.id)}
             style={{ cursor: i <= progress ? 'pointer' : 'not-allowed' }}
           >
@@ -65,6 +70,9 @@ export function RegionMap({
                 trail reads green plains → ember Maw → void Abyss without touching
                 the cleared/frontier/locked colour coding. */}
             <circle cx={p.x} cy={p.y} r={12} className="maphalo" fill={arenaTheme(r.id).from} />
+            {isRec && <circle cx={p.x} cy={p.y} r={15} className="maprec" fill="none">
+              <title>recommended dive — the deepest region you're favored to farm</title>
+            </circle>}
             {isSel && <circle cx={p.x} cy={p.y} r={13} className="mapsel" fill="none" />}
             <circle cx={p.x} cy={p.y} r={9} />
             <text x={p.x} y={p.y + 3} className="mapmark" textAnchor="middle">

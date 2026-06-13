@@ -1178,6 +1178,14 @@ kbd {
   stroke-width: 1.5;
   opacity: 0.6;
 }
+/* "dive here" ring on the recommended region (17g) — the deepest you're favored to farm (16x
+   readiness). Green to read as "go", dashed + outside the gold selection ring so the two coexist. */
+.maprec {
+  stroke: var(--rise, #6fbf73);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+  opacity: 0.85;
+}
 /* a short pulse on the selection ring when you re-point the map (e.g. a Delve Log
    "raid again" jump) — draws the eye to where you're now aimed, then settles. */
 @keyframes mapflash {

@@ -899,6 +899,21 @@ describe('UI shell', () => {
     expect(first).not.toBe(last); // plains green ≠ abyss void-purple — the tint varies per region
   });
 
+  it('RegionMap rings the recommended dive region, and nothing when there is none (17g)', () => {
+    const { container, rerender } = render(<RegionMap progress={5} selected={REGIONS[0]!.id} onSelect={() => {}} recommended={2} />);
+    const recRings = container.querySelectorAll('.maprec');
+    expect(recRings.length).toBe(1); // exactly the recommended node is ringed
+    const nodes = [...container.querySelectorAll('.mapnode')];
+    expect(nodes[2]!.classList.contains('recommended')).toBe(true); // index 2 carries the marker
+    expect(nodes[0]!.querySelector('.maprec')).toBeNull(); // others don't
+    // -1 (outmatched) rings nothing
+    rerender(<RegionMap progress={5} selected={REGIONS[0]!.id} onSelect={() => {}} recommended={-1} />);
+    expect(container.querySelectorAll('.maprec').length).toBe(0);
+    // absent prop also rings nothing
+    rerender(<RegionMap progress={5} selected={REGIONS[0]!.id} onSelect={() => {}} />);
+    expect(container.querySelectorAll('.maprec').length).toBe(0);
+  });
+
   it('EmbarkPanel: ←/→ move the region and Enter embarks, gated to the active tab', () => {
     const game = newGame(42);
     game.world.agents[game.playerId]!.questProgress = 5; // several regions unlocked

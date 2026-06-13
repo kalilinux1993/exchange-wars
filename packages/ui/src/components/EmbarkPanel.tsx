@@ -38,6 +38,10 @@ export function EmbarkPanel({
   const progress = agent?.questProgress ?? 0;
   const lvls = levelsOf(agent?.combatXp);
   const trainedMax = maxHpFor(lvls.hp);
+  // Dive readiness (16x), computed once: the deepest region you're favored to farm. Drives both the
+  // text readout below and the RegionMap "dive here" ring (17g).
+  const eff = deriveStats(view.inventory, lvls, agent?.worn);
+  const readiness = diveReadiness({ atk: eff.atk, def: eff.def, hp: trainedMax }, progress);
   const [regionId, setRegionId] = useState(REGIONS[0]!.id);
   const [draft, setDraft] = useState<Record<string, number>>({});
   const [loadouts, setLoadouts] = usePref<Record<string, number>[]>('ew-loadouts', []);
@@ -103,7 +107,7 @@ export function EmbarkPanel({
   return (
     <section className="panel embark">
       <h2>Plan a Dive</h2>
-      <RegionMap progress={progress} selected={regionId} onSelect={setRegionId} />
+      <RegionMap progress={progress} selected={regionId} onSelect={setRegionId} recommended={readiness.ready} />
       {/* region-tinted readout (14u palette, completing combat→map→embark): a faint
           gradient backdrop so the whole "what you're getting into" block FEELS like
           the region you're about to enter. Kept low-alpha so the reads stay legible. */}
@@ -116,9 +120,8 @@ export function EmbarkPanel({
         // Dive readiness (16x): the deepest region you're favored to FARM (vs its typical foe, full hp) —
         // a global "where should I dive?" read, since unlocking a region (clear the one before) doesn't mean
         // you can survive it. Complements the per-region forecast below (which reads the SELECTED region's
-        // HARDEST foe). The eff/trainedMax here mirror the danger forecast's own full-hp inputs.
-        const eff = deriveStats(view.inventory, lvls, agent?.worn);
-        const r = diveReadiness({ atk: eff.atk, def: eff.def, hp: trainedMax }, progress);
+        // HARDEST foe). Computed once at panel scope; the RegionMap rings `r.ready` as "dive here" (17g).
+        const r = readiness;
         const title = 'how deep you can reliably farm — favored against a region’s USUAL foe at full hp (the per-region read below covers the worst case)';
         if (r.ready >= r.frontier) {
           return (
