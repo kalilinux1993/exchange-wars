@@ -129,6 +129,16 @@ test('capture README screenshot (on demand)', async ({ page }) => {
     path: fileURLToPath(new URL('../../../docs/screenshot.png', import.meta.url)),
     fullPage: true,
   });
+  // The RPG + meta rooms too — the README/marketing hero is the Exchange, but Adventure (embark
+  // forecast, survivability ladder) and the Hall (fortune, leaderboard, records) are half the game
+  // and were never captured; these also drive the visual-QA pass (19t).
+  await page.getByRole('tab', { name: /Adventure/ }).click();
+  await page.getByText(/danger:/).first().waitFor();
+  await page.screenshot({ path: fileURLToPath(new URL('../../../docs/screenshot-adventure.png', import.meta.url)), fullPage: true });
+  await page.getByRole('tab', { name: /Hall/ }).click();
+  await page.locator('.almanac').waitFor();
+  await page.screenshot({ path: fileURLToPath(new URL('../../../docs/screenshot-hall.png', import.meta.url)), fullPage: true });
+  await page.getByRole('tab', { name: /Exchange/ }).click();
   // The social-share card (og:image): a 1200×630 viewport of the top-of-Exchange (masthead title +
   // the market) — the standard OG ratio, so challenge/brag links preview as a branded card (18z).
   await page.setViewportSize({ width: 1200, height: 630 });
