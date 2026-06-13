@@ -127,6 +127,7 @@ import {
   diveStreak,
   isStreakMilestone,
   bragText,
+  markRooms,
   isNewBestHaul,
   totalRealized,
   totalUnrealized,
@@ -2139,6 +2140,15 @@ describe('UI shell', () => {
       expect(isStreakMilestone(4)).toBe(false); // one short
       expect(isStreakMilestone(6)).toBe(false); // one past
       expect(isStreakMilestone(11)).toBe(false); // between milestones
+    });
+    it('markRooms flags an off-tab event, skips the active room, and bails when nothing changes', () => {
+      expect(markRooms({}, { exchange: true }, 'adventure')).toEqual({ exchange: true }); // off-tab → flag
+      expect(markRooms({}, { exchange: true }, 'exchange')).toEqual({}); // you're already there → no flag
+      expect(markRooms({}, { hall: true }, 'exchange')).toEqual({ hall: true }); // a deed while trading
+      const flagged = { exchange: true };
+      expect(markRooms(flagged, { exchange: true }, 'adventure')).toBe(flagged); // already flagged → SAME ref (no re-render)
+      const prev = { hall: false };
+      expect(markRooms(prev, {}, 'hall')).toBe(prev); // nothing fired → same ref
     });
     it('bragText summarizes the run with a challenge link to its seed', () => {
       const txt = bragText(newGame(42), 12_345, 'http://ex.test', '/play');

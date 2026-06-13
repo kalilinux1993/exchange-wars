@@ -37,6 +37,7 @@ import {
   alertHit,
   bandAlertHit,
   richAlertHit,
+  markRooms,
   reconcileEvents,
   type CapturedEvent,
   bumpStreak,
@@ -131,9 +132,14 @@ export function App({ initial }: { initial?: Game }) {
     const saved = localStorage.getItem('ew-room');
     return saved === 'adventure' || saved === 'hall' ? saved : 'exchange';
   });
+  const roomRef = useRef<Room>(room);
+  roomRef.current = room;
+  // "Unseen activity" dots per tab — set when an off-tab event fires (16r), cleared on visiting the tab.
+  const [unseen, setUnseen] = useState<Record<string, boolean>>({});
   const pickRoom = (r: Room): void => {
     setRoom(r);
     localStorage.setItem('ew-room', r);
+    setUnseen((u) => (u[r] ? { ...u, [r]: false } : u)); // clear the badge on visit
   };
   const [watch, setWatch] = usePref<string[]>('ew-watch', []);
   const toggleWatch = (id: string): void => {
@@ -433,12 +439,18 @@ export function App({ initial }: { initial?: Game }) {
     recordWorth(game, w);
     updateNews(game);
     const newFills = recordFills(game);
+    // Tab-badge flags (16r): did an event relevant to a non-active room fire this refresh?
+    let firedExchange = false; // fills / price-band alerts / event-recap
+    let firedHall = false; // a new deed
     // Resting orders fill silently during ticks — surface them at LIVE speed only
     // (bulk/offline fills are summarized elsewhere). Lowest-priority toast: the
     // milestone/alert toasts below run after and override it on a busy tick.
     if (notifyFills) {
       const fs = fillToastFlavor(newFills, (id) => game.world.items.find((i) => i.id === id)?.name ?? id);
-      if (fs) setToast({ id: 'fills', name: '🪙 your offers filled', flavor: fs, achieved: () => false });
+      if (fs) {
+        setToast({ id: 'fills', name: '🪙 your offers filled', flavor: fs, achieved: () => false });
+        firedExchange = true;
+      }
     }
     // Swap symmetry: a game-identity change (cloud adoption / restart) re-baselines EVERY
     // cross-tick detection ref. The one-shot alert Sets are CLEARED here (fire-fresh) — for
@@ -462,6 +474,7 @@ export function App({ initial }: { initial?: Game }) {
         alertFired.current.add(id);
         const name = game.world.items.find((i) => i.id === id)?.name ?? id;
         setToast({ id: `alert-${id}`, name: `⏰ ${name} ≤ ${threshold.toLocaleString('en-US')}`, flavor: `now ${last.toLocaleString('en-US')} gp — time to buy?`, achieved: () => false });
+        firedExchange = true;
       } else if (last > threshold) {
         alertFired.current.delete(id);
       }
@@ -475,6 +488,7 @@ export function App({ initial }: { initial?: Game }) {
         sellFired.current.add(id);
         const name = game.world.items.find((i) => i.id === id)?.name ?? id;
         setToast({ id: `sell-alert-${id}`, name: `⏰ ${name} ≥ ${threshold.toLocaleString('en-US')}`, flavor: `now ${last.toLocaleString('en-US')} gp — time to sell?`, achieved: () => false });
+        firedExchange = true;
       } else if (last < threshold) {
         sellFired.current.delete(id);
       }
@@ -491,6 +505,7 @@ export function App({ initial }: { initial?: Game }) {
         if (!bandFired.current.has(id)) {
           bandFired.current.add(id);
           setToast({ id: `band-alert-${id}`, name: `🟢 ${def.name} is cheap`, flavor: `now ${market.lastPrice.toLocaleString('en-US')} gp — in its cheap band, time to accumulate?`, achieved: () => false });
+          firedExchange = true;
         }
       } else {
         bandFired.current.delete(id);
@@ -507,6 +522,7 @@ export function App({ initial }: { initial?: Game }) {
         if (!richFired.current.has(id)) {
           richFired.current.add(id);
           setToast({ id: `rich-alert-${id}`, name: `🟡 ${def.name} is rich`, flavor: `now ${market.lastPrice.toLocaleString('en-US')} gp — near its ceiling, take profit?`, achieved: () => false });
+          firedExchange = true;
         }
       } else {
         richFired.current.delete(id);
@@ -534,6 +550,7 @@ export function App({ initial }: { initial?: Game }) {
         flavor: `settled ${r.startPrice.toLocaleString('en-US')}→${r.endPrice.toLocaleString('en-US')} (${up ? '+' : ''}${Math.round(r.pct * 100)}%)`,
         achieved: () => false,
       });
+      firedExchange = true;
     }
     // Celebrations LAST (last-writer-wins ⇒ a rare identity moment WINS the single toast slot
     // over the frequent informational alerts/recaps above). Self-ordered fills<level<region<deed.
@@ -558,7 +575,16 @@ export function App({ initial }: { initial?: Game }) {
       prevProgress.current = prog;
     }
     const newly = checkMilestones(game, v, w); // a deed = highest priority, fires last of all
-    if (newly.length > 0) setToast(newly[newly.length - 1]!);
+    if (newly.length > 0) {
+      setToast(newly[newly.length - 1]!);
+      firedHall = true;
+    }
+    // Tab badges (16r): flag a room whose event fired while you were on a DIFFERENT tab, so a missed
+    // transient toast leaves a persistent dot. markRooms returns the same ref when nothing changes,
+    // so this is a no-op re-render on a quiet tick.
+    if (firedExchange || firedHall) {
+      setUnseen((u) => markRooms(u, { exchange: firedExchange, hall: firedHall }, roomRef.current));
+    }
   };
 
   useEffect(() => {
@@ -1117,12 +1143,14 @@ export function App({ initial }: { initial?: Game }) {
       <nav className="tabs" role="tablist" aria-label="rooms">
         <button role="tab" aria-selected={room === 'exchange'} className={room === 'exchange' ? 'tab active' : 'tab'} onClick={() => pickRoom('exchange')}>
           🪙 Exchange
+          {unseen['exchange'] && <span className="tabdot" title="new fills/alerts since you last looked" aria-label="new activity" />}
         </button>
         <button role="tab" aria-selected={room === 'adventure'} className={room === 'adventure' ? 'tab active' : 'tab'} onClick={() => pickRoom('adventure')}>
           ⚔ Adventure{game.world.agents[game.playerId]?.expedition ? ' ●' : ''}
         </button>
         <button role="tab" aria-selected={room === 'hall'} className={room === 'hall' ? 'tab active' : 'tab'} onClick={() => pickRoom('hall')}>
           🏰 Hall
+          {unseen['hall'] && <span className="tabdot" title="a new deed since you last looked" aria-label="new activity" />}
         </button>
       </nav>
       {/* Every room stays MOUNTED (state survives switching; tests see all),

@@ -393,6 +393,22 @@ export function diveStreak(delves: DelveRecord[] | undefined): DiveStreak {
   return { current: run, best }; // at loop end, `run` is the trailing (current) streak
 }
 
+/**
+ * Which room tabs to flag with an "unseen activity" dot. A room is flagged when an event relevant to it
+ * fired while it was NOT the active room, and it isn't already flagged. Returns the SAME object when
+ * nothing changes, so the caller can bail the re-render (call it every tick safely). Pure; string-typed.
+ */
+export function markRooms(
+  prev: Record<string, boolean>,
+  fired: { exchange?: boolean; hall?: boolean },
+  active: string,
+): Record<string, boolean> {
+  let next = prev;
+  if (fired.exchange && active !== 'exchange' && !prev['exchange']) next = { ...next, exchange: true };
+  if (fired.hall && active !== 'hall' && !prev['hall']) next = { ...next, hall: true };
+  return next;
+}
+
 /** Survival-streak lengths worth a celebration. The streak grows by exactly 1 per survived dive, so an
  * exact-membership check fires each milestone once as it's reached (a death resets to 0, never a member). */
 export const STREAK_MILESTONES = [5, 10, 25, 50, 100];

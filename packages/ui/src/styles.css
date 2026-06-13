@@ -1039,6 +1039,16 @@ kbd {
   border-color: var(--gold);
   background: linear-gradient(180deg, rgba(212, 169, 55, 0.16), rgba(212, 169, 55, 0.02));
 }
+/* unseen-activity dot — a missed-toast cue that persists until you visit the tab (16r) */
+.tabdot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 5px;
+  border-radius: 50%;
+  background: var(--rise);
+  vertical-align: middle;
+}
 
 /* Inactive rooms stay mounted (state survives switching) but render nothing.
  * A class, not the `hidden` attribute — author display rules would beat it. */
