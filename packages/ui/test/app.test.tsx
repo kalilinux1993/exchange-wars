@@ -55,6 +55,7 @@ import {
   playerWorth,
   eventEndingSoon,
   deedEta,
+  goalView,
   MILESTONES,
   CORRUPT_SAVE_KEY,
   dailySeed,
@@ -1796,6 +1797,41 @@ describe('UI shell', () => {
     const view = { gp: 1000, openOrders: [{ side: 'buy', price: 50, remaining: 4 }] } as unknown as PlayerView;
     render(<WealthPanel game={game} view={view} worth={2000} />); // +1000 over the 1000 stake = +100%
     expect(screen.getByText(/\+100%/)).toBeTruthy();
+  });
+
+  describe('goalView (player-set worth target)', () => {
+    it('reports progress + ETA, caps reached, and nulls without a goal or rate', () => {
+      expect(goalView(0, 50_000, 6_000)).toBeNull(); // no goal set
+      const g = goalView(100_000, 50_000, 6_000)!;
+      expect(g.pct).toBe(50);
+      expect(g.remaining).toBe(50_000);
+      expect(g.etaMin).toBeCloseTo(50_000 / 6_000);
+      expect(g.reached).toBe(false);
+      const done = goalView(100_000, 120_000, 6_000)!;
+      expect(done.reached).toBe(true);
+      expect(done.pct).toBe(100); // capped, not 120
+      expect(done.etaMin).toBeNull(); // already there
+      expect(goalView(100_000, 50_000, 0)!.etaMin).toBeNull(); // flat rate → no ETA
+    });
+  });
+
+  it('WealthPanel: set a worth goal → shows progress + ETA, then clears (17l)', () => {
+    const game = newGame(42);
+    game.worthHistory = [{ tick: 0, worth: 40_000 }, { tick: 100, worth: 50_000 }]; // rising → perMin > 0
+    const view = playerView(game.world, game.playerId)!;
+    const { container } = render(<WealthPanel game={game} view={view} worth={50_000} />);
+    const input = container.querySelector('.goalinput') as HTMLInputElement;
+    expect(input).toBeTruthy(); // no goal yet → the set input shows
+    fireEvent.change(input, { target: { value: '100000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'set' }));
+    const line = container.querySelector('.goalline')!;
+    expect(line).toBeTruthy();
+    expect(line.textContent).toMatch(/goal/i); // the target line rendered
+    expect(line.textContent).toMatch(/100[Kk]|100,000/); // the target (fmtCompact → "100K")
+    expect(line.textContent).toMatch(/50%/); // 50k of 100k
+    expect(line.textContent).toMatch(/≈/); // and an ETA at the positive rate
+    fireEvent.click(within(line as HTMLElement).getByRole('button', { name: /clear worth target/i }));
+    expect(container.querySelector('.goalinput')).toBeTruthy(); // back to the input
   });
 
   it('UpgradeShop shows the purse and how far short you are of an upgrade', () => {

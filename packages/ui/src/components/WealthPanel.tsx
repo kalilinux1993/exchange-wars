@@ -1,6 +1,8 @@
 import type { PlayerView } from '@exchange-wars/engine';
+import { useState } from 'react';
 import type { Game } from '../game';
-import { bidWalk, fmtCompact, returnOnStake, sessionPnL, worthBreakdown } from '../game';
+import { bidWalk, fmtCompact, fmtDuration, goalView, returnOnStake, sessionPnL, worthBreakdown, worthRate } from '../game';
+import { usePref } from '../usePref';
 
 /** Net-worth segments: liquid cash, gp tied up in buy offers, goods held. */
 const SEGS = [
@@ -38,6 +40,17 @@ export function WealthPanel({
   const kit = Object.values(view.worn ?? {}).reduce((s, itemId) => s + (bidWalk(game, itemId, 1)?.gp ?? 0), 0);
   const pct = (n: number) => (b.total > 0 ? Math.round((n / b.total) * 100) : 0);
   const ret = returnOnStake(game.startGp, worth);
+  // A player-set net-worth target (17l): your own finish line, with progress + an ETA at the recent rate.
+  const [goal, setGoal] = usePref<number>('ew-worth-goal', 0);
+  const [goalInput, setGoalInput] = useState('');
+  const gv = goalView(goal, worth, worthRate(game.worthHistory)?.perMin ?? 0);
+  const commitGoal = (): void => {
+    const n = Math.floor(Number(goalInput));
+    if (Number.isFinite(n) && n > 0) {
+      setGoal(n);
+      setGoalInput('');
+    }
+  };
   return (
     <section className="panel wealth">
       <h2>
@@ -103,6 +116,44 @@ export function WealthPanel({
         </>
       ) : (
         <p className="dim small">no wealth to speak of yet — buy low, sell high</p>
+      )}
+      {gv ? (
+        <p className="dim small goalline" title="your own net-worth target — track it, or clear it with ✕">
+          🎯 goal <b>{fmtCompact(goal)}</b>:{' '}
+          {gv.reached ? (
+            <b className="pct up">✓ reached!</b>
+          ) : (
+            <>
+              <b className="pct up">{gv.pct}%</b>
+              {gv.etaMin !== null && (
+                <span title="at your recent gp/min worth rate, when you'd hit this target">
+                  {' '}· ≈{fmtDuration(Math.round(gv.etaMin * 60))}
+                </span>
+              )}
+            </>
+          )}{' '}
+          <button className="chip goalclear" onClick={() => setGoal(0)} title="clear target" aria-label="clear worth target">
+            ✕
+          </button>
+        </p>
+      ) : (
+        <p className="dim small goalset">
+          🎯{' '}
+          <input
+            className="goalinput"
+            inputMode="numeric"
+            placeholder="set a worth target…"
+            value={goalInput}
+            onChange={(e) => setGoalInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitGoal();
+            }}
+            aria-label="worth target"
+          />
+          <button className="chip" onClick={commitGoal}>
+            set
+          </button>
+        </p>
       )}
     </section>
   );

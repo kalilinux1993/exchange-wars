@@ -1437,6 +1437,26 @@ export function deedEta(progress: number, worth: number, perMin: number): number
   return remaining / perMin;
 }
 
+export interface GoalView {
+  /** Progress toward the target, 0..100 (capped). */
+  pct: number;
+  /** gp left to reach it (0 once reached). */
+  remaining: number;
+  /** Tick-minutes to reach it at the recent worth rate (matching deedEta's unit); null if reached or rate ≤ 0. */
+  etaMin: number | null;
+  reached: boolean;
+}
+/** A player-set net-worth target's view (17l): progress + an ETA at the recent gp/min worth rate. null when
+ *  no goal is set (goal ≤ 0). The flexible companion to the fixed worth-deed ETAs (deedEta). Pure. */
+export function goalView(goal: number, worth: number, perMin: number): GoalView | null {
+  if (goal <= 0) return null;
+  const reached = worth >= goal;
+  const remaining = Math.max(0, goal - worth);
+  const pct = Math.min(100, Math.floor((worth / goal) * 100));
+  const etaMin = !reached && perMin > 0 ? remaining / perMin : null;
+  return { pct, remaining, etaMin, reached };
+}
+
 export const MILESTONES: Milestone[] = [
   {
     id: 'first-offer',
