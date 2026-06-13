@@ -1590,6 +1590,23 @@ describe('UI shell', () => {
       expect(screen.getByRole('columnheader', { name: /bid/ }).getAttribute('aria-sort')).toBe('none'); // others stay none
     });
 
+    it('sortable headers are keyboard-operable — Enter and Space sort a focused header (20f WCAG 2.1.1)', () => {
+      const view = {
+        markets: [{ itemId: 'a', bestBid: 1000, bestAsk: 1100, lastPrice: 1000, ema: 1000, volume: 0, bestBidIsMine: false, bestAskIsMine: false }],
+      } as unknown as PlayerView;
+      const items = [{ id: 'a', name: 'Item A' }] as unknown as ItemDef[];
+      render(<MarketTable view={view} items={items} trades={[]} selected="a" onSelect={() => {}} eventItems={new Set()} active />);
+      const margin = screen.getByRole('columnheader', { name: /margin/ });
+      expect(margin.getAttribute('tabindex')).toBe('0'); // focusable (a tab stop), not mouse-only
+      expect(margin.getAttribute('aria-sort')).toBe('none');
+      fireEvent.keyDown(margin, { key: 'Enter' }); // Enter activates like a button
+      expect(['ascending', 'descending']).toContain(margin.getAttribute('aria-sort'));
+      const swing = screen.getByRole('columnheader', { name: /swing/ });
+      fireEvent.keyDown(swing, { key: ' ' }); // Space activates too
+      expect(['ascending', 'descending']).toContain(swing.getAttribute('aria-sort'));
+      expect(margin.getAttribute('aria-sort')).toBe('none'); // sort moved to swing
+    });
+
     it('shows a sortable value-band column ordering cheap → rich by band position', () => {
       const items = [
         { id: 'cheap_one', name: 'Cheap One', baseCost: 100, consumeValue: 200, volatility: 0.08 },

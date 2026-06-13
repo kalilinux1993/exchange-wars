@@ -1,6 +1,6 @@
 import { GEAR } from '@exchange-wars/engine';
 import type { ItemDef, ItemId, PlayerView, Trade } from '@exchange-wars/engine';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { bandPosition, flipMargin, marketMood, momentum, nextRowIndex, priceSwing, valueBand } from '../game';
 import { usePref } from '../usePref';
 
@@ -177,6 +177,22 @@ export function MarketTable({
   // direction off `aria-sort` on the active <th> (WCAG 4.1.2 / the sortable-table pattern). 1 = ascending.
   const ariaSort = (key: SortKey): 'ascending' | 'descending' | 'none' =>
     sort?.key === key ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none';
+  // Keyboard operability for the sortable headers (WCAG 2.1.1 Keyboard, Level A): a `<th onClick>` is
+  // mouse-only. `tabIndex` makes each header a focus stop; Enter/Space activates it (Space preventDefaults
+  // so the page doesn't scroll). Kept as a columnheader (NOT a child <button>) so the role + aria-sort (20e)
+  // stay on this element and a mouse click anywhere in the cell still sorts. Also DRYs the 9 repeated
+  // aria-sort/onClick pairs.
+  const sortableProps = (key: SortKey) => ({
+    tabIndex: 0,
+    'aria-sort': ariaSort(key),
+    onClick: () => toggleSort(key),
+    onKeyDown: (e: ReactKeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleSort(key);
+      }
+    },
+  });
   return (
     <section className={compact ? 'panel market compact' : 'panel market'}>
       <h2>
@@ -263,32 +279,32 @@ export function MarketTable({
       <table>
         <thead>
           <tr>
-            <th className="sortable" aria-sort={ariaSort('name')} onClick={() => toggleSort('name')}>
+            <th className="sortable" {...sortableProps('name')}>
               item{arrow('name')}
             </th>
-            <th className="num sortable" aria-sort={ariaSort('bid')} onClick={() => toggleSort('bid')}>
+            <th className="num sortable" {...sortableProps('bid')}>
               bid{arrow('bid')}
             </th>
-            <th className="num sortable" aria-sort={ariaSort('ask')} onClick={() => toggleSort('ask')}>
+            <th className="num sortable" {...sortableProps('ask')}>
               ask{arrow('ask')}
             </th>
-            <th className="num sortable" aria-sort={ariaSort('last')} onClick={() => toggleSort('last')}>
+            <th className="num sortable" {...sortableProps('last')}>
               last{arrow('last')}
             </th>
-            <th className="num sortable" aria-sort={ariaSort('mom')} onClick={() => toggleSort('mom')} title="momentum — % the last price sits above/below its smoothed EMA. Sort descending for what's spiking (event crazes), ascending for dips (mean-reversion buys).">
+            <th className="num sortable" {...sortableProps('mom')} title="momentum — % the last price sits above/below its smoothed EMA. Sort descending for what's spiking (event crazes), ascending for dips (mean-reversion buys).">
               mom{arrow('mom')}
             </th>
-            <th className="num sortable" aria-sort={ariaSort('margin')} onClick={() => toggleSort('margin')} title="after-tax flip margin per unit — undercut the spread one tick each way. Sort to find the whole market's flippable items, not just the top few.">
+            <th className="num sortable" {...sortableProps('margin')} title="after-tax flip margin per unit — undercut the spread one tick each way. Sort to find the whole market's flippable items, not just the top few.">
               margin{arrow('margin')}
             </th>
-            <th className="sortable" aria-sort={ariaSort('band')} onClick={() => toggleSort('band')} title="where last sits in the item's cost→value band — 🟢 cheap (accumulate) → 🟡 rich (offload). Sort ascending for the market's best accumulation candidates, descending for offload candidates.">
+            <th className="sortable" {...sortableProps('band')} title="where last sits in the item's cost→value band — 🟢 cheap (accumulate) → 🟡 rich (offload). Sort ascending for the market's best accumulation candidates, descending for offload candidates.">
               band{arrow('band')}
             </th>
             <th aria-label="trend" />
-            <th className="num sortable" aria-sort={ariaSort('swing')} onClick={() => toggleSort('swing')} title="recent realized volatility — peak-to-trough % over the last trades. Sort ascending for the steadiest spreads (safer to flip — the price holds while both legs fill), descending for the wildest (a spread can move before you complete the round-trip).">
+            <th className="num sortable" {...sortableProps('swing')} title="recent realized volatility — peak-to-trough % over the last trades. Sort ascending for the steadiest spreads (safer to flip — the price holds while both legs fill), descending for the wildest (a spread can move before you complete the round-trip).">
               swing{arrow('swing')}
             </th>
-            <th className="num sortable" aria-sort={ariaSort('vol')} onClick={() => toggleSort('vol')}>
+            <th className="num sortable" {...sortableProps('vol')}>
               volume{arrow('vol')}
             </th>
           </tr>

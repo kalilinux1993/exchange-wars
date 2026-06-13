@@ -200,6 +200,16 @@ test('compact view hides the analysis columns, keeps the price essentials', asyn
   await expect(page.getByRole('columnheader', { name: 'volume' })).toBeVisible();
 });
 
+test('sortable headers are keyboard-operable: focus + Enter sorts, no mouse (20f WCAG 2.1.1)', async ({ page }) => {
+  await dismissHelp(page);
+  const margin = page.getByRole('columnheader', { name: /margin/ });
+  await expect(margin).toHaveAttribute('aria-sort', 'none'); // unsorted at first
+  await margin.focus(); // reachable as a real focus stop (tabIndex=0), not mouse-only
+  await expect(margin).toBeFocused();
+  await page.keyboard.press('Enter'); // activate by keyboard alone
+  await expect(margin).toHaveAttribute('aria-sort', /ascending|descending/); // it sorted
+});
+
 test('engine rejection reasons surface in the ticket', async ({ page }) => {
   await dismissHelp(page);
   await page.locator('.market tbody tr').first().click();

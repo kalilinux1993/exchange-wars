@@ -448,6 +448,14 @@ body {
   color: var(--gold);
 }
 
+/* Keyboard focus on a sortable header (WCAG 2.1.1/2.4.7): the headers are now tab stops, so the
+   focus must be visible. outline-offset pulls the ring inside the cell so the table border can't clip it. */
+.market th.sortable:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+  color: var(--gold);
+}
+
 .market table {
   width: 100%;
   min-width: 520px;
