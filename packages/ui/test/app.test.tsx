@@ -1889,6 +1889,20 @@ describe('UI shell', () => {
     expect(onToast).toHaveBeenCalledTimes(1); // goalHit guards it
   });
 
+  it('clearing a goal resets the persisted ew-goal-hit marker — no orphan (17p)', () => {
+    localStorage.clear();
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    const { container, rerender } = render(<WealthPanel game={game} view={view} worth={50_000} onToast={() => {}} />);
+    fireEvent.change(container.querySelector('.goalinput') as HTMLInputElement, { target: { value: '100000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'set' })); // unmet at 50k
+    rerender(<WealthPanel game={game} view={view} worth={120_000} onToast={() => {}} />); // cross → goalHit persists
+    expect(JSON.parse(localStorage.getItem('ew-goal-hit')!)).toBe(100_000); // hit-marker recorded
+    fireEvent.click(screen.getByRole('button', { name: /clear worth target/i }));
+    expect(JSON.parse(localStorage.getItem('ew-goal-hit')!)).toBe(0); // 17p: reset, not left orphaned
+    expect(JSON.parse(localStorage.getItem('ew-worth-goal')!)).toBe(0);
+  });
+
   it('UpgradeShop shows the purse and how far short you are of an upgrade', () => {
     const view = {
       gp: 100, // way short of any upgrade

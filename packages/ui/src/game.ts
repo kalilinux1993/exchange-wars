@@ -1421,7 +1421,9 @@ export interface Milestone {
   /** Optional 0..1 progress toward the deed (shown on locked entries). */
   progress?: (game: Game, view: PlayerView, worth: number) => number;
   /** Deeds whose `progress` is a net-worth fraction — the only ones an ETA from the gp/min worth rate is
-   *  valid for (17k). Combat/contract/region deeds advance on other axes, so they get no ETA. */
+   *  valid for (17k). Combat/contract/region deeds advance on other axes, so they get no ETA.
+   *  CONTRACT: a `paceMetric: 'worth'` deed's `progress` MUST be exactly `worth / threshold` — `deedEta`
+   *  recovers the threshold as `worth / progress`, so any other progress shape yields a garbage ETA (17p). */
   paceMetric?: 'worth';
 }
 

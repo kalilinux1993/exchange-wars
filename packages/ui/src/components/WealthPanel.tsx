@@ -148,7 +148,15 @@ export function WealthPanel({
               )}
             </>
           )}{' '}
-          <button className="chip goalclear" onClick={() => setGoal(0)} title="clear target" aria-label="clear worth target">
+          <button
+            className="chip goalclear"
+            onClick={() => {
+              setGoal(0);
+              setGoalHit(0); // 17p: don't orphan the hit-marker — lets a re-set same-value goal celebrate again
+            }}
+            title="clear target"
+            aria-label="clear worth target"
+          >
             ✕
           </button>
         </p>
