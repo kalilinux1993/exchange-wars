@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Catalog-agnostic: everything derives from DEFAULT_ITEMS so `npm run
 // gen:catalog` regens never break these tests.
-import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, placeOrder, playerView, REGIONS, SPRINT_TICKS, tickWorld, xpForLevel } from '@exchange-wars/engine';
+import { addAgent, applyCommand, createWorld, DEFAULT_ITEMS, placeOrder, playerView, REGIONS, runTicks, SPRINT_TICKS, tickWorld, xpForLevel } from '@exchange-wars/engine';
 import type { AgentState, SimStats } from '@exchange-wars/engine';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -52,6 +52,7 @@ import {
   bumpStreak,
   streakCelebration,
   checkMilestones,
+  playerWorth,
   MILESTONES,
   CORRUPT_SAVE_KEY,
   dailySeed,
@@ -477,6 +478,24 @@ describe('UI shell', () => {
     render(<App initial={game} />);
     expect(screen.getByText(/while you were away/i)).toBeTruthy();
     expect(game.world.tick).toBeGreaterThanOrEqual(600);
+  });
+
+  it('surfaces a deed the offline accrual CROSSED in the away-bar — not deeds earned before the gap (17a)', () => {
+    const game = newGame(42);
+    // A played-in, returning save: warm the world so the economy's deeds (dragon-slayer fires off
+    // producer-minted bones) are already achievable, then latch everything so far — as a real returning
+    // player's prior live checkMilestones would have. THEN hire the clerk and go away.
+    runTicks(game.world, 150);
+    checkMilestones(game, playerView(game.world, game.playerId)!, playerWorth(game)); // prior-play latch
+    applyCommand(game.world, game.playerId, { type: 'buyUpgrade', upgradeId: 'autoFlip' }); // hire BEFORE leaving
+    game.lastSeenMs = Date.now() - 600_000; // the clerk flips through the gap, resting offers + buying goods
+    render(<App initial={game} />);
+    const deeds = document.querySelector('.awaydeeds');
+    expect(deeds).toBeTruthy();
+    expect(deeds!.textContent).toMatch(/earned while away/);
+    expect(deeds!.textContent).toMatch(/Open for Business|Goods in the Satchel/); // CROSSED during the gap (clerk)
+    expect(deeds!.textContent).not.toMatch(/Dragon Slayer/); // achievable before the gap (warm-up) → latched, not "away"
+    expect(deeds!.textContent).not.toMatch(/Hired Help/); // hired BEFORE leaving → pre-accrual latch excludes it
   });
 
   it('shows the duel banner with the target while a duel is active (16t)', () => {

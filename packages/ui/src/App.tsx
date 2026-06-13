@@ -115,6 +115,10 @@ export function App({ initial }: { initial?: Game }) {
   const [selected, setSelected] = useState<ItemId>(game.world.items[0]?.id ?? '');
   const [lastResult, setLastResult] = useState<CommandResult | null>(null);
   const [awayDismissed, setAwayDismissed] = useState(false);
+  // Deeds latched at the boot/catch-up checkMilestones AFTER offline accrual (17a): no checkMilestones
+  // runs during the offline gap, so a milestone the clerk grew your worth past while away latches
+  // silently. Captured here and surfaced in the away-bar — the deed sibling of the offline duel settle (16v).
+  const [awayDeeds, setAwayDeeds] = useState<string[]>([]);
   const [challenge, setChallenge] = useState<number | null>(null);
   const [challengeTarget, setChallengeTarget] = useState<ChallengeTarget | null>(null);
   const [catchUp, setCatchUp] = useState<{ done: number; total: number } | null>(null);
@@ -233,6 +237,7 @@ export function App({ initial }: { initial?: Game }) {
    * run synchronously, big ones hand off to the chunked catch-up effect. */
   const beginOffline = (g: Game): void => {
     offlineRef.current = null;
+    setAwayDeeds([]); // a new absence starts fresh; the boot/catch-up checkMilestones repopulates it
     const plan = planOfflineProgress(g, Date.now());
     if (!plan) return;
     // Offline catch-up advances world.tick via runTicks but logs NO commands; this stays
@@ -256,9 +261,15 @@ export function App({ initial }: { initial?: Game }) {
   useEffect(() => {
     const g = gameRef.current;
     if (!g) return;
+    // Latch deeds already achievable BEFORE the gap (seeded-world deeds like dragon-slayer, or any
+    // earned last session) SILENTLY — they aren't "earned while away". Then accrue and attribute only
+    // the deeds the accrual newly crossed (17a). Without this split, a returning fresh save would
+    // wrongly credit pre-existing deeds to the away period.
+    const vPre = playerView(g.world, g.playerId);
+    if (vPre) checkMilestones(g, vPre, playerWorth(g));
     beginOffline(g);
     const v0 = playerView(g.world, g.playerId);
-    if (v0) checkMilestones(g, v0, playerWorth(g));
+    if (v0) setAwayDeeds(checkMilestones(g, v0, playerWorth(g)).map((m) => m.name)); // only deeds the accrual just crossed (17a)
     settleDuel(g); // a duel beaten via the offline accrual that beginOffline just applied (16v)
     const ch = parseChallengeSeed(window.location.hash);
     const target = parseChallengeTarget(window.location.hash); // the claimed "beat me" figure (16s)
@@ -299,7 +310,7 @@ export function App({ initial }: { initial?: Game }) {
       updateNews(g);
       recordFills(g);
       const v = playerView(g.world, g.playerId);
-      if (v) checkMilestones(g, v, playerWorth(g));
+      if (v) setAwayDeeds(checkMilestones(g, v, playerWorth(g)).map((m) => m.name)); // deeds the long catch-up crossed (17a)
       settleDuel(g); // a big offline catch-up may have grown worth past the duel target (16v)
       saveGame(g);
       schedulePush();
@@ -1213,6 +1224,12 @@ export function App({ initial }: { initial?: Game }) {
                     </span>
                   );
                 })()}
+              {awayDeeds.length > 0 && (
+                <span className="awaydeeds" title="milestones you crossed while the tab was closed — the clerk kept earning, and a deed fell with no one watching">
+                  {' '}
+                  · 🏅 <b className="up">earned while away:</b> {awayDeeds.join(', ')}
+                </span>
+              )}
               <button className="chip" onClick={() => setAwayDismissed(true)}>
                 ×
               </button>
