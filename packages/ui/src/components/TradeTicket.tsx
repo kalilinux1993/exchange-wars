@@ -3,7 +3,7 @@ import type { CommandResult, ItemDef, ItemId, PlayerCommand, PlayerView, Side } 
 import { useEffect, useRef, useState } from 'react';
 import { Sparkline } from './Sparkline';
 import { BandMeter } from './BandMeter';
-import { askWalk, blendBuy, breakEvenSell, buyConcentration, gearDelta, itemSources, priceSwing, valueBand, type Game } from '../game';
+import { askWalk, bidWalk, blendBuy, breakEvenSell, buyConcentration, gearDelta, itemSources, priceSwing, valueBand, type Game } from '../game';
 
 /**
  * Split the resting book into bid/ask proportions for the liquidity bar —
@@ -365,6 +365,26 @@ export function TradeTicket({
               >
                 fills ≈<b>{w.qty.toLocaleString('en-US')}</b> now · ≈{w.gp.toLocaleString('en-US')} gp (avg{' '}
                 {Math.round(w.gp / w.qty).toLocaleString('en-US')})
+                {q > w.qty && <span className="dim"> · {(q - w.qty).toLocaleString('en-US')} rests at {p.toLocaleString('en-US')}</span>}
+              </p>
+            );
+          })()}
+        {side === 'sell' &&
+          valid &&
+          game &&
+          (() => {
+            // What CROSSES now: a limit sell fills against bids ≥ your price, at the resting BUYER's
+            // (higher) price — so you net MORE than the "after tax" figure (which uses your limit), and
+            // the rest rests. Net is after the 2% tax (bidWalk applies it per fill). Floor the walk at p.
+            const w = bidWalk(game, selected, q, p);
+            if (!w) return null;
+            return (
+              <p
+                className="dim small fillpreview"
+                title="how much of this sell crosses the spread RIGHT NOW — limit sells fill at the resting buyer's price (≥ your limit), so you net more than the 'after tax' figure; the rest rests at your price. Net is after the 2% tax."
+              >
+                fills ≈<b>{w.qty.toLocaleString('en-US')}</b> now · ≈{w.net.toLocaleString('en-US')} net (avg{' '}
+                {Math.round(w.net / w.qty).toLocaleString('en-US')})
                 {q > w.qty && <span className="dim"> · {(q - w.qty).toLocaleString('en-US')} rests at {p.toLocaleString('en-US')}</span>}
               </p>
             );

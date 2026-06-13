@@ -2340,6 +2340,21 @@ describe('UI shell', () => {
     expect(w.net).toBe(98); // per-fill: 0 tax each. On the 98 total it'd be floor(98·.02)=1 → 97. Per-fill matches paySeller.
   });
 
+  it('bidWalk floors the walk at minPrice — a limit sell only crosses bids ≥ its price (19q)', () => {
+    const game = {
+      playerId: 0,
+      world: { books: { x: { buys: [
+        { agentId: 9, price: 100, remaining: 3 }, // ≥ floor
+        { agentId: 9, price: 95, remaining: 5 }, // ≥ floor
+        { agentId: 9, price: 80, remaining: 9 }, // below a 90 floor → not crossed
+      ] } } },
+    } as unknown as Game;
+    const floored = bidWalk(game, 'x', 10, 90)!; // sell limit 90: crosses 100 + 95 only
+    expect(floored.qty).toBe(8); // 3 + 5; the 80 bid is below the limit
+    expect(floored.gp).toBe(3 * 100 + 5 * 95); // 775 gross
+    expect(bidWalk(game, 'x', 10)!.qty).toBe(10); // default minPrice 0 → dumps into the 80 bid too (unchanged)
+  });
+
   it('liquidateNow sums the honest bid-walk net across every held position (19j)', () => {
     const game = {
       playerId: 0,
@@ -3189,6 +3204,40 @@ describe('UI shell', () => {
     expect(preview).toBeTruthy();
     expect(preview!.textContent).toMatch(/fills ≈3 now/);
     expect(preview!.textContent).toMatch(/300 gp/); // 3 @ 100, untaxed
+  });
+
+  it('the sell ticket previews the immediate bid-walk fill (net) when the order crosses (19q)', () => {
+    const game = newGame(42);
+    const item = game.world.items[0]!.id;
+    const book = game.world.books[item]!;
+    book.buys.push({ id: 1, tick: 0, agentId: game.playerId + 1, itemId: item, side: 'buy', price: 100, qty: 5, remaining: 5, escrowGp: 500 });
+    book.buys.sort((a, b) => b.price - a.price || a.tick - b.tick || a.id - b.id);
+    game.world.agents[game.playerId]!.inventory[item] = 10; // hold units to sell
+    const view = playerView(game.world, game.playerId)!;
+    render(
+      <TradeTicket
+        game={game}
+        view={view}
+        selected={item}
+        items={game.world.items}
+        prefill={null}
+        onCommand={() => {}}
+        lastResult={null}
+        eventNote={null}
+        recentPrices={[]}
+        position={null}
+        watched={false}
+        onToggleWatch={() => {}}
+      />,
+    );
+    fireEvent.click(document.querySelector('button.side.sell')!); // switch to the sell side
+    const [price, qtyInput] = screen.getAllByRole('textbox'); // [price, qty]
+    fireEvent.change(price!, { target: { value: '100' } }); // = best bid → crosses
+    fireEvent.change(qtyInput!, { target: { value: '3' } });
+    const preview = document.querySelector('p.fillpreview');
+    expect(preview).toBeTruthy();
+    expect(preview!.textContent).toMatch(/fills ≈3 now/);
+    expect(preview!.textContent).toMatch(/294 net/); // 3 @ 100 = 300 − floor(300·0.02)=6 → 294 after tax
   });
 
   it('TradeTicket shows no gear preview for a non-gear commodity', () => {

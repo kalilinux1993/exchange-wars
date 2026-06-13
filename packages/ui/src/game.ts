@@ -1956,6 +1956,7 @@ export function bidWalk(
   game: Game,
   itemId: string,
   qty: number,
+  minPrice = 0,
 ): { qty: number; floor: number; gp: number; net: number } | null {
   const book = game.world.books[itemId];
   if (!book || qty <= 0) return null;
@@ -1965,6 +1966,7 @@ export function bidWalk(
   let floor = 0;
   for (const o of book.buys) {
     if (remaining <= 0) break;
+    if (o.price < minPrice) break; // bids are price-DESC → nothing below the floor qualifies (a limit sell only crosses bids ≥ its price). Default 0 ⇒ no floor (dump at market).
     if (o.agentId === game.playerId) continue; // never sell to yourself
     const take = Math.min(remaining, o.remaining);
     const proceeds = take * o.price;
