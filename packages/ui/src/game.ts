@@ -2228,6 +2228,23 @@ export function richAlertHit(
   return valueBand(def, lastPrice) === 'rich';
 }
 
+/** A "solid flip" floor as a fraction of price — the after-tax net margin a flip must clear to ping. Keyed on
+ *  %-of-price (not absolute gp) so it's comparable across a 50-gp staple and a 5,000-gp item. A defensible
+ *  default; the one knob to tune the flippable-alert sensitivity (or swap the model). */
+export const FLIP_ALERT_MIN_PCT = 0.01;
+
+/** The spread-side alert sibling (the band alerts key on value-band POSITION; this keys on the live SPREAD):
+ * true when undercutting both legs nets an after-tax margin (`flipMargin`) of at least `minPct` of the price —
+ * i.e. the item is profitably flippable RIGHT NOW. false on a one-sided book or a non-positive price. Pure. */
+export function flipAlertHit(
+  market: { bestBid: number | null; bestAsk: number | null; lastPrice: number },
+  minPct: number = FLIP_ALERT_MIN_PCT,
+): boolean {
+  const m = flipMargin(market);
+  if (m === null || market.lastPrice <= 0) return false;
+  return m / market.lastPrice >= minPct;
+}
+
 /** A captured market event with the item price at the moment it became active. */
 export interface CapturedEvent {
   itemId: string;

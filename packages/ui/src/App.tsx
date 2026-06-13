@@ -38,6 +38,8 @@ import {
   alertHit,
   bandAlertHit,
   richAlertHit,
+  flipAlertHit,
+  flipMargin,
   markRooms,
   newElites,
   reconcileEvents,
@@ -178,12 +180,14 @@ export function App({ initial }: { initial?: Game }) {
   const [sellAlerts, setSellAlerts] = usePref<Record<string, number>>('ew-sell-alerts', {});
   const [bandAlerts, setBandAlerts] = usePref<Record<string, boolean>>('ew-band-alerts', {});
   const [richAlerts, setRichAlerts] = usePref<Record<string, boolean>>('ew-rich-alerts', {});
+  const [flipAlerts, setFlipAlerts] = usePref<Record<string, boolean>>('ew-flip-alerts', {});
   const [streak, setStreak] = usePref<DailyStreak | null>('ew-daily-streak', null);
   const [dailyBest, setDailyBest] = usePref<DailyBest | null>('ew-daily-best', null);
   const alertFired = useRef<Set<string>>(new Set());
   const sellFired = useRef<Set<string>>(new Set());
   const bandFired = useRef<Set<string>>(new Set());
   const richFired = useRef<Set<string>>(new Set());
+  const flipFired = useRef<Set<string>>(new Set());
   // Market-event capture for end recaps (15z): the price each active event began at, keyed by event id.
   // `captureGame` guards a game swap so a cloud-adopt/restart never recaps the old game's events.
   const eventCapture = useRef<Record<string, CapturedEvent>>({});
@@ -215,6 +219,13 @@ export function App({ initial }: { initial?: Game }) {
     else delete next[id];
     setRichAlerts(next);
     richFired.current.delete(id); // re-arm on toggle
+  };
+  const setFlipAlert = (id: string, on: boolean): void => {
+    const next = { ...flipAlerts };
+    if (on) next[id] = true;
+    else delete next[id];
+    setFlipAlerts(next);
+    flipFired.current.delete(id); // re-arm on toggle
   };
   const closeHelp = (): void => {
     localStorage.setItem(HELP_SEEN_KEY, '1');
@@ -532,6 +543,7 @@ export function App({ initial }: { initial?: Game }) {
       sellFired.current.clear();
       bandFired.current.clear();
       richFired.current.clear();
+      flipFired.current.clear();
     }
     // Price alerts: fire once when a watched item drops to its threshold;
     // re-arm only when it climbs back above (no toast spam at speed).
@@ -594,6 +606,26 @@ export function App({ initial }: { initial?: Game }) {
         }
       } else {
         richFired.current.delete(id);
+      }
+    }
+    // Flippable-spread alerts (21q): the SPREAD-side sibling of the band alerts — fire once when undercutting
+    // both legs nets an after-tax margin ≥ FLIP_ALERT_MIN_PCT of price (profitably flippable now); re-arm when
+    // the spread tightens below it. Distinct from cheap-band (value position) — this is the live spread.
+    for (const id of Object.keys(flipAlerts)) {
+      if (!flipAlerts[id]) continue;
+      const market = v.markets.find((m) => m.itemId === id);
+      const def = game.world.items.find((i) => i.id === id);
+      if (!market || !def) continue;
+      if (flipAlertHit(market)) {
+        if (!flipFired.current.has(id)) {
+          flipFired.current.add(id);
+          const m = flipMargin(market) ?? 0;
+          const pct = market.lastPrice > 0 ? Math.round((m / market.lastPrice) * 100) : 0;
+          setToast({ id: `flip-alert-${id}`, name: `🔁 ${def.name} is flippable`, flavor: `the spread nets +${m.toLocaleString('en-US')}/ea (${pct}%) after tax — flip it?`, achieved: () => false });
+          firedExchange = true;
+        }
+      } else {
+        flipFired.current.delete(id);
       }
     }
     // Event-end recaps (15z): close the lifecycle the chips open. Swap-guard first
@@ -1383,12 +1415,14 @@ export function App({ initial }: { initial?: Game }) {
             sellAlerts={sellAlerts}
             bandAlerts={bandAlerts}
             richAlerts={richAlerts}
+            flipAlerts={flipAlerts}
             onSelect={setSelected}
             onRemove={toggleWatch}
             onSetAlert={setAlert}
             onSetSellAlert={setSellAlert}
             onToggleBandAlert={setBandAlert}
             onToggleRichAlert={setRichAlert}
+            onToggleFlipAlert={setFlipAlert}
           />
           <NewsLog log={game.newsLog} />
         </section>

@@ -15,12 +15,14 @@ export function WatchlistPanel({
   sellAlerts,
   bandAlerts,
   richAlerts,
+  flipAlerts = {},
   onSelect,
   onRemove,
   onSetAlert,
   onSetSellAlert,
   onToggleBandAlert,
   onToggleRichAlert,
+  onToggleFlipAlert,
 }: {
   view: PlayerView;
   items: ItemDef[];
@@ -31,12 +33,16 @@ export function WatchlistPanel({
   bandAlerts: Record<string, boolean>;
   /** Items armed for a value-band "take profit" alert (fires when they go rich). */
   richAlerts: Record<string, boolean>;
+  /** Items armed for a flippable-spread alert (fires when the live spread is profitably flippable). Optional
+   *  so isolated renders without the handler simply omit the toggle. */
+  flipAlerts?: Record<string, boolean>;
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   onSetAlert: (id: string, price: number | null) => void;
   onSetSellAlert: (id: string, price: number | null) => void;
   onToggleBandAlert: (id: string, on: boolean) => void;
   onToggleRichAlert: (id: string, on: boolean) => void;
+  onToggleFlipAlert?: (id: string, on: boolean) => void;
 }) {
   const names = new Map(items.map((i) => [i.id, i.name]));
   const defOf = new Map(items.map((i) => [i.id, i]));
@@ -147,6 +153,25 @@ export function WatchlistPanel({
                         onClick={() => onToggleRichAlert(m.itemId, !armed)}
                       >
                         🟡{armed ? '✓' : ''}
+                      </button>
+                    );
+                  })()}
+                {onToggleFlipAlert &&
+                  flipMargin(m) !== null &&
+                  (() => {
+                    const armed = flipAlerts[m.itemId] === true;
+                    return (
+                      <button
+                        className={armed ? 'chip flipalert on' : 'chip flipalert'}
+                        aria-pressed={armed}
+                        title={
+                          armed
+                            ? 'flippable-spread alert ON — tap to disarm; fires when the spread is profitably flippable now'
+                            : 'alert me when this is profitably flippable now (the live spread clears a solid after-tax margin — no price to set)'
+                        }
+                        onClick={() => onToggleFlipAlert(m.itemId, !armed)}
+                      >
+                        🔁{armed ? '✓' : ''}
                       </button>
                     );
                   })()}

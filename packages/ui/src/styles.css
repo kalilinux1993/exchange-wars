@@ -290,6 +290,12 @@ body {
   border-color: var(--gold);
   color: var(--gold-bright);
 }
+/* Flippable-spread alert (21q): armed state — distinct from band (rise) / rich (gold-bright); the 🔁 glyph
+   is the primary cue. */
+.chip.flipalert.on {
+  border-color: var(--gold);
+  color: var(--gold);
+}
 
 .chip.danger:hover:not(:disabled) {
   border-color: var(--fall);

@@ -73,6 +73,7 @@ import {
   alertHit,
   bandAlertHit,
   richAlertHit,
+  flipAlertHit,
   applyFillToBook,
   blendBuy,
   breakEvenSell,
@@ -1465,6 +1466,33 @@ describe('UI shell', () => {
       expect(toggle.getAttribute('aria-pressed')).toBe('false');
       fireEvent.click(toggle);
       expect(onToggleBandAlert).toHaveBeenCalledWith('gold_bar', true); // arms it
+    });
+
+    it('WatchlistPanel arms a flippable-spread alert on a row with a two-sided book (21q)', () => {
+      const items = [{ id: 'gold_bar', name: 'Gold bar', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
+      const v = {
+        markets: [{ itemId: 'gold_bar', bestBid: 100, bestAsk: 120, lastPrice: 150, ema: 150, volume: 1, bestBidIsMine: false, bestAskIsMine: false }],
+      } as unknown as PlayerView;
+      const onToggleFlipAlert = vi.fn();
+      const { container } = render(
+        <WatchlistPanel view={v} items={items} watch={['gold_bar']} alerts={{}} sellAlerts={{}} bandAlerts={{}} richAlerts={{}} flipAlerts={{}} onSelect={() => {}} onRemove={() => {}} onSetAlert={() => {}} onSetSellAlert={() => {}} onToggleBandAlert={() => {}} onToggleRichAlert={() => {}} onToggleFlipAlert={onToggleFlipAlert} />,
+      );
+      const toggle = container.querySelector('.flipalert') as HTMLButtonElement;
+      expect(toggle).toBeTruthy(); // shown — the book is two-sided (flipMargin computable)
+      expect(toggle.getAttribute('aria-pressed')).toBe('false');
+      fireEvent.click(toggle);
+      expect(onToggleFlipAlert).toHaveBeenCalledWith('gold_bar', true); // arms it
+    });
+
+    it('WatchlistPanel omits the flip toggle when no handler is wired (optional prop)', () => {
+      const items = [{ id: 'gold_bar', name: 'Gold bar', baseCost: 100, consumeValue: 200, volatility: 0.08 }] as unknown as ItemDef[];
+      const v = {
+        markets: [{ itemId: 'gold_bar', bestBid: 100, bestAsk: 120, lastPrice: 150, ema: 150, volume: 1, bestBidIsMine: false, bestAskIsMine: false }],
+      } as unknown as PlayerView;
+      const { container } = render(
+        <WatchlistPanel view={v} items={items} watch={['gold_bar']} alerts={{}} sellAlerts={{}} bandAlerts={{}} richAlerts={{}} onSelect={() => {}} onRemove={() => {}} onSetAlert={() => {}} onSetSellAlert={() => {}} onToggleBandAlert={() => {}} onToggleRichAlert={() => {}} />,
+      );
+      expect(container.querySelector('.flipalert')).toBeNull(); // no onToggleFlipAlert → no toggle (existing tests safe)
     });
 
     it('WatchlistPanel arms a value-band take-profit (rich) alert on a banded row', () => {
@@ -2942,6 +2970,15 @@ describe('UI shell', () => {
       expect(richAlertHit(def, 150)).toBe(false); // pos 0.50 → fair
       expect(richAlertHit(def, 110)).toBe(false); // pos 0.10 → cheap
       expect(richAlertHit(undefined, 190)).toBe(false); // no def → never
+    });
+    it('flipAlertHit fires only when the live spread clears the %-of-price margin floor (21q)', () => {
+      // wide spread: bid 100 / ask 120 → buy 101, sell 119, margin = 119−101−floor(119·.02)=16; 16/100 = 16% ≥ 1%
+      expect(flipAlertHit({ bestBid: 100, bestAsk: 120, lastPrice: 100 })).toBe(true);
+      // tight spread eaten by the tax → no profitable flip
+      expect(flipAlertHit({ bestBid: 100, bestAsk: 103, lastPrice: 100 })).toBe(false);
+      expect(flipAlertHit({ bestBid: null, bestAsk: 120, lastPrice: 100 })).toBe(false); // one-sided book
+      expect(flipAlertHit({ bestBid: 100, bestAsk: 120, lastPrice: 0 })).toBe(false); // non-positive price guard
+      expect(flipAlertHit({ bestBid: 100, bestAsk: 120, lastPrice: 100 }, 0.5)).toBe(false); // 16% < a 50% floor
     });
     it('marketMood counts breadth (traded only) and the cheap/rich value spread', () => {
       const items = [
