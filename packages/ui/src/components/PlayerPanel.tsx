@@ -205,11 +205,18 @@ export function PlayerPanel({
               {(() => {
                 const target = repriceTarget(game.world, o);
                 if (target === null) return null;
-                // A BUY re-places at a HIGHER price → needs more escrow than the cancel refunds; skip
-                // when unaffordable so we never cancel and then fail to re-place (dropping the offer).
-                // A SELL re-escrows the same item qty, so it's always safe.
-                const extraNeeded = o.side === 'buy' ? (target - o.price) * o.remaining : 0;
-                if (extraNeeded > view.gp) return null;
+                // Never cancel-then-fail: a SELL re-escrows the same item qty and consumes no buy
+                // allowance, so it's always safe. A BUY can fail the re-place two ways — guard both:
+                if (o.side === 'buy') {
+                  // (a) higher price → needs more gp escrow than the cancel refunds.
+                  if ((target - o.price) * o.remaining > view.gp) return null;
+                  // (b) GE buy-limit allowance is counted at placement and NOT refunded on cancel
+                  // (commands.ts:498), so the re-place is checked against the CURRENT remaining window;
+                  // if o.remaining no longer fits, the place would reject AFTER the cancel fired —
+                  // stranding the offer. Hide the chip then (null = unlimited item, always fits).
+                  const left = view.markets.find((m) => m.itemId === o.itemId)?.buyRemaining;
+                  if (left != null && left < o.remaining) return null;
+                }
                 return (
                   <button
                     className="chip"

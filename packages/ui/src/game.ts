@@ -2257,8 +2257,10 @@ export interface OfflineResult {
   topMover: MarketMover | null;
   /** The biggest move among items you HOLD — what YOUR positions did while away (15x). */
   heldMover: MarketMover | null;
-  /** How many of your resting offers FULLY FILLED while away (19l). Offline the player is idle (no
-   * cancels/re-places — App's replay invariant), so a vanished order can only mean it filled. */
+  /** How many of your resting offers FULLY FILLED while away (19l). A vanished order id means a fill ONLY
+   * for a manual player — the autoFlip Clerk cancels + re-quotes its own orders during the away ticks
+   * (agents.ts:342/382), so we can't tell a fill from a re-quote. Suppressed to 0 when the Clerk is active
+   * (worth Δ already reflects its earnings); exact for a no-Clerk player. (19p) */
   ordersFilled: number;
 }
 
@@ -2302,6 +2304,10 @@ export function finishOfflineProgress(game: Game, plan: OfflinePlan): OfflineRes
   recordWorth(game, worthAfter);
   const after = playerView(game.world, game.playerId);
   const afterIds = new Set((after?.openOrders ?? []).map((o) => o.id));
+  // The autoFlip Clerk cancels + re-quotes its OWN orders during the away ticks (agents.ts:342/382), so a
+  // vanished id is a fill only when no Clerk is running. With the Clerk active we can't tell a fill from a
+  // re-quote → don't claim a count (the worth Δ already reflects what the Clerk earned). 19p (review fix).
+  const clerkActive = (game.world.agents[game.playerId]?.upgrades?.['autoFlip'] ?? 0) >= 1;
   return {
     ticks: plan.ticks,
     worthBefore: plan.worthBefore,
@@ -2310,8 +2316,8 @@ export function finishOfflineProgress(game: Game, plan: OfflinePlan): OfflineRes
     sellswordBanked: (game.world.stats.sellswordBanked ?? 0) - plan.sellswordBanked0,
     topMover: after ? biggestMover(plan.pricesBefore, after.markets) : null,
     heldMover: after ? heldMover(plan.pricesBefore, after.markets, after.inventory) : null,
-    // Offline the player is idle, so a resting id that's gone from the book filled (not cancelled).
-    ordersFilled: plan.openOrderIds0.filter((id) => !afterIds.has(id)).length,
+    // A no-Clerk player is idle offline, so a resting id that's gone from the book filled (not cancelled).
+    ordersFilled: clerkActive ? 0 : plan.openOrderIds0.filter((id) => !afterIds.has(id)).length,
   };
 }
 

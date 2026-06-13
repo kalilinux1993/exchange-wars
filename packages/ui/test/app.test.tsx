@@ -319,6 +319,26 @@ describe('UI shell', () => {
     expect(onCommand).toHaveBeenNthCalledWith(2, { type: 'place', itemId: item, side: 'sell', price: 149, qty: 1 });
   });
 
+  it('the reprice chip is hidden for a BUY the buy-limit window cannot re-place — no strand (19p)', () => {
+    const game = newGame(42);
+    const item = game.world.items[0]!.id;
+    const book = game.world.books[item]!;
+    // a competing buy ABOVE the player's → the player's buy sits behind it → repriceTarget is non-null (101)
+    book.buys.push({ id: 1, tick: 0, agentId: game.playerId + 1, itemId: item, side: 'buy', price: 100, qty: 5, remaining: 5, escrowGp: 500 });
+    book.buys.push({ id: 2, tick: 1, agentId: game.playerId, itemId: item, side: 'buy', price: 90, qty: 10, remaining: 10, escrowGp: 900 });
+    book.buys.sort((a, b) => b.price - a.price || a.tick - b.tick || a.id - b.id);
+    const base = playerView(game.world, game.playerId)!;
+    const order = { id: 2, itemId: item, side: 'buy' as const, price: 90, remaining: 10 };
+    // buy-limit window can only fit 3 more, but the re-place needs 10 → cancel-then-place would strand. Hide it.
+    const tight = { ...base, gp: 1_000_000, openOrders: [order], markets: base.markets.map((m) => (m.itemId === item ? { ...m, bestBid: 100, buyRemaining: 3 } : m)) } as unknown as PlayerView;
+    const { rerender } = render(<PlayerPanel game={game} view={tight} items={game.world.items} onCommand={() => {}} />);
+    expect(screen.queryByRole('button', { name: /reprice/ })).toBeNull();
+    // ample window → the chip returns (re-place would succeed)
+    const roomy = { ...tight, markets: base.markets.map((m) => (m.itemId === item ? { ...m, bestBid: 100, buyRemaining: 999 } : m)) } as unknown as PlayerView;
+    rerender(<PlayerPanel game={game} view={roomy} items={game.world.items} onCommand={() => {}} />);
+    expect(screen.queryByRole('button', { name: /reprice/ })).toBeTruthy();
+  });
+
   it('PlayerPanel shows an open offer rested age and flags a stale one (18i)', () => {
     const game = newGame(42);
     const item = game.world.items[0]!.id;
@@ -638,6 +658,11 @@ describe('UI shell', () => {
     const stillResting = playerView(game2.world, game2.playerId)!.openOrders[0]!.id;
     const res = finishOfflineProgress(game2, { ...plan2, openOrderIds0: [stillResting, 9999] });
     expect(res.ordersFilled).toBe(1); // 9999 vanished (filled); stillResting is still on the book
+
+    // 19p (review fix): with the autoFlip Clerk active, a vanished id might be a Clerk re-quote, not a
+    // fill (agents.ts cancels+re-places), so the count is suppressed to 0 — we won't overclaim.
+    game.world.agents[game.playerId]!.upgrades = { autoFlip: 1 };
+    expect(finishOfflineProgress(game, { ...plan, openOrderIds0: [101, 102] }).ordersFilled).toBe(0);
   });
 
   it('shows the away banner when reopening after time has passed', () => {
