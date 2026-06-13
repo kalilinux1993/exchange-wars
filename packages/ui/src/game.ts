@@ -1625,6 +1625,16 @@ export const MILESTONES: Milestone[] = [
     achieved: (g) => (g.world.stats.eliteSlain ?? 0) >= 1,
   },
   {
+    id: 'apex-predator',
+    name: 'Apex Predator',
+    flavor: 'Skarn, Vorkanth, Zukrath, Vessith — every named terror has fallen to you.',
+    // The elite capstone: all FOUR distinct named elites felled (per-id killsByMonster, like
+    // monster-scholar/realm-conquered) — a deeper bar than elder-slayer's "any one elite". The
+    // collective trophy for the 16w first-kill arc; ELITES is the single elite roster source.
+    achieved: (g) => ELITES.every((e) => (g.world.stats.killsByMonster?.[e.id] ?? 0) > 0),
+    progress: (g) => ELITES.filter((e) => (g.world.stats.killsByMonster?.[e.id] ?? 0) > 0).length / ELITES.length,
+  },
+  {
     id: 'lucky-find',
     name: 'Lucky Find',
     flavor: 'The cache held more than coin.',

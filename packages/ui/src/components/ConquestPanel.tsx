@@ -1,6 +1,6 @@
 import { monsterById, REGIONS } from '@exchange-wars/engine';
 import type { Game } from '../game';
-import { regionMastery, regionRoster } from '../game';
+import { ELITES, regionMastery, regionRoster } from '../game';
 import { MonsterGlyph } from './MonsterBody';
 
 /**
@@ -26,6 +26,41 @@ export function ConquestPanel({ game }: { game: Game }) {
           {mastered}/{REGIONS.length} mastered
         </span>
       </h2>
+      {/* Elite Hunt (16z): the four named elites are scattered one-per-deep-region, so the conquest
+          rosters show each in isolation. This collects them into one tracker — the visible progress
+          toward the Apex Predator deed. ELITES is the single roster source (shared with the deed). */}
+      {(() => {
+        const felled = ELITES.filter((e) => (kills[e.id] ?? 0) > 0).length;
+        const done = felled === ELITES.length;
+        return (
+          <div className={done ? 'elitehunt done' : 'elitehunt'} title="the four named elites — rare bosses, one per deep region. Fell all four for the Apex Predator deed.">
+            <div className="conquest-head">
+              <span>☠ Named Elites</span>
+              <span className="conquestbar" aria-hidden="true">
+                <span style={{ width: `${Math.round((felled / ELITES.length) * 100)}%` }} />
+              </span>
+              <span className={done ? 'pct up' : 'dim small'}>
+                {felled}/{ELITES.length}
+              </span>
+            </div>
+            <div className="conquest-roster" aria-hidden="true">
+              {ELITES.map((e) => {
+                const n = kills[e.id] ?? 0;
+                const slain = n > 0;
+                return (
+                  <span
+                    key={e.id}
+                    className={slain ? 'roster-foe slain' : 'roster-foe unmet'}
+                    title={slain ? `${e.name} — felled ×${n}` : `${e.name} — not yet felled`}
+                  >
+                    <MonsterGlyph monsterId={e.id} size={22} />
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
       <ul className="rows small">
         {rows.map(({ region, m, roster }) => (
           <li key={region.id} className={m.done ? 'conquest-row done' : 'conquest-row'}>

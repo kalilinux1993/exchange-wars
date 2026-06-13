@@ -1767,6 +1767,25 @@ input.belowbe {
   opacity: 0.22;
   filter: grayscale(1);
 }
+/* Elite Hunt (16z): the four named elites collected into one featured tracker above the region
+   rows — gold-bordered to mark it as the capstone, teal once all four have fallen. Reuses the
+   conquest-head/conquestbar/conquest-roster inner classes (NOT .conquest-row, to keep that
+   selector pointing only at region rows). */
+.elitehunt {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0 0 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+}
+.elitehunt.done {
+  border-color: #2dd4bf;
+}
+.elitehunt.done .conquestbar > span {
+  background: #2dd4bf;
+}
 
 /* next-deed progress bar — the closest unearned deeds, at a glance. */
 .deedbar {

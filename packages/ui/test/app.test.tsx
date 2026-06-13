@@ -796,6 +796,20 @@ describe('UI shell', () => {
     expect(r0row.querySelectorAll('.roster-foe').length).toBe(roster.length);
   });
 
+  it('the Conquest panel collects the four named elites into a hunt tracker (16z)', () => {
+    const game = newGame(42);
+    game.world.stats.killsByMonster = { skarn: 1, vorkanth: 3, goblin: 9 }; // 2 of 4 elites felled
+    const { container } = render(<ConquestPanel game={game} />);
+    const hunt = container.querySelector('.elitehunt')!;
+    expect(hunt).toBeTruthy();
+    expect(hunt.classList.contains('done')).toBe(false); // only 2/4 — not complete
+    expect(hunt.textContent).toContain('2/4');
+    expect(hunt.querySelectorAll('.roster-foe.slain').length).toBe(2); // Skarn + Vorkanth lit
+    expect(hunt.querySelectorAll('.roster-foe.unmet').length).toBe(2); // Zukrath + Vessith dim
+    // the elite strip is NOT a region row — the region-row selector still counts only regions
+    expect(container.querySelectorAll('.conquest-row').length).toBe(REGIONS.length);
+  });
+
   describe('arenaTheme (region combat backdrop)', () => {
     it('gives distinct palettes per region and a neutral default for unknown/absent ids', () => {
       const plains = arenaTheme('lumbridge_plains');
@@ -3440,6 +3454,19 @@ describe('UI shell', () => {
     expect(deed.achieved(game, view, 0)).toBe(true);
     expect(deed.progress!(game, view, 0)).toBe(1);
     expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('realm-conquered');
+  });
+
+  it('the Apex Predator deed needs all FOUR named elites felled, with partial progress', () => {
+    const game = newGame(42);
+    const view = playerView(game.world, game.playerId)!;
+    const deed = MILESTONES.find((m) => m.id === 'apex-predator')!;
+    game.world.stats.killsByMonster = { skarn: 1, vorkanth: 2, zukrath: 1 }; // 3 of 4 — Vessith still walks
+    expect(deed.achieved(game, view, 0)).toBe(false);
+    expect(deed.progress!(game, view, 0)).toBeCloseTo(0.75);
+    game.world.stats.killsByMonster.vessith = 1; // the fourth falls
+    expect(deed.achieved(game, view, 0)).toBe(true);
+    expect(deed.progress!(game, view, 0)).toBe(1);
+    expect(checkMilestones(game, view, 0).map((m) => m.id)).toContain('apex-predator'); // latches
   });
 
   it('BountyBoard shows reward-per-kill and a progress bar', () => {
